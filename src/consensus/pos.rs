@@ -232,21 +232,7 @@ impl PoSEngine {
             .get_validator(pubkey)
             .is_some_and(|v| v.active && !v.slashed && v.stake >= self.config.min_stake)
     }
-    #[allow(dead_code)]
-    fn calculate_reward(&self, validator_stake: u64) -> u64 {
-        use crate::core::chain_config::FIXED_POINT_SCALE;
-        let slots_per_year = 365 * 24 * 60 * 60 / self.config.slot_duration;
-        if slots_per_year == 0 {
-            return 1;
-        }
 
-        // reward = (stake * rate) / (slots_per_year * SCALE)
-        let numerator = validator_stake as u128 * self.config.annual_reward_rate as u128;
-        let denominator = slots_per_year as u128 * FIXED_POINT_SCALE as u128;
-
-        let reward = (numerator / denominator) as u64;
-        reward.max(1)
-    }
 
     pub fn serialize_state(&self) -> Result<Vec<u8>, String> {
         let state = serde_json::json!({
