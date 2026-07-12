@@ -124,6 +124,9 @@ pub struct TokenomicsParams {
     /// by `FIXED_POINT_SCALE`. Low/symbolic default; real value is a separate
     /// economic-modelling turn.
     pub tx_fee_burn_ratio_fixed: u64,
+    pub slot_duration_secs: u64,
+    pub epoch_length_slots: u64,
+    pub validator_annual_yield_ratio_fixed: u64,
 }
 
 impl Default for TokenomicsParams {
@@ -147,6 +150,9 @@ impl Default for TokenomicsParams {
             team_vesting_epochs: 4000,
             // Metabolic burn: 1% of each tx fee, symbolic default.
             tx_fee_burn_ratio_fixed: FIXED_POINT_SCALE / 100,
+            slot_duration_secs: 10,
+            epoch_length_slots: 32,
+            validator_annual_yield_ratio_fixed: (FIXED_POINT_SCALE * 5) / 100,
         }
     }
 }
@@ -190,15 +196,14 @@ impl TokenomicsParams {
     
     pub fn calculate_epoch_reward(&self, validator_stake: u64) -> u64 {
         use crate::core::chain_config::FIXED_POINT_SCALE;
-        let slots_per_year = 365 * 24 * 60 * 60 / 10;
-        if slots_per_year == 0 {
-            return 1;
-        }
-        let epoch_length = 32;
+        let seconds_per_year: u128 = 365 * 24 * 60 * 60;
+        let slot_duration = self.slot_duration_secs.max(1) as u128;
+        let slots_per_year = seconds_per_year / slot_duration;
+        if slots_per_year == 0 { return 1; }
 
-        let annual_yield = (validator_stake as u128 * 500) / 10000;
-        let epoch_yield = (annual_yield * epoch_length as u128) / slots_per_year as u128;
-        
+        let annual_yield = (validator_stake as u128 * self.validator_annual_yield_ratio_fixed as u128)
+            / FIXED_POINT_SCALE as u128;
+        let epoch_yield = (annual_yield * self.epoch_length_slots as u128) / slots_per_year;
         epoch_yield.max(1) as u64
     }
 

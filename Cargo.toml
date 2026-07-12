@@ -59,9 +59,9 @@ cryptoki = "0.6"
 secrecy = "0.8"
 async-trait = "0.1"
 rayon = "1.10"
-bud-isa = { path = "../BudZKVM/bud-isa" }
-bud-vm = { path = "../BudZKVM/bud-vm" }
-bud-proof = { path = "../BudZKVM/bud-proof" }
+bud-isa = { path = "/home/user/budlum/repos/BudZero/bud-isa" }
+bud-vm = { path = "/home/user/budlum/repos/BudZero/bud-vm" }
+bud-proof = { path = "/home/user/budlum/repos/BudZero/bud-proof" }
 
 [build-dependencies]
 prost-build = "0.14.3"
