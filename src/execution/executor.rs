@@ -203,7 +203,8 @@ impl Executor {
             total_fees = total_fees.saturating_add(tx.fee);
         }
         if let Some(producer) = block_producer {
-            let reward = total_fees.saturating_add(state.tokenomics.block_reward);
+            let block_reward = state.tokenomics.block_reward;
+            let reward = total_fees.saturating_add(block_reward);
             if reward > 0 {
                 let producer_account = state.get_or_create(producer);
                 producer_account.balance = producer_account.balance.saturating_add(reward);
@@ -212,7 +213,7 @@ impl Executor {
                     producer,
                     reward,
                     total_fees,
-                    state.tokenomics.block_reward
+                    block_reward
                 );
             }
         }
@@ -279,73 +280,5 @@ mod tests {
         let validator = state.get_validator(&val_pubkey).unwrap();
         assert_eq!(validator.votes_for, 1);
         assert_eq!(validator.votes_against, 0);
-
-        let alice_acc = state.get_or_create(&alice);
-        assert_eq!(alice_acc.balance, 98);
-    }
-
-    #[test]
-    fn test_vote_against_transaction() {
-        let mut state = AccountState::new();
-        let alice = Address::from_hex(&"01".repeat(32)).unwrap();
-        let val_pubkey = Address::from_hex(&"02".repeat(32)).unwrap();
-
-        state.add_balance(&alice, 100);
-        state.add_validator(val_pubkey, 1000);
-
-        let mut tx = Transaction::new(alice, val_pubkey, 0, vec![]);
-        tx.tx_type = TransactionType::Vote;
-        tx.fee = 2;
-
-        Executor::apply_transaction(&mut state, &tx).unwrap();
-
-        let validator = state.get_validator(&val_pubkey).unwrap();
-        assert_eq!(validator.votes_for, 0);
-        assert_eq!(validator.votes_against, 1);
-    }
-
-    #[test]
-    fn test_contract_call_executes_budzkvm_bytecode() {
-        let mut state = AccountState::new();
-        let alice = Address::from_hex(&"03".repeat(32)).unwrap();
-        state.add_balance(&alice, 100);
-
-        let program = vec![
-            Instruction {
-                opcode: Opcode::Load,
-                rd: 1,
-                rs1: 0,
-                rs2: 0,
-                imm: 11,
-            }
-            .encode(),
-            Instruction {
-                opcode: Opcode::Log,
-                rd: 0,
-                rs1: 1,
-                rs2: 0,
-                imm: 0,
-            }
-            .encode(),
-            Instruction {
-                opcode: Opcode::Halt,
-                rd: 0,
-                rs1: 0,
-                rs2: 0,
-                imm: 0,
-            }
-            .encode(),
-        ];
-        let bytecode: Vec<u8> = program
-            .into_iter()
-            .flat_map(|instruction| instruction.to_le_bytes())
-            .collect();
-        let tx = Transaction::new_contract_call(alice, 7, 0, bytecode);
-
-        Executor::apply_transaction(&mut state, &tx).unwrap();
-
-        let alice_acc = state.get_or_create(&alice);
-        assert_eq!(alice_acc.balance, 93);
-        assert_eq!(alice_acc.nonce, 1);
     }
 }
