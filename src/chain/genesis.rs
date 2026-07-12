@@ -17,23 +17,13 @@ pub const GENESIS_TIMESTAMP: u128 = 0;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenesisConfig {
     pub chain_id: u64,
-
     pub allocations: Vec<(Address, u64)>,
-
     pub validators: Vec<Address>,
-
     pub block_reward: u64,
-
     pub base_fee: u64,
-
     pub gas_schedule: crate::core::transaction::GasSchedule,
-
     pub timestamp: u128,
 
-    /// Optional $BUD tokenomics (Tur 8/8b). When `Some`, genesis additionally
-    /// seeds the $BUD distribution accounts (Community/Liquidity/Ecosystem/Team/
-    /// BurnReserve) and configures the on-chain burn-reserve address + team
-    /// vesting schedule. Default `None` — plain genesis is unchanged.
     #[serde(default)]
     pub bud_tokenomics: Option<crate::tokenomics::TokenomicsParams>,
 }
@@ -74,16 +64,11 @@ impl GenesisConfig {
         self
     }
 
-    /// Enable $BUD tokenomics for this genesis (Tur 8b): the $BUD distribution
-    /// accounts are seeded and the burn-reserve address + team vesting are
-    /// configured on the resulting state. Uses reserved tokenomics addresses.
-    /// Default genesis is unchanged unless this is explicitly called.
     pub fn with_bud_tokenomics(mut self) -> Self {
         self.bud_tokenomics = Some(crate::tokenomics::TokenomicsParams::default());
         self
     }
 
-    /// Enable $BUD tokenomics with explicit parameters.
     pub fn with_bud_tokenomics_params(
         mut self,
         params: crate::tokenomics::TokenomicsParams,
@@ -129,7 +114,7 @@ impl GenesisConfig {
     pub fn build_state(&self) -> AccountState {
         let mut state = AccountState::new();
         state.base_fee = self.base_fee;
-        state.block_reward = self.block_reward;
+        state.tokenomics.block_reward = self.block_reward; // FIX: block_reward tokenomics'e taşındı
 
         for (address, amount) in &self.allocations {
             state.add_balance(address, *amount);
@@ -140,9 +125,6 @@ impl GenesisConfig {
             state.add_validator(*validator, validator_stake);
         }
 
-        // $BUD tokenomics (Tur 8b): seed the distribution accounts and configure
-        // the on-chain burn-reserve address + team vesting so the timed burn and
-        // vesting enforcement operate on the real chain state.
         if let Some(params) = &self.bud_tokenomics {
             let addrs = crate::tokenomics::TokenomicsAddresses::reserved();
             for (address, amount) in crate::tokenomics::genesis_allocations(params, &addrs) {
@@ -282,7 +264,7 @@ mod tests {
 
         assert_eq!(state.get_balance(&allocation.0), allocation.1);
         assert_eq!(state.base_fee, config.base_fee);
-        assert_eq!(state.block_reward, config.block_reward);
+        assert_eq!(state.tokenomics.block_reward, config.block_reward);
         assert_eq!(
             state.get_validator(&validator).map(|v| v.stake),
             Some(Network::Devnet.min_stake())
