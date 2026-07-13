@@ -841,9 +841,21 @@ impl Blockchain {
                 adapter.verify_finality(domain, commitment, proof)
             }
             ConsensusKind::Zk => {
+                // Tur 12.9: was calling trait verify_finality which ALWAYS
+                // Rejects (by design). That made Zk domains appear wired in
+                // tests/docs while never finalizing on the real path.
+                // Use the claim-bound verifier against ProofClaimRegistry.
                 let adapter = ZkFinalityAdapter;
                 self.ensure_adapter_name(domain, adapter.adapter_name())?;
-                adapter.verify_finality(domain, commitment, proof)
+                let claim_key = crate::prover::ProofClaimKey {
+                    domain_id: commitment.domain_id,
+                    target_height: commitment.domain_height,
+                };
+                let accepted_root = self
+                    .proof_claims
+                    .get(&claim_key)
+                    .map(|c| c.final_state_root);
+                adapter.verify_finality_with_claim(domain, commitment, proof, accepted_root)
             }
             ConsensusKind::Custom(_) => {
                 if let Some(plugin) = self.plugin_registry.get(domain.id) {
@@ -1721,12 +1733,28 @@ impl Blockchain {
         })
     }
 
+    /// Post-import QC fault scan.
+    ///
+    /// Tur 12.9 note: `detect_fault_proofs` only flags signatures that fail
+    /// verification. Blobs that pass `import_qc_blob` have already had every
+    /// signature verified, so this loop is empty by construction after a
+    /// successful import. Real finality invalidation must come from an
+    /// **external** challenge via `handle_qc_fault_proof` (or a future
+    /// challenge RPC), not from re-scanning an already-accepted blob.
     fn maybe_apply_detected_qc_faults(
         &mut self,
         snapshot: &ValidatorSetSnapshot,
         blob: &QcBlob,
     ) -> Result<(), String> {
         let proofs = blob.detect_fault_proofs(snapshot);
+        if !proofs.is_empty() {
+            // Unexpected for post-import path — still apply if present.
+            tracing::warn!(
+                "QC post-import fault scan found {} proof(s) at height {}",
+                proofs.len(),
+                blob.checkpoint_height
+            );
+        }
         for proof in proofs {
             let verdict = proof.verify_against_blob(blob, snapshot)?;
             self.apply_qc_fault_verdict(&proof, verdict)?;

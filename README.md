@@ -5,7 +5,7 @@
 Budlum is a research-grade Layer-1 that does **not** replace other chains. It **settles** them: each domain keeps its own consensus (PoW, PoS, PoA, BFT, ZK, or custom); Budlum verifies finality proofs and records cross-domain value transfer as cryptographic fact.
 
 [![CI](https://github.com/lubosruler/budlum/actions/workflows/ci.yml/badge.svg)](https://github.com/lubosruler/budlum/actions)
-[![Tests](https://img.shields.io/badge/tests-450%20lib-blue)](https://github.com/lubosruler/budlum)
+[![Tests](https://img.shields.io/badge/tests-451%20lib-blue)](https://github.com/lubosruler/budlum)
 [![Rust](https://img.shields.io/badge/rust-1.94%2B-orange)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -96,6 +96,7 @@ Hardening is iterative (Tur 9–12.5). Highlights:
 - BLS keypair load validates G2 encoding and `pk = g·sk`
 - RPC: auth default on for operator profiles; **X-Real-IP only if `trusted_proxies` set**; constant-time API key compare
 - BudZKVM `VerifyMerkle` gated off in Production ISA until Z-B Commit 3.5
+- BudZero CI pin re-aligned (event_digest AIR + public inputs; Tur 12.9)
 
 This is **not** a substitute for a professional external audit.
 
@@ -106,7 +107,7 @@ This is **not** a substitute for a professional external audit.
 ```bash
 cargo fmt --all -- --check
 cargo clippy --lib --tests -- -D warnings
-cargo test --lib          # 450 unit/integration tests (lib)
+cargo test --lib          # 451 unit/integration tests (lib)
 ```
 
 CI (GitHub Actions): fmt → clippy `-D warnings` → `cargo test --lib`, with BudZero checked out as a sibling.

@@ -27,9 +27,14 @@ impl ZkVmExecutor {
         let program = decode_program(bytecode)?;
         let mut vm = Vm::with_gas_limit(8192, gas_limit); // Tur 11 / A11: match compiler heap base 4096
 
-        let receipt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vm.run(&program)))
-            .map_err(|_| "BudZKVM execution failed".to_string())?
-            .map_err(|_| "BudZKVM execution failed".to_string())?;
+        // Tur 12.9: use run_receipt so the trace matches prover/AIR assumptions
+        // (including Z-D terminal Halt row semantics).
+        let receipt =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vm.run_receipt(&program)))
+                .map_err(|_| "BudZKVM execution failed".to_string())?;
+        if !receipt.success {
+            return Err("BudZKVM execution failed".into());
+        }
 
         let public_inputs = build_public_inputs(&program, &vm, &receipt);
         let proof = Prover::prove(&vm.trace, &public_inputs, &program)
@@ -40,7 +45,7 @@ impl ZkVmExecutor {
         Ok(ZkVmReceipt {
             gas_used: receipt.gas_used,
             steps: receipt.trace_len as usize,
-            events: receipt.events,
+            events: receipt.events.clone(),
             proof_bytes: proof.proof_bytes.len(),
         })
     }
@@ -64,9 +69,12 @@ pub fn prove_bytecode(
     }
     let program = decode_program(bytecode)?;
     let mut vm = Vm::with_gas_limit(8192, gas_limit); // Tur 11 / A11: match compiler heap base 4096
-    let receipt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vm.run(&program)))
-        .map_err(|_| "BudZKVM execution failed".to_string())?
-        .map_err(|_| "BudZKVM execution failed".to_string())?;
+    let receipt =
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vm.run_receipt(&program)))
+            .map_err(|_| "BudZKVM execution failed".to_string())?;
+    if !receipt.success {
+        return Err("BudZKVM execution failed".into());
+    }
     let public_inputs = build_public_inputs(&program, &vm, &receipt);
     let proof = Prover::prove(&vm.trace, &public_inputs, &program)
         .map_err(|err| format!("BudZKVM proof generation failed: {err:?}"))?;
@@ -78,6 +86,11 @@ fn build_public_inputs(
     vm: &Vm,
     receipt: &bud_vm::ExecutionReceipt,
 ) -> ExecutionPublicInputs {
+    // Tur 12.9: public inputs must match BudZero AIR bindings.
+    // `event_digest` is NOT a keccak of events — the AIR binds an additive
+    // Log accumulator packed as eight little-endian u32 limbs (limb 0 holds
+    // the sum of Log values). Using keccak here made every prove/verify fail
+    // against BudZero main after Z-A phase2 (InvalidProof), forcing the CI pin.
     ExecutionPublicInputs {
         chain_id: DEFAULT_CHAIN_ID,
         program_hash: hash_u64_words(program),
@@ -90,8 +103,22 @@ fn build_public_inputs(
         gas_used: receipt.gas_used,
         exit_code: receipt.exit_code,
         trace_len: receipt.trace_len,
-        event_digest: hash_u64_words(&receipt.events),
+        event_digest: event_digest_air_limbs(&receipt.events),
     }
+}
+
+/// Pack Log-event accumulator the way `bud-proof` trace_matrix + AIR expect:
+/// limb 0 = sum of (event & 0xFFFF_FFFF) as a u32 LE in bytes[0..4]; other limbs 0.
+fn event_digest_air_limbs(events: &[u64]) -> [u8; 32] {
+    let mut acc: u64 = 0;
+    for e in events {
+        acc = acc.wrapping_add(e & 0xFFFF_FFFF);
+    }
+    let mut out = [0u8; 32];
+    out[0..4].copy_from_slice(&(acc as u32).to_le_bytes());
+    // If the field accumulator exceeds 2^32 (many logs), higher bits are lost
+    // in the public-input packing (also u32 limbs). Matches current AIR.
+    out
 }
 
 fn hash_u64_words(words: &[u64]) -> [u8; 32] {
@@ -157,6 +184,45 @@ mod tests {
 
         assert_eq!(receipt.events, vec![7]);
         assert!(receipt.steps > 0);
+        assert!(receipt.proof_bytes > 0);
+    }
+
+    /// Tur 12.9: Log + prove/verify against BudZero main (event_digest AIR fixed).
+    #[test]
+    fn tur129_log_program_proves_against_budzero_main() {
+        let program = vec![
+            Instruction {
+                opcode: Opcode::Load,
+                rd: 1,
+                rs1: 0,
+                rs2: 0,
+                imm: 7,
+            }
+            .encode(),
+            Instruction {
+                opcode: Opcode::Log,
+                rd: 0,
+                rs1: 1,
+                rs2: 0,
+                imm: 0,
+            }
+            .encode(),
+            Instruction {
+                opcode: Opcode::Halt,
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                imm: 0,
+            }
+            .encode(),
+        ];
+        let bytecode: Vec<u8> = program
+            .into_iter()
+            .flat_map(|instruction| instruction.to_le_bytes())
+            .collect();
+        let receipt = ZkVmExecutor::execute_bytecode(&bytecode, DEFAULT_CONTRACT_GAS_LIMIT)
+            .expect("prove/verify against BudZero main");
+        assert_eq!(receipt.events, vec![7]);
         assert!(receipt.proof_bytes > 0);
     }
 }
