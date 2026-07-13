@@ -65,7 +65,7 @@ graph TD
 
     subgraph "Execution & ZK"
         ChainActor --> Executor["State Executor"]
-        Executor --> ZKVM["BudZKVM (Experimental)"]
+        Executor --> ZKVM["BudZKVM (sibling: lubosruler/BudZero)"]
     end
 
     subgraph "Networking"
@@ -189,12 +189,12 @@ Read the book's [**Production Hardening Status**](docs/en/book/ch12_production_h
 ## ⚡ Quick Start
 
 ### Requirements
-- Rust `1.94.0`, `protoc`, sibling checkout of [BudZKVM](https://github.com/Budlum/BudZKVM)
+- Rust `1.94.0`, `protoc`, sibling checkout of [BudZKVM](https://github.com/lubosruler/BudZero)
 
 ### Build
 ```bash
-git clone https://github.com/Budlum/BudZKVM.git
-git clone https://github.com/rade/budlum-core.git infra
+git clone https://github.com/lubosruler/BudZero.git
+git clone https://github.com/lubosruler/budlum.git infra
 cd infra
 cargo build --release
 ```
@@ -247,6 +247,10 @@ See the [**Protocol Specification**](SPECIFICATION.md) for the full API referenc
 - [x] **Snapshot V2**: Canonical V2 restore, replay equivalence, chunk-session binding.
 - [x] **Observability**: Prometheus live collectors, Metrics wiring.
 - [x] **Deployment**: Docker image, docker-compose, systemd unit, fuzz targets.
+- [x] **Registry Integration** (Tur 5): `state.registry/liveness/invalid_votes` brought back from devnet, 6 cfg(false) test suites reactivated, **408 tests** baseline.
+- [x] **Security Wiring** (Tur 6–7): snapshot timeout fix, bridge lock RPC removal, auth defaults, keyfile mode, QcBlob quorum.
+- [x] **Post-Quantum Architecture** (Tur 8): Dilithium5 integration design, hybrid BLS+PQ roadmap, HNDL threat model — see [`docs/03_post_quantum_security.md`](docs/03_post_quantum_security.md).
+- [ ] **ZKVM BudL Maturity** (tracked in sibling [BudZKVM repo](https://github.com/lubosruler/BudZero)): match expressions ✅ (Tur 8), ADTs/exhaustiveness, witness variables, error spans.
 - [ ] **ZKVM Optimizations**: Improving STARK proof generation performance.
 - [ ] **Formal Verification**: Researching TLA+ models for settlement convergence.
 - [ ] **External Audit**: Professional security review.
