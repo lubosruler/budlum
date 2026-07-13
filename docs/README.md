@@ -13,6 +13,7 @@ Current production-readiness status:
 Specialised deep-dives:
 
 - [Post-quantum security architecture (Tur 8)](03_post_quantum_security.md) — Dilithium5 integration, hybrid roadmap, threat model
+- [Budlum'un Çözebileceği Paradigma Kaymaları](03_paradigma_analizi.md) — 7 yapısal sorun, 7 paradigma kayması, 2035 vizyonu (Türkçe)
 
 ## Sibling Project: BudZKVM
 
