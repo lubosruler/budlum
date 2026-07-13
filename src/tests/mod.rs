@@ -10,8 +10,6 @@ pub mod bridge_lifecycle;
 // replaying the same arithmetic the production code uses, against
 // 3-validator snapshots.
 #[cfg(test)]
-pub mod qcblob_quorum;
-#[cfg(test)]
 pub mod bench_performance;
 #[cfg(test)]
 pub mod block_reward;
@@ -21,6 +19,8 @@ pub mod byzantine_settlement;
 pub mod chaos;
 #[cfg(test)]
 pub mod distributed_settlement;
+#[cfg(test)]
+pub mod qcblob_quorum;
 // Tur 5: re-enabled (was `#![cfg(false)]`'d during Tur 2 ghost-hunting).
 // The permissionless-registry / liveness / invalid-vote state was reinstated
 // on `AccountState`, so these test files now exercise the real code paths

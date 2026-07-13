@@ -222,25 +222,24 @@ mod hardening_tests {
 
     /// DoS-hardening: `MAX_CONCURRENT_SNAPSHOTS` cap değeri pozitif ve
     /// makul (>=1, <=1024) — operatörün keyfi cap'leyebileceği bir yapı.
+    /// Bu invariant compile-time'da kontrol edilir (const block); runtime
+    /// test'i gereksizdir (constant assertion lint uyarısı).
     #[test]
     fn tur6_max_concurrent_snapshots_is_bounded() {
         use crate::network::node::MAX_CONCURRENT_SNAPSHOTS;
-        assert!(MAX_CONCURRENT_SNAPSHOTS >= 1, "cap must be at least 1");
-        assert!(
-            MAX_CONCURRENT_SNAPSHOTS <= 1024,
-            "cap should be modest (got {MAX_CONCURRENT_SNAPSHOTS})"
-        );
+        const { assert!(MAX_CONCURRENT_SNAPSHOTS >= 1, "cap must be at least 1") };
+        const { assert!(MAX_CONCURRENT_SNAPSHOTS <= 1024, "cap should be modest") };
     }
 
     /// DoS-hardening: `SNAPSHOT_SESSION_TIMEOUT_SECS` sıfırdan büyük ve
     /// makul (1 dakika ile 1 saat arası) — çok kısa timeout iyi huylu
     /// snapshot transferleri yanlışlıkla düşürür, çok uzun timeout
-    /// DoS penceresini açar.
+    /// DoS penceresini açar. Compile-time invariant.
     #[test]
     fn tur6_snapshot_session_timeout_is_sane() {
         use crate::network::node::SNAPSHOT_SESSION_TIMEOUT_SECS;
-        assert!(SNAPSHOT_SESSION_TIMEOUT_SECS >= 60);
-        assert!(SNAPSHOT_SESSION_TIMEOUT_SECS <= 3600);
+        const { assert!(SNAPSHOT_SESSION_TIMEOUT_SECS >= 60) };
+        const { assert!(SNAPSHOT_SESSION_TIMEOUT_SECS <= 3600) };
     }
 
     // === TUR 6 SECURITY FIX (Güvenlik Denetimi §5) =========================

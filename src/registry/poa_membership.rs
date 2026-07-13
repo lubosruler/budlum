@@ -290,7 +290,9 @@ mod tests {
     #[test]
     fn application_requires_kyc_commitment() {
         let mut reg = PoaMembershipRegistry::new();
-        let err = reg.submit_application(DOMAIN, addr(2), [0u8; 32]).unwrap_err();
+        let err = reg
+            .submit_application(DOMAIN, addr(2), [0u8; 32])
+            .unwrap_err();
         assert!(matches!(err, PoaMembershipError::MissingKyc));
     }
 

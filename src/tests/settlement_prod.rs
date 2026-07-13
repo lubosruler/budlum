@@ -564,10 +564,7 @@ mod settlement_prod_tests {
         let err = blockchain
             .submit_verified_domain_commitment(c, proof)
             .unwrap_err();
-        assert!(
-            err.contains("signature verification failed"),
-            "got: {err}"
-        );
+        assert!(err.contains("signature verification failed"), "got: {err}");
     }
 
     #[test]
@@ -1101,7 +1098,10 @@ mod settlement_prod_tests {
         };
         c.finality_proof_hash = hash_finality_proof(&proof);
         let err = bc.submit_verified_domain_commitment(c, proof).unwrap_err();
-        assert!(err.contains("Rejected") || err.contains("empty"), "got: {err}");
+        assert!(
+            err.contains("Rejected") || err.contains("empty"),
+            "got: {err}"
+        );
     }
 
     #[test]
@@ -1119,7 +1119,10 @@ mod settlement_prod_tests {
         }
         c.finality_proof_hash = hash_finality_proof(&proof);
         let err = bc.submit_verified_domain_commitment(c, proof).unwrap_err();
-        assert!(err.contains("Rejected") || err.contains("not match"), "got: {err}");
+        assert!(
+            err.contains("Rejected") || err.contains("not match"),
+            "got: {err}"
+        );
     }
 
     // NOTE (Tur 5): the former `zk_finality_accepts_valid_proof_hashes` test was
@@ -1815,15 +1818,37 @@ mod zk_finality_real_proof {
 
     fn sample_bytecode() -> Vec<u8> {
         let program = vec![
-            Instruction { opcode: Opcode::Load, rd: 1, rs1: 0, rs2: 0, imm: 7 }.encode(),
-            Instruction { opcode: Opcode::Log, rd: 0, rs1: 1, rs2: 0, imm: 0 }.encode(),
-            Instruction { opcode: Opcode::Halt, rd: 0, rs1: 0, rs2: 0, imm: 0 }.encode(),
+            Instruction {
+                opcode: Opcode::Load,
+                rd: 1,
+                rs1: 0,
+                rs2: 0,
+                imm: 7,
+            }
+            .encode(),
+            Instruction {
+                opcode: Opcode::Log,
+                rd: 0,
+                rs1: 1,
+                rs2: 0,
+                imm: 0,
+            }
+            .encode(),
+            Instruction {
+                opcode: Opcode::Halt,
+                rd: 0,
+                rs1: 0,
+                rs2: 0,
+                imm: 0,
+            }
+            .encode(),
         ];
         program.into_iter().flat_map(|i| i.to_le_bytes()).collect()
     }
 
     fn real_proof() -> (ProofEnvelope, ExecutionPublicInputs, Vec<u64>) {
-        prove_bytecode(&sample_bytecode(), DEFAULT_CONTRACT_GAS_LIMIT).expect("proving must succeed")
+        prove_bytecode(&sample_bytecode(), DEFAULT_CONTRACT_GAS_LIMIT)
+            .expect("proving must succeed")
     }
 
     fn submission(
@@ -1872,7 +1897,9 @@ mod zk_finality_real_proof {
         // 1) Submit a REAL proof; it is cryptographically verified and recorded.
         let (proof, pi, program) = real_proof();
         bc.state.add_balance(&Address::from([0x55u8; 32]), 1_000);
-        let accepted = bc.submit_zk_proof(submission(&proof, &pi, &program)).unwrap();
+        let accepted = bc
+            .submit_zk_proof(submission(&proof, &pi, &program))
+            .unwrap();
         assert!(matches!(
             accepted,
             crate::prover::ProofAcceptance::Accepted { .. }
@@ -1898,7 +1925,8 @@ mod zk_finality_real_proof {
 
         let (proof, pi, program) = real_proof();
         bc.state.add_balance(&Address::from([0x55u8; 32]), 1_000);
-        bc.submit_zk_proof(submission(&proof, &pi, &program)).unwrap();
+        bc.submit_zk_proof(submission(&proof, &pi, &program))
+            .unwrap();
 
         // Commitment claims a DIFFERENT state root than the accepted proof.
         let mut wrong_root = pi.final_state_root;

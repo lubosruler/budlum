@@ -1,4 +1,6 @@
-use crate::chain::finality::{FinalityAggregator, FinalityCert, Precommit, Prevote, ValidatorEntry, ValidatorSetSnapshot};
+use crate::chain::finality::{
+    FinalityAggregator, FinalityCert, Precommit, Prevote, ValidatorEntry, ValidatorSetSnapshot,
+};
 use crate::chain::genesis::{GenesisConfig, GENESIS_TIMESTAMP};
 use crate::chain::snapshot::PruningManager;
 use crate::consensus::pos::SlashingEvidence;
@@ -75,7 +77,8 @@ impl Blockchain {
             m.chain_height.set(height);
             m.finalized_height.set(self.finalized_height as i64);
             m.blocks_produced.inc();
-            m.finality_lag.set((height as u64).saturating_sub(self.finalized_height) as i64);
+            m.finality_lag
+                .set((height as u64).saturating_sub(self.finalized_height) as i64);
             m.mempool_size.set(self.mempool.len() as i64);
         }
     }
@@ -1312,7 +1315,9 @@ impl Blockchain {
         &mut self,
         submission: crate::prover::ZkProofSubmission,
     ) -> Result<crate::prover::ProofAcceptance, String> {
-        use crate::prover::{AcceptedProofClaim, ClaimDecision, ProofAcceptance, ProofClaimKey, ProofError};
+        use crate::prover::{
+            AcceptedProofClaim, ClaimDecision, ProofAcceptance, ProofClaimKey, ProofError,
+        };
         use bud_proof::ProverAdapter;
 
         // 1. Shape checks.
@@ -1420,7 +1425,7 @@ impl Blockchain {
         closed_epoch: u64,
         participated: &std::collections::HashSet<Address>,
     ) -> usize {
-        let params = self.state.registry.params().clone();
+        let params = *self.state.registry.params();
         let threshold = params.liveness_max_missed_epochs;
         let expected: Vec<Address> = self
             .state
@@ -1481,7 +1486,7 @@ impl Blockchain {
         epoch: u64,
         participated: &std::collections::HashSet<Address>,
     ) -> usize {
-        let params = self.state.registry.params().clone();
+        let params = *self.state.registry.params();
         let expected: Vec<Address> = self
             .state
             .validators
@@ -1495,7 +1500,12 @@ impl Blockchain {
             .collect();
         self.state
             .liveness
-            .record_epoch(epoch, &expected, |addr| participated.contains(addr), &params)
+            .record_epoch(
+                epoch,
+                &expected,
+                |addr| participated.contains(addr),
+                &params,
+            )
             .len()
     }
 
@@ -1507,7 +1517,7 @@ impl Blockchain {
         epoch: u64,
         participated: &std::collections::HashSet<Address>,
     ) -> usize {
-        let params = self.state.registry.params().clone();
+        let params = *self.state.registry.params();
         let expected: Vec<Address> = self.state.validators.keys().copied().collect();
         let reports = self.state.liveness.record_epoch(
             epoch,
@@ -1621,11 +1631,10 @@ impl Blockchain {
         let entries: Vec<ValidatorEntry> = active_validators
             .into_iter()
             .filter_map(|v| {
-                // BLS Proof-of-Possession filter: validators with a BLS key
-                // but an invalid PoP are excluded from the snapshot
-                // (rogue-key protection — see security audit §3). Validators
-                // with no BLS key yet (genesis bypass) keep contributing their
-                // stake but cannot vote in BLS finality.
+                // BLS Proof-of-Possession filter (security audit §3):
+                //   * No BLS key registered → include as-is (genesis bypass).
+                //   * BLS key registered → must have a valid PoP, otherwise
+                //     we exclude the validator (rogue-key protection).
                 let entry = ValidatorEntry {
                     address: v.address,
                     stake: v.stake,
@@ -1633,9 +1642,9 @@ impl Blockchain {
                     pop_signature: v.pop_signature.clone(),
                     pq_public_key: v.pq_public_key.clone(),
                 };
-                if entry.bls_public_key.is_empty() || entry.pop_signature.is_empty() {
-                    Some(entry)
-                } else if crate::chain::finality::verify_pop(&entry) {
+                let has_no_bls_key =
+                    entry.bls_public_key.is_empty() || entry.pop_signature.is_empty();
+                if has_no_bls_key || crate::chain::finality::verify_pop(&entry) {
                     Some(entry)
                 } else {
                     warn!(
@@ -1800,10 +1809,8 @@ impl Blockchain {
         // `verified_qc_blobs` unconditionally. Compute ceil(n*2/3).
         use crate::core::chain_config::{FINALITY_QUORUM_DENOMINATOR, FINALITY_QUORUM_NUMERATOR};
         let n_validators = snapshot.validators.len();
-        let min_signers = (n_validators * FINALITY_QUORUM_NUMERATOR as usize
-            + FINALITY_QUORUM_DENOMINATOR as usize
-            - 1)
-            / FINALITY_QUORUM_DENOMINATOR as usize;
+        let min_signers = (n_validators * FINALITY_QUORUM_NUMERATOR as usize)
+            .div_ceil(FINALITY_QUORUM_DENOMINATOR as usize);
         if blob.pq_signatures.len() < min_signers {
             return Err(format!(
                 "QcBlob has {} signatures, need at least {} (2/3 of {} validators)",
@@ -2079,7 +2086,10 @@ impl Blockchain {
     /// cheap when no transfers are locked. Releases expired `Locked`
     /// transfers back to `Active` so an abandoned lock cannot
     /// permanently DoS the bridge.
-    pub fn apply_bridge_sweep(&mut self, current_height: u64) -> Vec<(crate::cross_domain::AssetId, u128)> {
+    pub fn apply_bridge_sweep(
+        &mut self,
+        current_height: u64,
+    ) -> Vec<(crate::cross_domain::AssetId, u128)> {
         let released = self.bridge_state.sweep_expired_locks(current_height);
         if !released.is_empty() {
             tracing::info!(
@@ -2376,7 +2386,11 @@ impl Blockchain {
         {
             let height = last_block.index;
             if pruning_manager.should_create_snapshot(height) {
-                let genesis_hash = self.chain.first().map(|b| b.hash.clone()).unwrap_or_default();
+                let genesis_hash = self
+                    .chain
+                    .first()
+                    .map(|b| b.hash.clone())
+                    .unwrap_or_default();
                 let certs: Vec<FinalityCert> = self
                     .pending_finality_certs
                     .values()
@@ -2391,10 +2405,8 @@ impl Blockchain {
                     finalized_hash: self.finalized_hash.clone(),
                     finality_certificates: certs,
                 };
-                let v2_snapshot = crate::chain::snapshot::StateSnapshotV2::from_state(
-                    &self.state,
-                    params,
-                );
+                let v2_snapshot =
+                    crate::chain::snapshot::StateSnapshotV2::from_state(&self.state, params);
                 if let Err(e) = pruning_manager.save_snapshot_v2(&v2_snapshot) {
                     warn!("Failed to save V2 snapshot at height {}: {}", height, e);
                 } else {
@@ -2610,7 +2622,11 @@ impl Blockchain {
             .unwrap_or_else(|| self.finalized_hash.clone());
 
         // Produce V2 snapshot with full consensus metadata
-        let genesis_hash = self.chain.first().map(|b| b.hash.clone()).unwrap_or_default();
+        let genesis_hash = self
+            .chain
+            .first()
+            .map(|b| b.hash.clone())
+            .unwrap_or_default();
         let certs: Vec<FinalityCert> = self
             .pending_finality_certs
             .values()
@@ -2772,7 +2788,10 @@ impl Blockchain {
 
         info!(
             "Applied V2 snapshot at height {} (epoch={}, base_fee={}, certs={})",
-            v2.height, v2.epoch_index, v2.base_fee, v2.finality_certificates.len()
+            v2.height,
+            v2.epoch_index,
+            v2.base_fee,
+            v2.finality_certificates.len()
         );
         Ok(())
     }
@@ -2876,24 +2895,23 @@ impl Blockchain {
         // (The threshold-driven slash for sustained garbage-signature spam
         // is enforced inside `InvalidVoteTracker::record_invalid_vote`.)
         if let Some(v) = self.state.validators.get(&vote.voter_id) {
-            if !v.bls_public_key.is_empty() {
-                if crate::chain::finality::verify_bls_sig(
+            if !v.bls_public_key.is_empty()
+                && crate::chain::finality::verify_bls_sig(
                     &v.bls_public_key,
                     &vote.signing_message(),
                     &vote.sig_bls,
                 )
                 .is_err()
-                {
-                    let params = self.state.registry.params().clone();
-                    if let Some(report) = self
-                        .state
+            {
+                let params = *self.state.registry.params();
+                if let Some(report) =
+                    self.state
                         .invalid_votes
                         .record_invalid_vote(vote.epoch, vote.voter_id, &params)
-                    {
-                        let _ = self.submit_registry_slashing_report(report);
-                    }
-                    return Err("Invalid prevote signature".into());
+                {
+                    let _ = self.submit_registry_slashing_report(report);
                 }
+                return Err("Invalid prevote signature".into());
             }
         }
         // Even when `add_prevote` errors (e.g. conflicting-hash vote, duplicate),
@@ -2914,10 +2932,7 @@ impl Blockchain {
         result.map_err(|e| e.to_string())
     }
 
-    pub fn handle_precommit(
-        &mut self,
-        vote: Precommit,
-    ) -> Result<Option<FinalityCert>, String> {
+    pub fn handle_precommit(&mut self, vote: Precommit) -> Result<Option<FinalityCert>, String> {
         // Tur 5: same invalid-signature gate as `handle_prevote`.
         if let Some(v) = self.state.validators.get(&vote.voter_id) {
             if !v.bls_public_key.is_empty() {
@@ -2926,19 +2941,15 @@ impl Blockchain {
                     vote.checkpoint_height,
                     &vote.checkpoint_hash,
                 );
-                if crate::chain::finality::verify_bls_sig(
-                    &v.bls_public_key,
-                    &msg,
-                    &vote.sig_bls,
-                )
-                .is_err()
+                if crate::chain::finality::verify_bls_sig(&v.bls_public_key, &msg, &vote.sig_bls)
+                    .is_err()
                 {
-                    let params = self.state.registry.params().clone();
-                    if let Some(report) = self
-                        .state
-                        .invalid_votes
-                        .record_invalid_vote(vote.epoch, vote.voter_id, &params)
-                    {
+                    let params = *self.state.registry.params();
+                    if let Some(report) = self.state.invalid_votes.record_invalid_vote(
+                        vote.epoch,
+                        vote.voter_id,
+                        &params,
+                    ) {
                         let _ = self.submit_registry_slashing_report(report);
                     }
                     return Err("Invalid precommit signature".into());
@@ -3270,7 +3281,10 @@ mod tests {
 
         bc.produce_block(Address::zero()).unwrap();
 
-        assert_eq!(bc.state.get_balance(&signer_addr), bc.state.tokenomics.block_reward);
+        assert_eq!(
+            bc.state.get_balance(&signer_addr),
+            bc.state.tokenomics.block_reward
+        );
         assert_eq!(bc.state.get_balance(&Address::zero()), 0);
     }
 
@@ -3483,7 +3497,9 @@ mod tests {
         };
         let result = bc.handle_prevote(vote);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No active finality aggregator"));
+        assert!(result
+            .unwrap_err()
+            .contains("No active finality aggregator"));
     }
 
     #[test]
@@ -3500,7 +3516,9 @@ mod tests {
         };
         let result = bc.handle_precommit(vote);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No active finality aggregator"));
+        assert!(result
+            .unwrap_err()
+            .contains("No active finality aggregator"));
     }
 
     #[test]

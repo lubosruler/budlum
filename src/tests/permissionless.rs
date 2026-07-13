@@ -46,7 +46,8 @@ fn relayer_set_is_permissionless_not_fixed() {
     // Several unrelated accounts each become relayers just by staking. This
     // asserts there is no fixed/whitelisted relayer committee.
     for b in [1u8, 2, 3, 4, 5] {
-        reg.register_relayer(addr(b), MIN_REGISTRATION_STAKE, 0).unwrap();
+        reg.register_relayer(addr(b), MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
     }
     assert_eq!(reg.active_members(roles::RELAYER).len(), 5);
 }
@@ -64,7 +65,8 @@ fn verifier_registration_is_open_but_stake_gated_only() {
     );
     // ...but the SAME account succeeds the moment it meets the stake floor,
     // proving the gate is economic, not identity/approval based.
-    reg.register_verifier(addr(1), MIN_REGISTRATION_STAKE, 0).unwrap();
+    reg.register_verifier(addr(1), MIN_REGISTRATION_STAKE, 0)
+        .unwrap();
     assert!(reg.is_active(&addr(1), roles::VERIFIER));
 }
 
@@ -109,7 +111,8 @@ fn permissionless_account_cannot_enter_poa_without_approval() {
 fn poa_requires_admin_approval_not_stake() {
     let mut poa = PoaMembershipRegistry::new();
     poa.add_admin(POA_DOMAIN, addr(100)); // compliance authority
-    poa.submit_application(POA_DOMAIN, addr(2), [9u8; 32]).unwrap();
+    poa.submit_application(POA_DOMAIN, addr(2), [9u8; 32])
+        .unwrap();
     assert!(!poa.is_authorized(POA_DOMAIN, &addr(2)));
 
     // A non-admin (even a heavily-staked one elsewhere) cannot approve.
@@ -127,7 +130,8 @@ fn poa_requires_admin_approval_not_stake() {
 fn poa_membership_does_not_grant_permissionless_roles() {
     let mut poa = PoaMembershipRegistry::new();
     poa.add_admin(POA_DOMAIN, addr(100));
-    poa.submit_application(POA_DOMAIN, addr(2), [9u8; 32]).unwrap();
+    poa.submit_application(POA_DOMAIN, addr(2), [9u8; 32])
+        .unwrap();
     poa.approve(POA_DOMAIN, addr(100), addr(2)).unwrap();
     assert!(poa.is_authorized(POA_DOMAIN, &addr(2)));
 
@@ -145,11 +149,17 @@ fn adding_new_role_type_is_non_breaking() {
     let mut reg = PermissionlessRegistry::new();
     // A future application-layer role that never existed at registry-design time.
     let data_availability_sampler = RoleId::new(50_000);
-    reg.register(addr(1), data_availability_sampler, MIN_REGISTRATION_STAKE, 0)
-        .unwrap();
+    reg.register(
+        addr(1),
+        data_availability_sampler,
+        MIN_REGISTRATION_STAKE,
+        0,
+    )
+    .unwrap();
     assert!(reg.is_active(&addr(1), data_availability_sampler));
     // Pre-existing roles are entirely unaffected.
-    reg.register_validator(addr(2), MIN_REGISTRATION_STAKE, 0).unwrap();
+    reg.register_validator(addr(2), MIN_REGISTRATION_STAKE, 0)
+        .unwrap();
     assert!(reg.is_active(&addr(2), roles::VALIDATOR));
     assert_eq!(reg.active_members(data_availability_sampler).len(), 1);
     assert_eq!(reg.active_members(roles::VALIDATOR).len(), 1);

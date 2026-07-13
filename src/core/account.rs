@@ -256,14 +256,12 @@ impl AccountState {
                 block.burn_reserve_address,
                 block.team_vesting,
             ),
-            None => (
-                crate::tokenomics::TimedBurnState::new(),
-                None,
-                None,
-            ),
+            None => (crate::tokenomics::TimedBurnState::new(), None, None),
         };
-        let mut tokenomics = crate::tokenomics::TokenomicsParams::default();
-        tokenomics.block_reward = snapshot.block_reward;
+        let tokenomics = crate::tokenomics::TokenomicsParams {
+            block_reward: snapshot.block_reward,
+            ..Default::default()
+        };
 
         AccountState {
             accounts,
@@ -315,11 +313,7 @@ impl AccountState {
     /// its `PermissionlessRegistry` membership. Called from `add_validator`
     /// and from the `Stake` / `Unstake` transaction paths.
     pub fn sync_validator_registration(&mut self, address: &Address) {
-        let stake = self
-            .validators
-            .get(address)
-            .map(|v| v.stake)
-            .unwrap_or(0);
+        let stake = self.validators.get(address).map(|v| v.stake).unwrap_or(0);
         self.registry.upsert_stake(
             *address,
             crate::registry::role::roles::VALIDATOR,
@@ -407,12 +401,8 @@ impl AccountState {
         epoch: u64,
         participated: &std::collections::HashSet<Address>,
     ) -> Vec<crate::registry::evidence::SlashingReport> {
-        let params = self.registry.params().clone();
-        let expected: Vec<Address> = self
-            .validators
-            .keys()
-            .copied()
-            .collect();
+        let params = *self.registry.params();
+        let expected: Vec<Address> = self.validators.keys().copied().collect();
         self.liveness.record_epoch(
             epoch,
             &expected,
@@ -434,7 +424,7 @@ impl AccountState {
             .values()
             .filter(|v| v.active && !v.slashed)
             .collect();
-        validators.sort_by(|a, b| a.address.cmp(&b.address));
+        validators.sort_by_key(|a| a.address);
         validators
     }
     pub fn get_validator(&self, address: &Address) -> Option<&Validator> {
@@ -582,14 +572,12 @@ impl AccountState {
         // the rest of the node (consensus, RPC) checks, so an account that
         // was slashed at the account-state layer must also become inactive in
         // the registry — otherwise the same offence would be paid-for twice.
-        let _ = self
-            .registry
-            .slash(
-                *address,
-                crate::registry::role::roles::VALIDATOR,
-                crate::registry::permissionless::SlashingCondition::LivenessFault,
-                slash_ratio_fixed,
-            );
+        let _ = self.registry.slash(
+            *address,
+            crate::registry::role::roles::VALIDATOR,
+            crate::registry::permissionless::SlashingCondition::LivenessFault,
+            slash_ratio_fixed,
+        );
 
         tracing::info!(
             "Slashed validator {} for {} stake due to {} (Jailed until epoch {})",
@@ -621,7 +609,7 @@ impl AccountState {
     }
 
     /// Record consensus participation for the epoch that just completed and
-
+    /// ... [doc continues]
     pub fn advance_epoch(&mut self, current_timestamp: u128) {
         let total_stake = self.get_total_stake();
         let quorum_pct = 33; // 33% stake required for quorum
@@ -669,17 +657,18 @@ impl AccountState {
                 }
             }
         }
-        
+
         // DP2: Check supply cap
         // The total supply cap is 100M. We must ensure we don't mint past it.
         let current_supply = self.circulating_supply();
         let max_supply = crate::tokenomics::BUD_TOTAL_SUPPLY as u128;
-        
+
         if current_supply < max_supply {
             let space_left = max_supply - current_supply;
             if total_yield as u128 > space_left {
                 for (addr, amount) in payouts {
-                    let scaled_amount = ((amount as u128 * space_left) / total_yield as u128) as u64;
+                    let scaled_amount =
+                        ((amount as u128 * space_left) / total_yield as u128) as u64;
                     if scaled_amount > 0 {
                         self.add_balance(&addr, scaled_amount);
                     }
@@ -800,11 +789,7 @@ impl AccountState {
     /// `genesis_epoch` is the epoch tokenomics started (usually 0);
     /// `reserve_addr` is the on-chain burn-reserve account.
     /// Returns the total amount burned by this call.
-    pub fn process_timed_burn(
-        &mut self,
-        genesis_epoch: u64,
-        reserve_addr: &Address,
-    ) -> u64 {
+    pub fn process_timed_burn(&mut self, genesis_epoch: u64, reserve_addr: &Address) -> u64 {
         let epochs_per_year = self.tokenomics.epochs_per_year;
         let due = self
             .timed_burn
@@ -824,13 +809,11 @@ impl AccountState {
                 break;
             }
             total = total.saturating_add(burned);
-            self.timed_burn.total_burned =
-                self.timed_burn.total_burned.saturating_add(burned);
+            self.timed_burn.total_burned = self.timed_burn.total_burned.saturating_add(burned);
         }
         self.timed_burn.years_burned = due;
         total
     }
-
 
     pub fn save_to_storage(&self) -> Result<(), String> {
         let storage = match &self.storage {
@@ -1218,8 +1201,12 @@ mod tests {
         let after_supply = state.circulating_supply();
 
         // Dağıtılan miktar supply cap'i ASLA aşmamalı
-        assert!(after_supply <= crate::tokenomics::BUD_TOTAL_SUPPLY as u128,
-                "Supply cap aşıldı: {} > {}", after_supply, crate::tokenomics::BUD_TOTAL_SUPPLY);
+        assert!(
+            after_supply <= crate::tokenomics::BUD_TOTAL_SUPPLY as u128,
+            "Supply cap aşıldı: {} > {}",
+            after_supply,
+            crate::tokenomics::BUD_TOTAL_SUPPLY
+        );
 
         // En azından bazı ödül dağıtılmış olmalı (eğer cap'e ulaşmadıysa)
         if before_supply < crate::tokenomics::BUD_TOTAL_SUPPLY as u128 {

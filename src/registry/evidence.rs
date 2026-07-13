@@ -140,7 +140,10 @@ impl std::fmt::Display for EvidenceError {
             }
             EvidenceError::EmptyProofTag => write!(f, "opaque proof has an empty tag"),
             EvidenceError::InsufficientInvalidVoteCount => {
-                write!(f, "invalid-signature-spam proof does not cross its threshold")
+                write!(
+                    f,
+                    "invalid-signature-spam proof does not cross its threshold"
+                )
             }
             EvidenceError::Unverified => {
                 write!(f, "cannot slash on an unverified evidence report")

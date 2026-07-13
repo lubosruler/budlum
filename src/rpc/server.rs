@@ -244,8 +244,7 @@ impl RpcServer {
         use jsonrpsee::server::ServerBuilder;
         let http_middleware =
             ServiceBuilder::new().layer(RpcSecurityLayer::new(self.security.clone()));
-        let mut builder = ServerBuilder::default()
-            .set_http_middleware(http_middleware);
+        let mut builder = ServerBuilder::default().set_http_middleware(http_middleware);
 
         if let Some(limit) = self.security.max_request_body_size {
             builder = builder.max_request_body_size(limit);
@@ -1262,7 +1261,10 @@ mod security_tests {
         };
 
         // Without trusted proxies and without x-real-ip, no IP can be extracted
-        let ip = extract_client_ip(&config, &request_with_headers(&[("x-forwarded-for", "10.0.0.100")]));
+        let ip = extract_client_ip(
+            &config,
+            &request_with_headers(&[("x-forwarded-for", "10.0.0.100")]),
+        );
         assert!(ip.is_none());
     }
 
@@ -1293,7 +1295,11 @@ mod security_tests {
             ..Default::default()
         };
         let rates = Arc::new(Mutex::new(HashMap::new()));
-        assert!(is_per_ip_rate_limited(&config, &rates, Some("1.1.1.1".parse().unwrap())));
+        assert!(is_per_ip_rate_limited(
+            &config,
+            &rates,
+            Some("1.1.1.1".parse().unwrap())
+        ));
     }
 
     #[test]

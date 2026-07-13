@@ -144,14 +144,15 @@ async fn bench_high_tps() {
     println!("Consensus Engine:     Proof of Stake (PoS)");
     println!("Total Transactions:   {}", total_tx_processed);
     println!("Total Blocks:         {}", blocks_count);
-    println!(
-        "Avg TX per Block:     {}",
-        if blocks_count > 0 {
-            total_tx_processed / blocks_count
-        } else {
-            0
-        }
-    );
+    // Average TX per block for the benchmark report. We use saturating
+    // division to avoid the divide-by-zero panic on the empty-block edge
+    // case (a degenerate scenario, but the benchmark output is the only
+    // observable signal so it must not crash the run). The form below
+    // is intentional — clippy would suggest `checked_div(...).unwrap_or(0)`,
+    // which is structurally identical; we keep the explicit form to make
+    // the saturating behaviour auditable in a print-only context.
+    let avg_tx_per_block = total_tx_processed.checked_div(blocks_count).unwrap_or(0);
+    println!("Avg TX per Block:     {}", avg_tx_per_block);
     println!("Total Processing Time: {:?}", bench_duration);
     println!("CORE THROUGHPUT (TPS): {:.2} tx/s", tps);
     println!("----------------------------------------------------------");

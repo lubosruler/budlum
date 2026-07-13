@@ -181,8 +181,8 @@ impl DomainFinalityAdapter for PoWFinalityAdapter {
                 // at least `confirmations * min_work_per_confirmation`. This stops
                 // a submitter from claiming a huge confirmation depth backed by a
                 // tiny amount of work (the core weakness the audit flagged).
-                let required_work = (*confirmations as u128)
-                    .saturating_mul(self.min_work_per_confirmation);
+                let required_work =
+                    (*confirmations as u128).saturating_mul(self.min_work_per_confirmation);
                 if *declared_cumulative_work < required_work {
                     return Ok(FinalityStatus::Rejected(format!(
                         "PoW declared work {} inconsistent with {} confirmations (need >= {})",
@@ -302,7 +302,8 @@ impl Default for PoAFinalityAdapter {
 impl PoAFinalityAdapter {
     /// Number of authority signatures required for finality: ceil(N * num / den).
     pub fn required_signatures(&self, authority_count: usize) -> usize {
-        ((authority_count as u64 * self.quorum_numerator).div_ceil(self.quorum_denominator)) as usize
+        ((authority_count as u64 * self.quorum_numerator).div_ceil(self.quorum_denominator))
+            as usize
     }
 }
 

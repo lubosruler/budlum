@@ -125,7 +125,7 @@ pub struct TokenomicsParams {
     /// economic-modelling turn.
     pub tx_fee_burn_ratio_fixed: u64,
 
-    /// Block reward (minted per block to the producer). 
+    /// Block reward (minted per block to the producer).
     /// Constant emission, not bounded by the genesis supply. (Tur 24, DP3-A)
     pub block_reward: u64,
 
@@ -159,7 +159,7 @@ impl Default for TokenomicsParams {
             tx_fee_burn_ratio_fixed: FIXED_POINT_SCALE / 100,
             // 50 BUD minted per block to the producer.
             block_reward: 50,
-            
+
             // Stake Yield Defaults (Tur 25)
             validator_annual_yield_ratio_fixed: (FIXED_POINT_SCALE * 5) / 100, // 5% APY
             slot_duration_secs: 10, // 10 seconds per slot
@@ -204,7 +204,7 @@ impl TokenomicsParams {
     }
 
     /// The per-year burn amount (of the original reserve), in base units.
-        pub fn calculate_epoch_reward(&self, validator_stake: u64) -> u64 {
+    pub fn calculate_epoch_reward(&self, validator_stake: u64) -> u64 {
         use crate::core::chain_config::FIXED_POINT_SCALE;
         // Per-epoch reward formula.
         //
@@ -249,8 +249,6 @@ impl TokenomicsParams {
         use crate::core::chain_config::FIXED_POINT_SCALE;
         ((fee as u128 * self.tx_fee_burn_ratio_fixed as u128) / FIXED_POINT_SCALE as u128) as u64
     }
-
-
 }
 
 /// Genesis addresses for the tokenomics allocation accounts. In a real
@@ -356,14 +354,22 @@ mod tests {
     #[test]
     fn total_supply_fits_u64_and_matches() {
         assert_eq!(BUD_TOTAL_SUPPLY, 100_000_000 * 1_000_000);
-        // Well under u64::MAX.
-        assert!(BUD_TOTAL_SUPPLY < u64::MAX / 1000);
+        // Compile-time invariant: total supply well under u64::MAX so that
+        // balance arithmetic never overflows in any of the burn / mint
+        // paths (saturating_* still works if it does, but the constant
+        // is small enough to skip that worry entirely).
+        const { assert!(BUD_TOTAL_SUPPLY < u64::MAX / 1000) };
     }
 
     #[test]
     fn default_distribution_is_balanced() {
         let p = TokenomicsParams::default();
-        assert!(p.is_balanced(), "sum={} expected={}", p.total(), BUD_TOTAL_SUPPLY);
+        assert!(
+            p.is_balanced(),
+            "sum={} expected={}",
+            p.total(),
+            BUD_TOTAL_SUPPLY
+        );
         assert_eq!(p.community, bud(10_000_000));
         assert_eq!(p.burn_reserve, bud(40_000_000));
     }
@@ -378,7 +384,7 @@ mod tests {
         };
         assert_eq!(v.unlocked_at(0), 0);
         assert_eq!(v.unlocked_at(999), 0); // before cliff
-        // At cliff: linear-from-start => 1000/4000 = 25%.
+                                           // At cliff: linear-from-start => 1000/4000 = 25%.
         assert_eq!(v.unlocked_at(1000), bud(5_000_000));
         assert_eq!(v.unlocked_at(2000), bud(10_000_000));
         assert_eq!(v.unlocked_at(4000), bud(20_000_000));
@@ -410,7 +416,6 @@ mod tests {
 
     #[test]
     fn calculate_epoch_reward_regression_equivalence() {
-        use crate::core::chain_config::FIXED_POINT_SCALE;
         let params = TokenomicsParams::default();
 
         // Eski hardcoded değerlerle birebir aynı sonucu üretmeli
@@ -420,7 +425,11 @@ mod tests {
         for stake in test_stakes {
             let result = params.calculate_epoch_reward(stake);
             // Default parametrelerle eski mantıkla aynı olmalı
-            assert!(result > 0 || stake == 0, "Stake {} için ödül 0 olmamalı", stake);
+            assert!(
+                result > 0 || stake == 0,
+                "Stake {} için ödül 0 olmamalı",
+                stake
+            );
         }
     }
 
@@ -434,27 +443,47 @@ mod tests {
         // 1. slot_duration_secs'i değiştir
         params.slot_duration_secs = 5; // yarıya indir
         let faster_slot_reward = params.calculate_epoch_reward(base_stake);
-        assert!(faster_slot_reward > base_reward, "Daha kısa slot süresi daha yüksek ödül vermeli");
+        assert!(
+            faster_slot_reward > base_reward,
+            "Daha kısa slot süresi daha yüksek ödül vermeli"
+        );
 
         // 2. epoch_length_slots'i değiştir
         params = TokenomicsParams::default();
         params.epoch_length_slots = 64; // 2 katına çıkar
         let longer_epoch_reward = params.calculate_epoch_reward(base_stake);
-        assert!(longer_epoch_reward > base_reward, "Daha uzun epoch daha yüksek ödül vermeli");
+        assert!(
+            longer_epoch_reward > base_reward,
+            "Daha uzun epoch daha yüksek ödül vermeli"
+        );
 
         // 3. validator_annual_yield_ratio_fixed'i 2 katına çıkar
         params = TokenomicsParams::default();
         params.validator_annual_yield_ratio_fixed *= 2;
         let double_yield_reward = params.calculate_epoch_reward(base_stake);
-        assert!(double_yield_reward >= base_reward * 2 - 10, "2x APY yaklaşık 2x ödül vermeli");
+        assert!(
+            double_yield_reward >= base_reward * 2 - 10,
+            "2x APY yaklaşık 2x ödül vermeli"
+        );
     }
 
     #[test]
     fn calculate_epoch_reward_uses_fixed_point_scale() {
-        // FIXED_POINT_SCALE gerçekten kullanılıyor mu kontrolü
+        // FIXED_POINT_SCALE gerçekten kullanılıyor mu kontrolü.
+        // This is a smoke test: the function must not panic for any
+        // positive stake and must respect the fixed-point scale. (No
+        // `assert!(true)` — clippy's `assertions_on_constants` would
+        // reject it. The real invariant is that the function never
+        // returns a value > stake * APY * lifetime, and the parametric
+        // test above covers the relative monotonicity.)
         let params = TokenomicsParams::default();
-        // Bu test sadece derleme ve çalışma kontrolü için
-        let _ = params.calculate_epoch_reward(1_000_000);
-        assert!(true);
+        for stake in [0u64, 1, 1_000, 1_000_000, 1_000_000_000] {
+            let reward = params.calculate_epoch_reward(stake);
+            if stake == 0 {
+                assert!(reward <= 1, "zero-stake reward should be trivial");
+            } else {
+                assert!(reward > 0, "positive stake must produce a reward");
+            }
+        }
     }
 }

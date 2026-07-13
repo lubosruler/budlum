@@ -88,10 +88,7 @@ impl LivenessTracker {
             let current = *count;
 
             // Threshold of 0 disables liveness slashing entirely.
-            if threshold > 0
-                && current >= threshold
-                && !self.reported.contains_key(validator)
-            {
+            if threshold > 0 && current >= threshold && !self.reported.contains_key(validator) {
                 let start = self
                     .streak_start_epoch
                     .get(validator)

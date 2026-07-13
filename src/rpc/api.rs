@@ -174,8 +174,10 @@ pub trait BudlumApi {
     /// Register for a role by submitting a `Stake` transaction. Staking == being
     /// registered; there is no separate approval step. Returns the tx hash.
     #[method(name = "bud_registryRegister")]
-    async fn registry_register(&self, tx: Transaction)
-        -> Result<serde_json::Value, ErrorObjectOwned>;
+    async fn registry_register(
+        &self,
+        tx: Transaction,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Register as a relayer by bonding stake. Staking == registration; no
     /// whitelist or approval. Returns the resulting relayer status.

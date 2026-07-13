@@ -75,13 +75,7 @@ fn make_snapshot_with_keys(n: usize, stake_each: u64) -> (ValidatorSetSnapshot, 
 }
 
 /// Gerçek BLS imzalı bir prevote üretir.
-fn signed_prevote(
-    sk: &Scalar,
-    epoch: u64,
-    height: u64,
-    hash: &str,
-    voter: Address,
-) -> Prevote {
+fn signed_prevote(sk: &Scalar, epoch: u64, height: u64, hash: &str, voter: Address) -> Prevote {
     let mut v = Prevote {
         epoch,
         checkpoint_height: height,
@@ -94,13 +88,7 @@ fn signed_prevote(
 }
 
 /// Gerçek BLS imzalı bir precommit üretir (imza `hash` üzerinden).
-fn signed_precommit(
-    sk: &Scalar,
-    epoch: u64,
-    height: u64,
-    hash: &str,
-    voter: Address,
-) -> Precommit {
+fn signed_precommit(sk: &Scalar, epoch: u64, height: u64, hash: &str, voter: Address) -> Precommit {
     let msg = checkpoint_signing_message(epoch, height, hash);
     Precommit {
         epoch,
@@ -146,7 +134,10 @@ fn finality_rejects_equivocating_voter() {
     // Voter 0, doğru hash'e (HASH_A) oy verir -> kabul, evidence yok.
     let pv_a = signed_prevote(&sks[0], epoch, height, "HASH_A", snap.validators[0].address);
     agg.add_prevote(pv_a).expect("first (honest) vote accepted");
-    assert!(agg.detected_equivocations.is_empty(), "tek dürüst oy evidence üretmemeli");
+    assert!(
+        agg.detected_equivocations.is_empty(),
+        "tek dürüst oy evidence üretmemeli"
+    );
 
     // Aynı voter, ÇELİŞKİLİ hash'e (HASH_B) oy verir -> sayıma girmez ama
     // equivocation evidence üretir.
@@ -173,7 +164,11 @@ fn finality_rejects_equivocating_voter() {
         err2.contains("Duplicate"),
         "beklenen 'Duplicate', görülen: {err2}"
     );
-    assert_eq!(agg.detected_equivocations.len(), 1, "duplicate yeni evidence üretmemeli");
+    assert_eq!(
+        agg.detected_equivocations.len(),
+        1,
+        "duplicate yeni evidence üretmemeli"
+    );
 
     // Yalnızca tek (dürüst) oy sayıldı; equivocation quorum'u zorlayamadı.
     assert_eq!(agg.prevotes.len(), 1);
@@ -243,14 +238,20 @@ fn finality_recovers_honest_subset_after_invalid_signature() {
     let err = agg
         .add_precommit(bad_pc)
         .expect_err("geçersiz imza ingest'te reddedilmeli");
-    assert!(err.contains("Invalid precommit signature"), "görülen: {err}");
+    assert!(
+        err.contains("Invalid precommit signature"),
+        "görülen: {err}"
+    );
 
     // Dürüst 3/4 precommit -> quorum karşılanır.
     for i in 0..3 {
         let pc = signed_precommit(&sks[i], epoch, height, hash, snap.validators[i].address);
         agg.add_precommit(pc).expect("honest precommit accepted");
     }
-    assert!(agg.precommit_quorum_reached, "dürüst 3/4 quorum'u karşılamalı");
+    assert!(
+        agg.precommit_quorum_reached,
+        "dürüst 3/4 quorum'u karşılamalı"
+    );
 
     // Cert üretilir VE doğrulanır — dürüst alt-küme kötü aktöre rağmen finalize etti.
     let cert = agg.try_produce_cert().expect("honest subset cert produced");
@@ -311,8 +312,14 @@ fn finality_prevents_split_brain_on_partition() {
     }
 
     // İki taraf da quorum altında -> hiçbir cert yok.
-    assert!(!agg_a.prevote_quorum_reached, "grup A tek başına finalize edememeli");
-    assert!(!agg_b.prevote_quorum_reached, "grup B tek başına finalize edememeli");
+    assert!(
+        !agg_a.prevote_quorum_reached,
+        "grup A tek başına finalize edememeli"
+    );
+    assert!(
+        !agg_b.prevote_quorum_reached,
+        "grup B tek başına finalize edememeli"
+    );
     assert!(agg_a.try_produce_cert().is_none());
     assert!(agg_b.try_produce_cert().is_none());
 }
@@ -352,10 +359,17 @@ fn finality_ignores_late_votes_after_cert() {
 
     // (b) Yeni (4.) validator'dan geç oy; state bozulmamalı, cert bağlamı sabit.
     let late = signed_precommit(&sks[3], epoch, height, hash, snap.validators[3].address);
-    agg.add_precommit(late).expect("new late precommit ingested");
+    agg.add_precommit(late)
+        .expect("new late precommit ingested");
     let cert2 = agg.try_produce_cert().expect("cert still producible");
-    assert_eq!(cert2.checkpoint_hash, original_hash, "checkpoint hash değişmemeli");
-    assert_eq!(cert2.checkpoint_height, original_height, "yükseklik değişmemeli");
+    assert_eq!(
+        cert2.checkpoint_hash, original_hash,
+        "checkpoint hash değişmemeli"
+    );
+    assert_eq!(
+        cert2.checkpoint_height, original_height,
+        "yükseklik değişmemeli"
+    );
     cert2.verify(&snap).expect("post-late cert still verifies");
 }
 
@@ -388,7 +402,10 @@ fn finality_honest_quorum_survives_byzantine_noise() {
 
     // 5 dürüst prevote.
     drive_prevote_quorum(&mut agg, &snap, &sks, 5, epoch, height, honest_hash);
-    assert!(agg.prevote_quorum_reached, "dürüst 5/7 quorum'u karşılamalı");
+    assert!(
+        agg.prevote_quorum_reached,
+        "dürüst 5/7 quorum'u karşılamalı"
+    );
 
     // Byzantine gürültü precommit fazında da tekrar denesin -> yine reddedilir.
     for i in 5..7 {
@@ -397,20 +414,33 @@ fn finality_honest_quorum_survives_byzantine_noise() {
             checkpoint_height: height,
             checkpoint_hash: byz_hash.to_string(),
             voter_id: snap.validators[i].address,
-            sig_bls: sign_bls(&sks[i], &checkpoint_signing_message(epoch, height, byz_hash)),
+            sig_bls: sign_bls(
+                &sks[i],
+                &checkpoint_signing_message(epoch, height, byz_hash),
+            ),
         };
-        assert!(agg.add_precommit(noise).is_err(), "byzantine precommit reddedilmeli");
+        assert!(
+            agg.add_precommit(noise).is_err(),
+            "byzantine precommit reddedilmeli"
+        );
     }
 
     // 5 dürüst precommit -> quorum, cert üretilir ve DOĞRULANIR.
     for i in 0..5 {
-        let pc = signed_precommit(&sks[i], epoch, height, honest_hash, snap.validators[i].address);
+        let pc = signed_precommit(
+            &sks[i],
+            epoch,
+            height,
+            honest_hash,
+            snap.validators[i].address,
+        );
         agg.add_precommit(pc).expect("honest precommit accepted");
     }
     assert!(agg.precommit_quorum_reached);
     let cert = agg.try_produce_cert().expect("honest cert produced");
     assert_eq!(cert.signer_count(7), 5);
-    cert.verify(&snap).expect("honest quorum cert must verify despite noise");
+    cert.verify(&snap)
+        .expect("honest quorum cert must verify despite noise");
 }
 
 // =============================================================================
@@ -587,7 +617,11 @@ fn equivocation_slashing_record_survives_snapshot_roundtrip() {
 
     // Slash uygulandı VE kalıcı geçmişe yazıldı.
     let history_before = bc.state.registry.slashing_history_for(&equivocator);
-    assert_eq!(history_before.len(), 1, "equivocation kalıcı geçmişe yazılmalı");
+    assert_eq!(
+        history_before.len(),
+        1,
+        "equivocation kalıcı geçmişe yazılmalı"
+    );
     let rec_penalty = history_before[0].penalty;
     let rec_remaining = history_before[0].remaining_stake;
     assert!(matches!(
@@ -612,7 +646,11 @@ fn equivocation_slashing_record_survives_snapshot_roundtrip() {
 
     // Kayıt hayatta ve birebir aynı.
     let history_after = restored_state.registry.slashing_history_for(&equivocator);
-    assert_eq!(history_after.len(), 1, "restore sonrası kayıt kaybolmamalı (Tur 9 dersi)");
+    assert_eq!(
+        history_after.len(),
+        1,
+        "restore sonrası kayıt kaybolmamalı (Tur 9 dersi)"
+    );
     assert_eq!(history_after[0].report.offender, equivocator);
     assert_eq!(history_after[0].penalty, rec_penalty);
     assert_eq!(history_after[0].remaining_stake, rec_remaining);
@@ -649,7 +687,11 @@ fn repeated_invalid_signatures_trigger_slash() {
     bc.state.add_balance(&honest, 10_000);
     bc.state.add_validator(honest, 10_000);
     bc.state.add_validator(spammer, 10_000);
-    bc.state.validators.get_mut(&spammer).unwrap().bls_public_key = spammer_pk;
+    bc.state
+        .validators
+        .get_mut(&spammer)
+        .unwrap()
+        .bls_public_key = spammer_pk;
 
     // Küçük eşik ile testi hızlandır.
     let threshold = 3u64;
@@ -678,7 +720,10 @@ fn repeated_invalid_signatures_trigger_slash() {
         let _ = bc.handle_prevote(bad);
     }
     let mid = bc.state.registry.get(&spammer, roles::VALIDATOR).unwrap();
-    assert!(matches!(mid.status, MemberStatus::Active), "eşik altında slash olmamalı");
+    assert!(
+        matches!(mid.status, MemberStatus::Active),
+        "eşik altında slash olmamalı"
+    );
     assert_eq!(mid.stake, 10_000);
 
     // Eşiği aşan geçersiz imza -> slash.
@@ -698,7 +743,10 @@ fn repeated_invalid_signatures_trigger_slash() {
         after.status
     );
     // MaliciousBehaviour oranı %100 (onaylı karar): stake sıfırlanır.
-    assert_eq!(after.stake, 0, "invalid-sig spam MaliciousBehaviour %100 kesmeli");
+    assert_eq!(
+        after.stake, 0,
+        "invalid-sig spam MaliciousBehaviour %100 kesmeli"
+    );
     // Kalıcı geçmişte InvalidSignatureSpam kaydı var.
     let hist = bc.state.registry.slashing_history_for(&spammer);
     assert_eq!(hist.len(), 1);
@@ -708,7 +756,11 @@ fn repeated_invalid_signatures_trigger_slash() {
     ));
     // Dürüst validator etkilenmez.
     assert!(matches!(
-        bc.state.registry.get(&honest, roles::VALIDATOR).unwrap().status,
+        bc.state
+            .registry
+            .get(&honest, roles::VALIDATOR)
+            .unwrap()
+            .status,
         MemberStatus::Active
     ));
 }
@@ -734,7 +786,11 @@ fn invalid_signatures_below_threshold_do_not_slash() {
     bc.state.add_balance(&honest, 10_000);
     bc.state.add_validator(honest, 10_000);
     bc.state.add_validator(spammer, 10_000);
-    bc.state.validators.get_mut(&spammer).unwrap().bls_public_key = spammer_pk;
+    bc.state
+        .validators
+        .get_mut(&spammer)
+        .unwrap()
+        .bls_public_key = spammer_pk;
 
     let threshold = 5u64;
     bc.state.registry.set_params(RegistryParams {
@@ -763,10 +819,16 @@ fn invalid_signatures_below_threshold_do_not_slash() {
     }
 
     let reg = bc.state.registry.get(&spammer, roles::VALIDATOR).unwrap();
-    assert!(matches!(reg.status, MemberStatus::Active), "eşik altında slash olmamalı");
+    assert!(
+        matches!(reg.status, MemberStatus::Active),
+        "eşik altında slash olmamalı"
+    );
     assert_eq!(reg.stake, 10_000);
     assert!(bc.state.registry.slashing_history_for(&spammer).is_empty());
-    assert_eq!(bc.state.invalid_votes.invalid_count(&spammer), threshold - 1);
+    assert_eq!(
+        bc.state.invalid_votes.invalid_count(&spammer),
+        threshold - 1
+    );
 }
 
 /// Tur 14 Fix 2 uçtan uca: `Blockchain::handle_prevote` geçersiz BLS imzalı bir
@@ -805,7 +867,9 @@ fn blockchain_rejects_invalid_vote_signature_at_ingest() {
         voter_id: honest,
         sig_bls: vec![0u8; 48],
     };
-    let err = bc.handle_prevote(bad).expect_err("garbage sig must be rejected");
+    let err = bc
+        .handle_prevote(bad)
+        .expect_err("garbage sig must be rejected");
     assert!(err.contains("Invalid prevote signature"), "görülen: {err}");
     assert_eq!(
         bc.finality_aggregator.as_ref().unwrap().prevotes.len(),

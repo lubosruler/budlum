@@ -32,14 +32,32 @@ fn fresh_chain() -> Blockchain {
 /// A tiny valid program: Load imm 7 -> reg1, Log reg1, Halt.
 fn sample_bytecode() -> Vec<u8> {
     let program = vec![
-        Instruction { opcode: Opcode::Load, rd: 1, rs1: 0, rs2: 0, imm: 7 }.encode(),
-        Instruction { opcode: Opcode::Log, rd: 0, rs1: 1, rs2: 0, imm: 0 }.encode(),
-        Instruction { opcode: Opcode::Halt, rd: 0, rs1: 0, rs2: 0, imm: 0 }.encode(),
+        Instruction {
+            opcode: Opcode::Load,
+            rd: 1,
+            rs1: 0,
+            rs2: 0,
+            imm: 7,
+        }
+        .encode(),
+        Instruction {
+            opcode: Opcode::Log,
+            rd: 0,
+            rs1: 1,
+            rs2: 0,
+            imm: 0,
+        }
+        .encode(),
+        Instruction {
+            opcode: Opcode::Halt,
+            rd: 0,
+            rs1: 0,
+            rs2: 0,
+            imm: 0,
+        }
+        .encode(),
     ];
-    program
-        .into_iter()
-        .flat_map(|i| i.to_le_bytes())
-        .collect()
+    program.into_iter().flat_map(|i| i.to_le_bytes()).collect()
 }
 
 fn real_proof() -> (ProofEnvelope, ExecutionPublicInputs, Vec<u64>) {
@@ -88,7 +106,13 @@ fn unregistered_account_valid_proof_accepted_but_not_rewarded() {
     let outcome = bc
         .submit_zk_proof(submission(sender, 1, 10, &proof, &pi, &program))
         .unwrap();
-    assert_eq!(outcome, ProofAcceptance::Accepted { rewarded: false, reward: 0 });
+    assert_eq!(
+        outcome,
+        ProofAcceptance::Accepted {
+            rewarded: false,
+            reward: 0
+        }
+    );
     // Fee refunded (valid proof), no reward => balance unchanged.
     assert_eq!(bc.state.get_balance(&sender), before);
     assert_eq!(bc.proof_claims.len(), 1);
@@ -109,7 +133,13 @@ fn registered_prover_valid_proof_accepted_and_rewarded() {
     let outcome = bc
         .submit_zk_proof(submission(prover, 1, 10, &proof, &pi, &program))
         .unwrap();
-    assert_eq!(outcome, ProofAcceptance::Accepted { rewarded: true, reward });
+    assert_eq!(
+        outcome,
+        ProofAcceptance::Accepted {
+            rewarded: true,
+            reward
+        }
+    );
     // Fee refunded + reward paid => balance increased by exactly `reward`.
     assert_eq!(bc.state.get_balance(&prover), before + reward);
 }
@@ -202,7 +232,13 @@ fn idempotent_resubmission_same_claim() {
     let first = bc
         .submit_zk_proof(submission(prover, 1, 10, &proof, &pi, &program))
         .unwrap();
-    assert_eq!(first, ProofAcceptance::Accepted { rewarded: true, reward });
+    assert_eq!(
+        first,
+        ProofAcceptance::Accepted {
+            rewarded: true,
+            reward
+        }
+    );
     let after_first = bc.state.get_balance(&prover);
 
     // Second identical submission: idempotent, NO extra reward.
@@ -224,7 +260,10 @@ fn conflicting_claim_same_domain_height_rejected() {
     // Pre-seed an accepted claim for (domain=1, height=10) with a DIFFERENT
     // final state root than the proof we are about to submit. (Seeding directly
     // makes the conflict deterministic regardless of VM state-root semantics.)
-    let key = ProofClaimKey { domain_id: 1, target_height: 10 };
+    let key = ProofClaimKey {
+        domain_id: 1,
+        target_height: 10,
+    };
     let conflicting_root = {
         let mut r = pi.final_state_root;
         r[0] ^= 0xFF; // guaranteed different

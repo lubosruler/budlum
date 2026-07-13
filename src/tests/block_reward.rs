@@ -20,14 +20,14 @@ fn fresh_chain() -> Blockchain {
 fn test_block_reward_from_config() {
     let mut bc = fresh_chain();
     let producer = addr(0x11);
-    
+
     // Change config
     bc.state.tokenomics.block_reward = 123;
     let balance_before = bc.state.get_balance(&producer);
-    
+
     // Produce block
     bc.produce_block(producer).unwrap();
-    
+
     let balance_after = bc.state.get_balance(&producer);
     assert_eq!(balance_after, balance_before + 123);
 }
@@ -132,11 +132,7 @@ fn test_epoch_based_stake_yield_exact_ratio() {
     // 1:2 stake oranı → 1:2 yield oranı. BUD hassasiyetiyle diff <= 2.
     assert!(yield1 > 0, "yield1 must be > 0 (got {yield1})");
     assert!(yield2 > 0, "yield2 must be > 0 (got {yield2})");
-    let diff = if yield2 > yield1 * 2 {
-        yield2 - yield1 * 2
-    } else {
-        yield1 * 2 - yield2
-    };
+    let diff = yield2.abs_diff(yield1 * 2);
     assert!(
         diff <= 2,
         "yield2 must be ~2x yield1 (ratio 1:2 stake); diff={diff}"

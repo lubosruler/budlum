@@ -66,8 +66,7 @@ impl BlockHeader {
             .map(|e| {
                 // SECURITY (Tur 11): block hash input must not silently
                 // hash empty bytes on serialize failure (collision risk).
-                bincode::serialize(e)
-                    .expect("BUG: slashing evidence must serialize for block hash")
+                bincode::serialize(e).expect("BUG: slashing evidence must serialize for block hash")
             })
             .unwrap_or_default();
 
@@ -225,8 +224,7 @@ impl Block {
             .map(|e| {
                 // SECURITY (Tur 11): block hash input must not silently
                 // hash empty bytes on serialize failure (collision risk).
-                bincode::serialize(e)
-                    .expect("BUG: slashing evidence must serialize for block hash")
+                bincode::serialize(e).expect("BUG: slashing evidence must serialize for block hash")
             })
             .unwrap_or_default();
 
@@ -268,7 +266,8 @@ impl Block {
         self.producer = Some(signer.address());
         let binary_hash = self.calculate_hash_bytes();
         self.hash = hex::encode(binary_hash);
-        let signature = signer.sign_block(&binary_hash)
+        let signature = signer
+            .sign_block(&binary_hash)
             .map_err(|e| format!("Block signing failed: {}", e))?;
         self.signature = Some(signature);
         info!(

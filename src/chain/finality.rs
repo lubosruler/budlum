@@ -325,8 +325,12 @@ impl FinalityAggregator {
             let entry = snapshot
                 .find_validator(&vote.voter_id)
                 .ok_or("Voter not in validator set")?;
-            verify_bls_sig(&entry.bls_public_key, &vote.signing_message(), &vote.sig_bls)
-                .map_err(|e| format!("Invalid prevote signature: {e}"))?;
+            verify_bls_sig(
+                &entry.bls_public_key,
+                &vote.signing_message(),
+                &vote.sig_bls,
+            )
+            .map_err(|e| format!("Invalid prevote signature: {e}"))?;
         }
 
         // Equivocation detection (Tur 14 Fix 1). A validly-signed vote for a
@@ -366,8 +370,12 @@ impl FinalityAggregator {
             let entry = snapshot
                 .find_validator(&vote.voter_id)
                 .ok_or("Voter not in validator set")?;
-            verify_bls_sig(&entry.bls_public_key, &vote.signing_message(), &vote.sig_bls)
-                .map_err(|e| format!("Invalid precommit signature: {e}"))?;
+            verify_bls_sig(
+                &entry.bls_public_key,
+                &vote.signing_message(),
+                &vote.sig_bls,
+            )
+            .map_err(|e| format!("Invalid precommit signature: {e}"))?;
         }
 
         // Equivocation detection (Tur 14 Fix 1).
@@ -812,7 +820,9 @@ mod tests {
             voter_id: snap.validators[0].address,
             sig_bls: vec![0u8; 48], // not a valid BLS signature
         };
-        let err = agg.add_prevote(vote).expect_err("garbage sig must be rejected");
+        let err = agg
+            .add_prevote(vote)
+            .expect_err("garbage sig must be rejected");
         assert!(err.contains("Invalid prevote signature"), "got: {err}");
         assert_eq!(agg.prevotes.len(), 0);
     }
@@ -829,10 +839,7 @@ mod tests {
             checkpoint_height: 10,
             checkpoint_hash: "cp_hash".into(),
             voter_id: snap.validators[0].address,
-            sig_bls: sign_msg(
-                sks[0],
-                &checkpoint_signing_message(1, 10, "cp_hash"),
-            ),
+            sig_bls: sign_msg(sks[0], &checkpoint_signing_message(1, 10, "cp_hash")),
         };
         assert!(agg.add_precommit(pc).is_err());
     }

@@ -29,9 +29,7 @@ pub mod role;
 pub use invalid_vote::InvalidVoteTracker;
 pub use liveness::LivenessTracker;
 
-pub use evidence::{
-    EvidenceError, ProofProvenance, SlashingProof, SlashingReport,
-};
+pub use evidence::{EvidenceError, ProofProvenance, SlashingProof, SlashingReport};
 pub use params::RegistryParams;
 pub use permissionless::{
     MemberStatus, PermissionlessRegistry, Registration, RegistryError, SlashOutcome,

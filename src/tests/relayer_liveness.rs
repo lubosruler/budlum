@@ -143,7 +143,7 @@ fn actionable_report_refunds_fee() {
     let reporter = addr(0x12);
     bc.state.add_balance(&offender, 1_000_000);
     bc.state.bond_relayer(&offender, 10_000).unwrap(); // registered so slashable
-    // Register offender as validator too (double-sign is a validator offence).
+                                                       // Register offender as validator too (double-sign is a validator offence).
     bc.state.add_validator(offender, 10_000);
     let fee = bc.state.registry.params().slashing_report_fee;
     bc.state.add_balance(&reporter, fee);
@@ -273,12 +273,7 @@ fn liveness_slash_applied_through_blockchain_flow() {
     let k = bc.state.registry.params().liveness_max_missed_epochs;
 
     // Everyone participates except `v` (so the genesis validator is unaffected).
-    let mut present: HashSet<Address> = bc
-        .state
-        .validators
-        .keys()
-        .copied()
-        .collect();
+    let mut present: HashSet<Address> = bc.state.validators.keys().copied().collect();
     present.remove(&v);
 
     for e in 1..k {

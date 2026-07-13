@@ -41,7 +41,10 @@ fn round_trip(state: &AccountState) -> AccountState {
 #[test]
 fn registry_survives_snapshot_round_trip() {
     let mut state = AccountState::new();
-    state.registry.register_validator(addr(1), 5_000, 0).unwrap();
+    state
+        .registry
+        .register_validator(addr(1), 5_000, 0)
+        .unwrap();
     state.registry.register_relayer(addr(2), 2_000, 0).unwrap();
     // Custom params to prove params also round-trip.
     state.registry.set_params(RegistryParams {
@@ -69,7 +72,10 @@ fn slashing_history_survives_snapshot_round_trip() {
     let mut state = AccountState::new();
     let offender = addr(7);
     // Register the offender so the report is actionable and actually slashes.
-    state.registry.register_validator(offender, 10_000, 0).unwrap();
+    state
+        .registry
+        .register_validator(offender, 10_000, 0)
+        .unwrap();
 
     // Route a canonical double-sign report through the single slash path; this
     // both slashes AND records the report into the persistent history.
@@ -113,8 +119,14 @@ fn invalid_vote_counters_survive_snapshot_round_trip() {
     let v = addr(8);
     let params = RegistryParams::default();
     // Two invalid votes this epoch (below the default threshold of 20).
-    assert!(state.invalid_votes.record_invalid_vote(3, v, &params).is_none());
-    assert!(state.invalid_votes.record_invalid_vote(3, v, &params).is_none());
+    assert!(state
+        .invalid_votes
+        .record_invalid_vote(3, v, &params)
+        .is_none());
+    assert!(state
+        .invalid_votes
+        .record_invalid_vote(3, v, &params)
+        .is_none());
     assert_eq!(state.invalid_votes.invalid_count(&v), 2);
     assert_eq!(state.invalid_votes.current_epoch(), 3);
 
@@ -133,8 +145,12 @@ fn liveness_counters_survive_snapshot_round_trip() {
     let params = RegistryParams::default();
     // Two consecutive misses -> counter == 2.
     let none: std::collections::HashSet<Address> = std::collections::HashSet::new();
-    state.liveness.record_epoch(1, &[v], |a| none.contains(a), &params);
-    state.liveness.record_epoch(2, &[v], |a| none.contains(a), &params);
+    state
+        .liveness
+        .record_epoch(1, &[v], |a| none.contains(a), &params);
+    state
+        .liveness
+        .record_epoch(2, &[v], |a| none.contains(a), &params);
     assert_eq!(state.liveness.missed_count(&v), 2);
 
     let restored = round_trip(&state);
@@ -269,13 +285,18 @@ fn schema_2_snapshot_without_new_fields_still_deserializes() {
 #[test]
 fn try_to_bytes_ok_and_roundtrips_with_populated_registry() {
     let mut state = AccountState::new();
-    state.registry.register_validator(addr(1), 5_000, 0).unwrap();
+    state
+        .registry
+        .register_validator(addr(1), 5_000, 0)
+        .unwrap();
     state.registry.register_relayer(addr(2), 3_000, 0).unwrap();
 
     let v2 = StateSnapshotV2::from_state(&state, snapshot_params());
     // Fallible path succeeds and is non-empty (would have been silently empty
     // pre-Tur-9 due to the tuple-key map; try_to_bytes surfaces any failure).
-    let bytes = v2.try_to_bytes().expect("try_to_bytes must succeed for valid snapshot");
+    let bytes = v2
+        .try_to_bytes()
+        .expect("try_to_bytes must succeed for valid snapshot");
     assert!(!bytes.is_empty());
     assert_eq!(bytes, v2.to_bytes());
 
@@ -303,6 +324,9 @@ fn serde_json_failure_is_a_real_class_now_surfaced_not_swallowed() {
     );
     // Old pattern hid this: `.unwrap_or_default()` -> empty Vec, no signal.
     let swallowed = serde_json::to_vec(&bad).unwrap_or_default();
-    assert!(swallowed.is_empty(), "demonstrates the old silent-empty behavior");
+    assert!(
+        swallowed.is_empty(),
+        "demonstrates the old silent-empty behavior"
+    );
     // New persistence path surfaces the same class as an Err instead.
 }

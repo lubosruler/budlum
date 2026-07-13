@@ -163,7 +163,10 @@ impl std::fmt::Display for ProofError {
                 "conflicting proof claim for domain {domain_id} height {target_height}"
             ),
             ProofError::InsufficientFee { have, need } => {
-                write!(f, "insufficient balance for proof fee: have {have}, need {need}")
+                write!(
+                    f,
+                    "insufficient balance for proof fee: have {have}, need {need}"
+                )
             }
         }
     }
@@ -252,7 +255,10 @@ mod tests {
             rewarded: true,
         });
         // Same result again -> idempotent.
-        assert_eq!(reg.classify(k, [1u8; 32]).unwrap(), ClaimDecision::Duplicate);
+        assert_eq!(
+            reg.classify(k, [1u8; 32]).unwrap(),
+            ClaimDecision::Duplicate
+        );
     }
 
     #[test]

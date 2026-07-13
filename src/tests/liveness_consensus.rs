@@ -32,7 +32,8 @@ fn chain_with_validators(producer: Address, absentee: Address) -> Blockchain {
 /// Produce `n` blocks, all authored by `producer`.
 fn produce_n(bc: &mut Blockchain, producer: Address, n: u64) {
     for _ in 0..n {
-        bc.produce_block(producer).expect("block production must succeed");
+        bc.produce_block(producer)
+            .expect("block production must succeed");
     }
 }
 
@@ -91,7 +92,12 @@ fn threshold_crossing_reports_but_does_not_slash_when_disabled() {
     // `add_validator` already auto-registered the absentee in the registry
     // (Tur 2 sync), so a slash WOULD have something to cut — proving the
     // no-slash property is meaningful, not vacuous.
-    let stake_before = bc.state.registry.get(&absentee, roles::VALIDATOR).unwrap().stake;
+    let stake_before = bc
+        .state
+        .registry
+        .get(&absentee, roles::VALIDATOR)
+        .unwrap()
+        .stake;
     assert!(bc.state.registry.is_active(&absentee, roles::VALIDATOR));
 
     // Produce 3 full epochs; absentee misses 3 consecutive (>= threshold 2).
@@ -102,7 +108,10 @@ fn threshold_crossing_reports_but_does_not_slash_when_disabled() {
 
     // ...but OBSERVE MODE means NO slash happened:
     let reg = bc.state.registry.get(&absentee, roles::VALIDATOR).unwrap();
-    assert_eq!(reg.stake, stake_before, "stake must be untouched (no slash)");
+    assert_eq!(
+        reg.stake, stake_before,
+        "stake must be untouched (no slash)"
+    );
     assert!(
         bc.state.registry.is_active(&absentee, roles::VALIDATOR),
         "validator must remain active (not jailed/slashed)"
@@ -135,7 +144,11 @@ fn observe_liveness_epoch_returns_reports_without_slashing() {
 
     // But observe mode applied no slash.
     assert_eq!(
-        bc.state.registry.get(&absentee, roles::VALIDATOR).unwrap().stake,
+        bc.state
+            .registry
+            .get(&absentee, roles::VALIDATOR)
+            .unwrap()
+            .stake,
         10_000
     );
     assert!(bc.state.registry.is_active(&absentee, roles::VALIDATOR));
@@ -158,7 +171,8 @@ fn poa_domain_member_is_not_touched_by_liveness_flow() {
     let admin = addr(0xAA);
     let poa_member = addr(0xBB);
     poa.add_admin(poa_domain, admin);
-    poa.submit_application(poa_domain, poa_member, [9u8; 32]).unwrap();
+    poa.submit_application(poa_domain, poa_member, [9u8; 32])
+        .unwrap();
     poa.approve(poa_domain, admin, poa_member).unwrap();
     assert!(poa.is_authorized(poa_domain, &poa_member));
 
@@ -168,7 +182,11 @@ fn poa_domain_member_is_not_touched_by_liveness_flow() {
     // The PoA member must NOT appear in the permissionless liveness/registry
     // machinery at all.
     assert_eq!(bc.state.liveness.missed_count(&poa_member), 0);
-    assert!(bc.state.registry.get(&poa_member, roles::VALIDATOR).is_none());
+    assert!(bc
+        .state
+        .registry
+        .get(&poa_member, roles::VALIDATOR)
+        .is_none());
     assert!(bc.state.get_validator(&poa_member).is_none());
     // And PoA authorization is unaffected by the liveness flow.
     assert!(poa.is_authorized(poa_domain, &poa_member));
@@ -195,7 +213,12 @@ fn threshold_crossing_slashes_when_enabled_through_real_epoch_flow() {
         liveness_slashing_enabled: true,
         ..RegistryParams::default()
     });
-    let stake_before = bc.state.registry.get(&absentee, roles::VALIDATOR).unwrap().stake;
+    let stake_before = bc
+        .state
+        .registry
+        .get(&absentee, roles::VALIDATOR)
+        .unwrap()
+        .stake;
     assert_eq!(stake_before, 10_000);
     assert!(bc.state.registry.is_active(&absentee, roles::VALIDATOR));
 
@@ -204,8 +227,8 @@ fn threshold_crossing_slashes_when_enabled_through_real_epoch_flow() {
 
     let reg = bc.state.registry.get(&absentee, roles::VALIDATOR).unwrap();
     // Stake was actually cut by the configured liveness ratio (1%).
-    let expected_penalty =
-        ((stake_before as u128 * FIXED_POINT_SCALE as u128 / 100) / FIXED_POINT_SCALE as u128) as u64;
+    let expected_penalty = ((stake_before as u128 * FIXED_POINT_SCALE as u128 / 100)
+        / FIXED_POINT_SCALE as u128) as u64;
     assert_eq!(
         reg.stake,
         stake_before - expected_penalty,
@@ -233,7 +256,12 @@ fn liveness_slash_uses_configured_rate_through_real_epoch_flow() {
         liveness_slashing_enabled: true,
         ..RegistryParams::default()
     });
-    let stake_before = bc.state.registry.get(&absentee, roles::VALIDATOR).unwrap().stake;
+    let stake_before = bc
+        .state
+        .registry
+        .get(&absentee, roles::VALIDATOR)
+        .unwrap()
+        .stake;
     let rate = bc.state.registry.params().liveness_slash_ratio_fixed;
     let expected_penalty =
         ((stake_before as u128 * rate as u128) / FIXED_POINT_SCALE as u128) as u64;

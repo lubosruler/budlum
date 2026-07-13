@@ -234,8 +234,7 @@ impl Executor {
                 if tx.from == Address::zero() {
                     continue;
                 }
-                total_burn = total_burn
-                    .saturating_add(state.tokenomics.metabolic_burn(tx.fee));
+                total_burn = total_burn.saturating_add(state.tokenomics.metabolic_burn(tx.fee));
             }
             (state.tokenomics.block_reward, total_burn)
         };

@@ -54,11 +54,18 @@ fn bridge_lock_mint_burn_unlock_lifecycle() {
     // Step 4: sweep MUST NOT release the lock yet (expiry_height=1000,
     // current=0).
     let released_early = bc.apply_bridge_sweep(0);
-    assert!(released_early.is_empty(), "no lock should be released at height 0");
+    assert!(
+        released_early.is_empty(),
+        "no lock should be released at height 0"
+    );
 
     // Step 5: sweep at expiry_height (=1000) releases the lock.
     let released = bc.apply_bridge_sweep(1000);
-    assert_eq!(released.len(), 1, "exactly one lock must be released at expiry");
+    assert_eq!(
+        released.len(),
+        1,
+        "exactly one lock must be released at expiry"
+    );
     assert_eq!(released[0].0, asset_id());
 
     // The asset is back to `Active` and reusable.
@@ -127,12 +134,17 @@ fn bridge_sweep_is_height_aware_and_idempotent() {
 
     // At height 100, the first lock expires; the second does not.
     let r = bc.apply_bridge_sweep(100);
-    assert_eq!(r.len(), 1, "only the 100-expiry lock releases at height 100");
+    assert_eq!(
+        r.len(),
+        1,
+        "only the 100-expiry lock releases at height 100"
+    );
     assert_eq!(r[0].0, asset_id());
 
     // The 100-expiry lock is now Active and the asset is reusable,
     // but the second lock (expiry=500) still holds asset_b as Locked.
-    let r2 = bc.lock_bridge_transfer(1, 2, 22, 0, asset_id(), owner, recipient, 10, 200)
+    let r2 = bc
+        .lock_bridge_transfer(1, 2, 22, 0, asset_id(), owner, recipient, 10, 200)
         .expect("asset_id must be reusable after sweep");
     assert!(matches!(
         r2.1.kind,

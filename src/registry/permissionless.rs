@@ -96,14 +96,31 @@ impl Registration {
 /// the only economic gate is [`RegistryError::InsufficientStake`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegistryError {
-    InsufficientStake { required: u64, provided: u64 },
-    AlreadyRegistered { account: Address, role: RoleId },
-    NotRegistered { account: Address, role: RoleId },
-    NotActive { account: Address, role: RoleId },
-    StillUnbonding { release_epoch: u64, current_epoch: u64 },
+    InsufficientStake {
+        required: u64,
+        provided: u64,
+    },
+    AlreadyRegistered {
+        account: Address,
+        role: RoleId,
+    },
+    NotRegistered {
+        account: Address,
+        role: RoleId,
+    },
+    NotActive {
+        account: Address,
+        role: RoleId,
+    },
+    StillUnbonding {
+        release_epoch: u64,
+        current_epoch: u64,
+    },
     /// The sender is not an eligible relayer (not registered, or slashed).
     /// Used to gate permissionless cross-domain message submission.
-    RelayerNotActive { account: Address },
+    RelayerNotActive {
+        account: Address,
+    },
 }
 
 impl std::fmt::Display for RegistryError {
@@ -292,7 +309,12 @@ impl PermissionlessRegistry {
         stake: u64,
         current_epoch: u64,
     ) -> Result<(), RegistryError> {
-        self.register(account, crate::registry::role::roles::VALIDATOR, stake, current_epoch)
+        self.register(
+            account,
+            crate::registry::role::roles::VALIDATOR,
+            stake,
+            current_epoch,
+        )
     }
 
     pub fn register_verifier(
@@ -301,7 +323,12 @@ impl PermissionlessRegistry {
         stake: u64,
         current_epoch: u64,
     ) -> Result<(), RegistryError> {
-        self.register(account, crate::registry::role::roles::VERIFIER, stake, current_epoch)
+        self.register(
+            account,
+            crate::registry::role::roles::VERIFIER,
+            stake,
+            current_epoch,
+        )
     }
 
     pub fn register_relayer(
@@ -310,7 +337,12 @@ impl PermissionlessRegistry {
         stake: u64,
         current_epoch: u64,
     ) -> Result<(), RegistryError> {
-        self.register(account, crate::registry::role::roles::RELAYER, stake, current_epoch)
+        self.register(
+            account,
+            crate::registry::role::roles::RELAYER,
+            stake,
+            current_epoch,
+        )
     }
 
     /// Idempotently synchronise a role's bonded stake to `total_stake`.
@@ -423,7 +455,10 @@ impl PermissionlessRegistry {
             }
             _ => return Err(RegistryError::NotActive { account, role }),
         }
-        let reg = self.registrations.remove(&(role, account)).expect("checked");
+        let reg = self
+            .registrations
+            .remove(&(role, account))
+            .expect("checked");
         Ok(reg.stake)
     }
 
@@ -441,8 +476,8 @@ impl PermissionlessRegistry {
             .get_mut(&(role, account))
             .ok_or(RegistryError::NotRegistered { account, role })?;
 
-        let penalty = ((reg.stake as u128 * slash_ratio_fixed as u128)
-            / FIXED_POINT_SCALE as u128) as u64;
+        let penalty =
+            ((reg.stake as u128 * slash_ratio_fixed as u128) / FIXED_POINT_SCALE as u128) as u64;
         reg.stake = reg.stake.saturating_sub(penalty);
         reg.status = MemberStatus::Slashed;
 
@@ -515,7 +550,9 @@ impl PermissionlessRegistry {
     /// authorization check the rest of the node should use — it is purely a
     /// function of bonded stake + status, never of any allow-list.
     pub fn is_active(&self, account: &Address, role: RoleId) -> bool {
-        self.get(account, role).map(Registration::is_active).unwrap_or(false)
+        self.get(account, role)
+            .map(Registration::is_active)
+            .unwrap_or(false)
     }
 
     /// All active members of a role.
@@ -534,10 +571,12 @@ impl PermissionlessRegistry {
     /// unregistered account) is rejected.
     pub fn is_active_relayer(&self, account: &Address) -> bool {
         match self.get(account, crate::registry::role::roles::RELAYER) {
-            Some(reg) => matches!(
-                reg.status,
-                MemberStatus::Active | MemberStatus::Unbonding { .. }
-            ) && reg.stake > 0,
+            Some(reg) => {
+                matches!(
+                    reg.status,
+                    MemberStatus::Active | MemberStatus::Unbonding { .. }
+                ) && reg.stake > 0
+            }
             None => false,
         }
     }
@@ -562,10 +601,12 @@ impl PermissionlessRegistry {
     /// not slashed (unbonding still counts, mirroring the relayer semantics).
     pub fn is_active_prover(&self, account: &Address) -> bool {
         match self.get(account, crate::registry::role::roles::PROVER) {
-            Some(reg) => matches!(
-                reg.status,
-                MemberStatus::Active | MemberStatus::Unbonding { .. }
-            ) && reg.stake > 0,
+            Some(reg) => {
+                matches!(
+                    reg.status,
+                    MemberStatus::Active | MemberStatus::Unbonding { .. }
+                ) && reg.stake > 0
+            }
             None => false,
         }
     }
@@ -601,7 +642,8 @@ mod tests {
     fn anyone_can_register_by_staking_no_whitelist() {
         let mut reg = PermissionlessRegistry::new();
         // A fresh, never-approved account joins purely by staking.
-        reg.register_validator(addr(1), MIN_REGISTRATION_STAKE, 0).unwrap();
+        reg.register_validator(addr(1), MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
         assert!(reg.is_active(&addr(1), roles::VALIDATOR));
     }
 
@@ -617,8 +659,11 @@ mod tests {
     #[test]
     fn duplicate_registration_rejected() {
         let mut reg = PermissionlessRegistry::new();
-        reg.register_verifier(addr(3), MIN_REGISTRATION_STAKE, 0).unwrap();
-        assert!(reg.register_verifier(addr(3), MIN_REGISTRATION_STAKE, 0).is_err());
+        reg.register_verifier(addr(3), MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
+        assert!(reg
+            .register_verifier(addr(3), MIN_REGISTRATION_STAKE, 0)
+            .is_err());
     }
 
     #[test]
@@ -628,7 +673,9 @@ mod tests {
         let release = reg.begin_unbonding(addr(4), roles::VALIDATOR, 10).unwrap();
         assert_eq!(release, 10 + UNBONDING_EPOCHS);
         // Too early.
-        assert!(reg.withdraw(addr(4), roles::VALIDATOR, release - 1).is_err());
+        assert!(reg
+            .withdraw(addr(4), roles::VALIDATOR, release - 1)
+            .is_err());
         // After unbonding.
         let released = reg.withdraw(addr(4), roles::VALIDATOR, release).unwrap();
         assert_eq!(released, 5_000);
@@ -641,7 +688,12 @@ mod tests {
         reg.register_validator(addr(5), 10_000, 0).unwrap();
         // 50% slash.
         let outcome = reg
-            .slash(addr(5), roles::VALIDATOR, SlashingCondition::DoubleSign, FIXED_POINT_SCALE / 2)
+            .slash(
+                addr(5),
+                roles::VALIDATOR,
+                SlashingCondition::DoubleSign,
+                FIXED_POINT_SCALE / 2,
+            )
             .unwrap();
         assert_eq!(outcome.penalty, 5_000);
         assert_eq!(outcome.remaining_stake, 5_000);
@@ -652,7 +704,8 @@ mod tests {
     fn generic_over_arbitrary_roles() {
         let mut reg = PermissionlessRegistry::new();
         let custom = RoleId::new(4242);
-        reg.register(addr(6), custom, MIN_REGISTRATION_STAKE, 0).unwrap();
+        reg.register(addr(6), custom, MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
         assert!(reg.is_active(&addr(6), custom));
         assert_eq!(reg.active_members(custom).len(), 1);
     }
@@ -660,8 +713,10 @@ mod tests {
     #[test]
     fn same_account_can_hold_multiple_roles() {
         let mut reg = PermissionlessRegistry::new();
-        reg.register_validator(addr(7), MIN_REGISTRATION_STAKE, 0).unwrap();
-        reg.register_relayer(addr(7), MIN_REGISTRATION_STAKE, 0).unwrap();
+        reg.register_validator(addr(7), MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
+        reg.register_relayer(addr(7), MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
         assert!(reg.is_active(&addr(7), roles::VALIDATOR));
         assert!(reg.is_active(&addr(7), roles::RELAYER));
     }

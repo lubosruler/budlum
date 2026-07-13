@@ -161,7 +161,8 @@ pub fn load_or_generate_identity_key(path: Option<&str>) -> identity::Keypair {
                 #[cfg(unix)]
                 {
                     use std::os::unix::fs::PermissionsExt;
-                    let _ = std::fs::set_permissions(file_path, std::fs::Permissions::from_mode(0o600));
+                    let _ =
+                        std::fs::set_permissions(file_path, std::fs::Permissions::from_mode(0o600));
                 }
             }
             Err(e) => warn!("Failed to encode identity key: {}", e),
@@ -324,9 +325,10 @@ impl Node {
     pub fn sweep_stale_snapshot_sessions(&mut self) -> usize {
         let now = Instant::now();
         let before = self.in_progress_snapshots.len();
-        self.in_progress_snapshots.retain(|_height, (_sid, ts, _buf)| {
-            now.duration_since(*ts).as_secs() <= SNAPSHOT_SESSION_TIMEOUT_SECS
-        });
+        self.in_progress_snapshots
+            .retain(|_height, (_sid, ts, _buf)| {
+                now.duration_since(*ts).as_secs() <= SNAPSHOT_SESSION_TIMEOUT_SECS
+            });
         before - self.in_progress_snapshots.len()
     }
 
@@ -348,9 +350,9 @@ impl Node {
         self.max_peers = security.max_peers;
         self.mdns_enabled = security.mdns_enabled;
         if security.persist_banned_peers && self.banned_peer_db.is_none() {
-            self.banned_peer_db = Some(
-                std::path::PathBuf::from(format!("./data/{:?}/banned-peers.json", network).to_lowercase())
-            );
+            self.banned_peer_db = Some(std::path::PathBuf::from(
+                format!("./data/{:?}/banned-peers.json", network).to_lowercase(),
+            ));
         }
     }
 
@@ -1117,12 +1119,7 @@ impl Node {
                                         }
 
                                         // Session yoksa veya stale ise, yenisini insert et.
-                                        if !self.in_progress_snapshots.contains_key(&height) {
-                                            self.in_progress_snapshots.insert(
-                                                height,
-                                                (session_id, Instant::now(), Vec::new()),
-                                            );
-                                        }
+                                        self.in_progress_snapshots.entry(height).or_insert_with(|| (session_id, Instant::now(), Vec::new()));
 
                                         // Güvenli: total üst sınırı zaten doğrulandı (max 4096).
                                         // Toplam allocation `total * chunk_size` ile sınırlı

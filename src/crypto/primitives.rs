@@ -260,14 +260,13 @@ impl ValidatorKeys {
 
         let mut cursor = 128;
         let pq_key = if bytes.len() > cursor
-            && bytes.len() >= cursor + dilithium5::public_key_bytes() + dilithium5::secret_key_bytes()
+            && bytes.len()
+                >= cursor + dilithium5::public_key_bytes() + dilithium5::secret_key_bytes()
         {
             let pq_pk_end = cursor + dilithium5::public_key_bytes();
             let pq_sk_end = pq_pk_end + dilithium5::secret_key_bytes();
-            let pk = PqKeyPair::from_bytes(
-                &bytes[cursor..pq_pk_end],
-                &bytes[pq_pk_end..pq_sk_end],
-            )?;
+            let pk =
+                PqKeyPair::from_bytes(&bytes[cursor..pq_pk_end], &bytes[pq_pk_end..pq_sk_end])?;
             cursor = pq_sk_end;
             Some(pk)
         } else {
@@ -345,8 +344,8 @@ impl KeyPair {
         }
         #[cfg(not(unix))]
         {
-            let mut file = std::fs::File::create(path.as_ref())
-                .map_err(|e| CryptoError::Io(e.to_string()))?;
+            let mut file =
+                std::fs::File::create(path.as_ref()).map_err(|e| CryptoError::Io(e.to_string()))?;
             file.write_all(self.signing_key.as_bytes())
                 .map_err(|e| CryptoError::Io(e.to_string()))?;
         }

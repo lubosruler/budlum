@@ -303,12 +303,16 @@ async fn main() {
     );
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    let hsm_signer: Option<Arc<dyn ConsensusSigner>> = if config.signer_backend.as_deref() == Some("pkcs11") {
+    let hsm_signer: Option<Arc<dyn ConsensusSigner>> = if config.signer_backend.as_deref()
+        == Some("pkcs11")
+    {
         let module_path = config.pkcs11_module_path.as_deref().unwrap_or("");
         let slot_id = config.pkcs11_slot_id.unwrap_or(0);
         let pin_env = config.pkcs11_token_pin_env.as_deref().unwrap_or("");
         if module_path.is_empty() || pin_env.is_empty() {
-            eprintln!("ERROR: PKCS#11 backend requires --pkcs11-module-path and --pkcs11-token-pin-env");
+            eprintln!(
+                "ERROR: PKCS#11 backend requires --pkcs11-module-path and --pkcs11-token-pin-env"
+            );
             std::process::exit(1);
         }
         match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
@@ -522,8 +526,9 @@ async fn main() {
     }
 
     // Load or generate persistent P2P identity
-    let identity_key =
-        budlum_core::network::node::load_or_generate_identity_key(config.p2p_identity_file.as_deref());
+    let identity_key = budlum_core::network::node::load_or_generate_identity_key(
+        config.p2p_identity_file.as_deref(),
+    );
 
     let mut node = Node::with_key(chain.clone(), identity_key, true)
         .unwrap()

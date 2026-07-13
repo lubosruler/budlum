@@ -15,9 +15,7 @@ use serde::{Deserialize, Serialize};
 /// This is intentionally NOT an enum: the registry is a generic primitive and
 /// future application layers (outside the scope of this instruction set) may
 /// define their own roles. Reserve the low range for protocol-level roles.
-#[derive(
-    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct RoleId(pub u32);
 
 impl RoleId {

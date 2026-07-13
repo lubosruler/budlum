@@ -148,7 +148,10 @@ fn metabolic_burn_removes_fee_fraction_on_block_apply() {
 
     // Producer balance excludes the burned fraction.
     let producer_bal = state.get_balance(&producer);
-    assert_eq!(producer_bal, state.tokenomics.block_reward + (fee - expected_burn));
+    assert_eq!(
+        producer_bal,
+        state.tokenomics.block_reward + (fee - expected_burn)
+    );
 }
 
 #[test]
@@ -169,9 +172,7 @@ use crate::tokenomics::VestingSchedule;
 #[test]
 fn genesis_build_state_seeds_bud_distribution_via_real_flow() {
     let addrs = TokenomicsAddresses::reserved();
-    let state = GenesisConfig::new(1337)
-        .with_bud_tokenomics()
-        .build_state();
+    let state = GenesisConfig::new(1337).with_bud_tokenomics().build_state();
 
     // Distribution accounts exist with the right balances.
     assert_eq!(state.get_balance(&addrs.community), bud(10_000_000));
@@ -197,9 +198,7 @@ fn plain_genesis_has_no_tokenomics_wiring() {
 #[test]
 fn timed_burn_fires_via_real_epoch_advance() {
     let addrs = TokenomicsAddresses::reserved();
-    let mut state = GenesisConfig::new(1337)
-        .with_bud_tokenomics()
-        .build_state();
+    let mut state = GenesisConfig::new(1337).with_bud_tokenomics().build_state();
     let epochs_per_year = state.tokenomics.epochs_per_year;
     let per_year = state.tokenomics.annual_burn_amount();
 
@@ -213,7 +212,10 @@ fn timed_burn_fires_via_real_epoch_advance() {
     // One more advance crosses the year boundary → timed burn auto-fires.
     state.advance_epoch(0);
     assert_eq!(state.timed_burn.years_burned, 1);
-    assert_eq!(state.get_balance(&addrs.burn_reserve), bud(40_000_000) - per_year);
+    assert_eq!(
+        state.get_balance(&addrs.burn_reserve),
+        bud(40_000_000) - per_year
+    );
     // Supply dropped by exactly the burn.
     assert_eq!(
         state.circulating_supply(),
@@ -228,9 +230,7 @@ fn team_vesting_enforced_on_transfer() {
     use crate::execution::executor::Executor;
 
     let addrs = TokenomicsAddresses::reserved();
-    let mut state = GenesisConfig::new(1337)
-        .with_bud_tokenomics()
-        .build_state();
+    let mut state = GenesisConfig::new(1337).with_bud_tokenomics().build_state();
 
     // At genesis epoch 0 (before cliff) the entire 20M team balance is locked.
     let sched: VestingSchedule = state.team_vesting.unwrap().1;

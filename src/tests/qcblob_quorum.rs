@@ -3,10 +3,10 @@
 //! edilmemeli; tam eşik kabul edilmeli; boş imza seti reddedilmeli.
 
 use crate::chain::blockchain::Blockchain;
+use crate::chain::finality::ValidatorEntry;
 use crate::chain::finality::ValidatorSetSnapshot;
 use crate::consensus::pow::PoWEngine;
 use crate::consensus::qc::{PqSignatureEntry, QcBlob};
-use crate::chain::finality::ValidatorEntry;
 use crate::core::address::Address;
 use std::sync::Arc;
 
@@ -48,7 +48,7 @@ fn blob_with_sigs(count: usize) -> QcBlob {
 #[test]
 fn import_qc_blob_rejects_empty_signature_set() {
     let consensus = Arc::new(PoWEngine::new(0));
-    let mut bc = Blockchain::new(consensus, None, 1337, None);
+    let bc = Blockchain::new(consensus, None, 1337, None);
 
     // The snapshot will have zero validators (no `add_validator` calls),
     // so `min_signers = ceil(0 * 2 / 3) = 0`. To exercise the empty
@@ -63,7 +63,7 @@ fn import_qc_blob_rejects_empty_signature_set() {
     // arithmetic contract* the same way the production code does,
     // by replaying the count check against a known snapshot.
     let n = snapshot.validators.len();
-    let min_signers = (n * 2 + 3 - 1) / 3;
+    let min_signers = (n * 2).div_ceil(3);
     assert_eq!(min_signers, 2, "ceil(3*2/3) must be 2");
     assert!(
         blob.pq_signatures.len() < min_signers,
@@ -80,7 +80,7 @@ fn import_qc_blob_rejects_below_quorum_signature_count() {
     let blob = blob_with_sigs(1);
     let snapshot = snapshot_3_validators(0);
     let n = snapshot.validators.len();
-    let min_signers = (n * 2 + 3 - 1) / 3;
+    let min_signers = (n * 2).div_ceil(3);
     assert_eq!(min_signers, 2);
     assert!(blob.pq_signatures.len() < min_signers);
 }
@@ -91,7 +91,7 @@ fn import_qc_blob_accepts_exact_quorum_threshold() {
     let blob = blob_with_sigs(2);
     let snapshot = snapshot_3_validators(0);
     let n = snapshot.validators.len();
-    let min_signers = (n * 2 + 3 - 1) / 3;
+    let min_signers = (n * 2).div_ceil(3);
     assert_eq!(min_signers, 2);
     assert!(
         blob.pq_signatures.len() >= min_signers,
@@ -107,6 +107,6 @@ fn import_qc_blob_accepts_full_quorum_regression() {
     let blob = blob_with_sigs(3);
     let snapshot = snapshot_3_validators(0);
     let n = snapshot.validators.len();
-    let min_signers = (n * 2 + 3 - 1) / 3;
+    let min_signers = (n * 2).div_ceil(3);
     assert!(blob.pq_signatures.len() >= min_signers);
 }

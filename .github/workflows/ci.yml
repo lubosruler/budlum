@@ -4,10 +4,15 @@ name: CI
 # çalışır. Amaç: kimsenin "derledim, testler geçti" demesine güvenmeden,
 # GitHub'ın kendi sunucusunda tarafsız bir şekilde bunu doğrulamak.
 #
-# Tur 8.x: the BudZero sibling checkout now points at our fork
-# (lubosruler/BudZero) instead of the upstream budlum-xyz/BudZero
-# reference. Our fork carries the Tur 8 BudL `match` work and the
-# sibling README updates.
+# Tur 8.x: Bu workflow mainnet-hazırlık sıkılığında. Tüm yeni
+# kodlar üç kapıdan geçmek zorunda:
+#   1. cargo fmt --check  (whitespace tutarlılığı)
+#   2. cargo clippy -D warnings  (lint ihlali YOK)
+#   3. cargo test --lib   (423 testin hepsi geçmeli)
+# `cargo deny` ve Nix/FlakeHub tabanlı CI kaldırıldı (lisans/advisory
+# taraması ayrı bir sprint'te eklenecek; budlum repo'sunda deny.toml
+# zaten var ama crate sayısı 96+ olduğu için upstream lisans cleanup'i
+# Tur 9.x'te planlanıyor).
 
 on:
   push:
@@ -42,7 +47,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: "1.94.0"
-          components: clippy
+          components: clippy, rustfmt
 
       # 4. protoc kur (build.rs bunu gerektiriyor)
       - name: Install protoc
@@ -50,29 +55,28 @@ jobs:
         with:
           version: "29.x"
 
-      # 5. Derleme önbelleği (her seferinde sıfırdan indirmesin, hızlansın)
+      # 5. Cache: incremental build için cargo + target klasörünü sakla
       - name: Cache cargo registry and build
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: Budlum
 
-      # 6. Gerçek derleme
-      - name: cargo build
+      # 6. FORMAT KAPISI: whitespace tutarlılığı. Reddedilirse
+      # `cargo fmt --all` ile düzeltilir.
+      - name: cargo fmt --check
         working-directory: Budlum
-        run: cargo build --release --verbose
+        run: cargo fmt --all -- --check
 
-      # 7. Gerçek testler — asıl doğrulama burada
+      # 7. CLIPPY KAPISI: lint ihlali YOK. -D warnings ile tüm
+      # uyarılar hata sayılır. Bu, Tur 8 audit findings #1, #2, #3, #4,
+      # #5, #6, #7, #8, #9, #10'un hepsi clippy-clean bir codebase
+      # üzerine inşa edildiğini garantiler.
+      - name: cargo clippy
+        working-directory: Budlum
+        run: cargo clippy --lib --tests -- -D warnings
+
+      # 8. TEST KAPISI: asıl doğrulama burada. 423 testin hepsi
+      # geçmeli (Tur 8 sonrası).
       - name: cargo test
         working-directory: Budlum
         run: cargo test --lib --verbose
-
-      # 8. Kod kalitesi kontrolü (proje standardı)
-      # Tur 8.x: dropped `-D warnings` because rust 1.97's clippy lints
-      # a few patterns in the upstream codebase (assertions_on_constants,
-      # needless_range_loop) that were acceptable under the originally
-      # pinned toolchain (1.94). Re-tighten to `-D warnings` after the
-      # follow-up lint-cleanup sprint.
-      - name: cargo clippy
-        working-directory: Budlum
-        run: cargo clippy --all-targets
-        continue-on-error: true   # şimdilik sadece bilgi amaçlı, build'i düşürmesin

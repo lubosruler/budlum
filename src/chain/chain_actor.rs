@@ -25,7 +25,10 @@ pub enum ChainCommand {
     GetMempoolSize(oneshot::Sender<usize>),
     HandleFinalityCert(FinalityCert, oneshot::Sender<Result<(), String>>),
     HandlePrevote(Prevote, oneshot::Sender<Result<(), String>>),
-    HandlePrecommit(Precommit, oneshot::Sender<Result<Option<FinalityCert>, String>>),
+    HandlePrecommit(
+        Precommit,
+        oneshot::Sender<Result<Option<FinalityCert>, String>>,
+    ),
     ImportQcBlob(QcBlob, oneshot::Sender<Result<(), String>>),
     HandleQcFaultProof(QcFaultProof, oneshot::Sender<Result<(), String>>),
     SubmitSlashingEvidence(
@@ -300,7 +303,8 @@ impl ChainHandle {
     pub async fn get_aggregator_state(&self) -> crate::chain::finality::AggregatorState {
         let (tx, rx) = oneshot::channel();
         let _ = self.tx.send(ChainCommand::GetAggregatorState(tx)).await;
-        rx.await.unwrap_or_else(|_| crate::chain::finality::AggregatorState::inactive())
+        rx.await
+            .unwrap_or_else(|_| crate::chain::finality::AggregatorState::inactive())
     }
 
     pub async fn get_base_fee(&self) -> u64 {
@@ -708,7 +712,10 @@ impl ChainHandle {
         amount: u64,
     ) -> Result<(), String> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::BondRelayer(address, amount, tx)).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::BondRelayer(address, amount, tx))
+            .await;
         rx.await
             .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
@@ -720,7 +727,10 @@ impl ChainHandle {
         amount: u64,
     ) -> Result<(), String> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::BondProver(address, amount, tx)).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::BondProver(address, amount, tx))
+            .await;
         rx.await
             .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
@@ -731,7 +741,10 @@ impl ChainHandle {
         submission: crate::prover::ZkProofSubmission,
     ) -> Result<crate::prover::ProofAcceptance, String> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::SubmitZkProof(submission, tx)).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::SubmitZkProof(submission, tx))
+            .await;
         rx.await
             .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
@@ -970,10 +983,7 @@ impl ChainActor {
                     let block = self.blockchain.produce_block(producer);
                     if let Some(ref b) = block {
                         if crate::chain::finality::is_checkpoint_height(b.index) {
-                            self.blockchain.start_prevote_phase(
-                                b.index,
-                                b.hash.clone(),
-                            );
+                            self.blockchain.start_prevote_phase(b.index, b.hash.clone());
                         }
                     }
                     let _ = tx.send(block);
@@ -1031,12 +1041,34 @@ impl ChainActor {
                     let result = self.blockchain.handle_precommit(vote);
                     let _ = res_tx.send(result);
                 }
-                ChainCommand::SignPrevote { epoch, checkpoint_height, checkpoint_hash, voter_id, response } => {
-                    let result = self.blockchain.sign_prevote(epoch, checkpoint_height, &checkpoint_hash, &voter_id);
+                ChainCommand::SignPrevote {
+                    epoch,
+                    checkpoint_height,
+                    checkpoint_hash,
+                    voter_id,
+                    response,
+                } => {
+                    let result = self.blockchain.sign_prevote(
+                        epoch,
+                        checkpoint_height,
+                        &checkpoint_hash,
+                        &voter_id,
+                    );
                     let _ = response.send(result);
                 }
-                ChainCommand::SignPrecommit { epoch, checkpoint_height, checkpoint_hash, voter_id, response } => {
-                    let result = self.blockchain.sign_precommit(epoch, checkpoint_height, &checkpoint_hash, &voter_id);
+                ChainCommand::SignPrecommit {
+                    epoch,
+                    checkpoint_height,
+                    checkpoint_hash,
+                    voter_id,
+                    response,
+                } => {
+                    let result = self.blockchain.sign_precommit(
+                        epoch,
+                        checkpoint_height,
+                        &checkpoint_hash,
+                        &voter_id,
+                    );
                     let _ = response.send(result);
                 }
                 ChainCommand::ImportQcBlob(blob, res_tx) => {
@@ -1447,7 +1479,9 @@ mod tests {
         };
         let result = chain.handle_prevote(vote).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No active finality aggregator"));
+        assert!(result
+            .unwrap_err()
+            .contains("No active finality aggregator"));
     }
 
     #[tokio::test]
@@ -1463,7 +1497,9 @@ mod tests {
         };
         let result = chain.handle_precommit(vote).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("No active finality aggregator"));
+        assert!(result
+            .unwrap_err()
+            .contains("No active finality aggregator"));
     }
 
     #[tokio::test]

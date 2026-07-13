@@ -260,7 +260,7 @@ impl PeerManager {
     }
     pub fn get_best_peers(&self, n: usize) -> Vec<PeerId> {
         let mut scored: Vec<_> = self.peers.iter().filter(|(_, s)| !s.is_banned()).collect();
-        scored.sort_by(|a, b| b.1.score.cmp(&a.1.score));
+        scored.sort_by_key(|x| std::cmp::Reverse(x.1.score));
         scored.into_iter().take(n).map(|(id, _)| *id).collect()
     }
 
