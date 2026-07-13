@@ -3343,7 +3343,20 @@ mod tests {
         let signer_addr = Address::from(signer.public_key_bytes());
         let consensus = Arc::new(PoAEngine::new(PoAConfig::default(), Some(signer)));
         let mut bc = Blockchain::new(consensus, None, 1337, None);
+        // Tur 11.9: hash-mix leader selection needs a controlled set — keep
+        // only the PoA signer active so they are always the expected proposer.
+        bc.state.validators.clear();
         bc.state.add_validator(signer_addr, 1);
+        bc.state.validators.get_mut(&signer_addr).unwrap().active = true;
+
+        let active = bc.state.get_active_validators();
+        assert_eq!(active.len(), 1);
+        let next_h = bc.chain.len() as u64; // next block index
+        let expected = PoAEngine::new(PoAConfig::default(), None)
+            .expected_proposer(next_h, &active)
+            .unwrap()
+            .address;
+        assert_eq!(expected, signer_addr);
 
         bc.produce_block(Address::zero()).unwrap();
 
