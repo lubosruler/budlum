@@ -1821,26 +1821,40 @@ impl Blockchain {
         }
 
         let snapshot = self.validator_snapshot_for_epoch(blob.epoch);
-        // Tur 7 (security audit §4): enforce a minimum signature count
-        // matching the BLS finality quorum (2/3 of `snapshot.validators`).
-        // `verify_against_snapshot` with `required_signers=None` only
-        // checks individual signature validity, not how many there are.
-        // A zero-signature blob with a matching merkle root would
-        // otherwise pass structural checks and be inserted into
-        // `verified_qc_blobs` unconditionally. Compute ceil(n*2/3).
+        // Tur 7 + Tur 9 (security audit §4, §2): enforce the BLS
+        // finality quorum (2/3 of `snapshot.validators`) against the
+        // POST-deduplication unique-signer count, not the raw
+        // `pq_signatures.len()`.
+        //
+        // The Tur 7 design used `pq_signatures.len() < min_signers`
+        // which counted duplicate validator entries. An attacker
+        // could spam the same validator's signature N times in a
+        // single blob to push the raw count past the quorum
+        // threshold even though only one unique validator had
+        // signed. The structural checks in `verify_against_snapshot`
+        // catch the duplicate (it errors on `insert` returning
+        // false), but the quorum check fired *before* that and
+        // could be bypassed by inflating the raw entry count.
+        //
+        // The fix: do the structural verification FIRST, then
+        // enforce the quorum against the unique-verified signer
+        // set returned by `verify_against_snapshot`. The unique
+        // count is what actually counts as "this many validators
+        // have attested", which is the definition of quorum.
         use crate::core::chain_config::{FINALITY_QUORUM_DENOMINATOR, FINALITY_QUORUM_NUMERATOR};
         let n_validators = snapshot.validators.len();
         let min_signers = (n_validators * FINALITY_QUORUM_NUMERATOR as usize)
             .div_ceil(FINALITY_QUORUM_DENOMINATOR as usize);
-        if blob.pq_signatures.len() < min_signers {
+        let verified_signers =
+            blob.verify_against_snapshot(&snapshot, None, Some(self.state.epoch_index))?;
+        if verified_signers.len() < min_signers {
             return Err(format!(
-                "QcBlob has {} signatures, need at least {} (2/3 of {} validators)",
-                blob.pq_signatures.len(),
+                "QcBlob has {} unique verified signers, need at least {} (2/3 of {} validators)",
+                verified_signers.len(),
                 min_signers,
                 n_validators
             ));
         }
-        blob.verify_against_snapshot(&snapshot, None, Some(self.state.epoch_index))?;
 
         self.verified_qc_blobs
             .insert(blob.checkpoint_height, blob.clone());

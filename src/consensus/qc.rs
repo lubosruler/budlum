@@ -207,7 +207,7 @@ impl QcBlob {
         snapshot: &ValidatorSetSnapshot,
         required_signers: Option<&[usize]>,
         current_epoch: Option<u64>,
-    ) -> Result<(), String> {
+    ) -> Result<HashSet<usize>, String> {
         if self.epoch != snapshot.epoch {
             return Err(format!(
                 "QcBlob epoch mismatch: expected {}, got {}",
@@ -294,7 +294,16 @@ impl QcBlob {
             }
         }
 
-        Ok(())
+        // Tur 9 (security audit §2): return the unique-verified
+        // signer set so callers can enforce a quorum against the
+        // post-deduplication count. The previous design only
+        // returned `()`; callers that wanted to count unique
+        // signers (e.g. `import_qc_blob`'s BLS-quorum check) had to
+        // re-walk the entries themselves, which was both wasteful
+        // and easy to get wrong (counting duplicates). Returning
+        // the set makes the contract explicit and gives every
+        // caller access to the canonical unique count.
+        Ok(verified_indices)
     }
 
     pub fn detect_fault_proofs(&self, snapshot: &ValidatorSetSnapshot) -> Vec<QcFaultProof> {
@@ -792,5 +801,53 @@ mod tests {
         let entries = make_signed_entries(&snapshot, &keys, "cp");
         let blob = QcBlob::new(1, 100, "cp".into(), entries);
         assert!(blob.verify_merkle_root());
+    }
+
+    /// Tur 9 (security audit §2): `verify_against_snapshot` returns
+    /// the set of unique verified signers, and rejects duplicate
+    /// entries. Together these let the caller (e.g. `import_qc_blob`)
+    /// enforce a BLS quorum against the *post-deduplication* count
+    /// rather than the raw `pq_signatures.len()`. This test pins
+    /// both halves of the contract.
+    #[test]
+    fn verify_against_snapshot_returns_unique_set_and_rejects_duplicates() {
+        let (snapshot, keys) = make_snapshot_with_pq_keys(4);
+        let mut entries = make_signed_entries(&snapshot, &keys, "cp");
+
+        // Append a duplicate of validator 0's entry. The duplicate
+        // has the same validator_index, address, and signature as
+        // entries[0]. It will verify cryptographically but must
+        // trigger the deduplication error.
+        entries.push(entries[0].clone());
+        let blob = QcBlob::new(snapshot.epoch, 100, "cp".into(), entries);
+
+        let result = blob.verify_against_snapshot(&snapshot, None, Some(snapshot.epoch));
+        assert!(
+            result.is_err(),
+            "duplicate PQ signature must be rejected even if it verifies cryptographically"
+        );
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("Duplicate PQ signature"),
+            "error must surface the deduplication rationale, got: {}",
+            err
+        );
+
+        // The same call without the duplicate must succeed and
+        // return a set of exactly 4 unique validator indices.
+        let (snapshot, keys) = make_snapshot_with_pq_keys(4);
+        let entries = make_signed_entries(&snapshot, &keys, "cp");
+        let blob = QcBlob::new(snapshot.epoch, 100, "cp".into(), entries);
+        let verified = blob
+            .verify_against_snapshot(&snapshot, None, Some(snapshot.epoch))
+            .expect("clean blob must verify");
+        assert_eq!(verified.len(), 4, "expected 4 unique verified signers");
+        for idx in 0..4 {
+            assert!(
+                verified.contains(&idx),
+                "expected validator index {} in verified set",
+                idx
+            );
+        }
     }
 }
