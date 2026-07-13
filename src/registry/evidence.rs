@@ -380,4 +380,34 @@ mod tests {
         );
         assert_eq!(r.validate_shape(), Err(EvidenceError::ZeroOffender));
     }
+
+    /// Tur 9.5 (security audit §6): pin the invariant that
+    /// `SlashingProof::DoubleSign` is labeled as
+    /// `SlashingCondition::DoubleSign` and `SlashingProof::Liveness`
+    /// is labeled as `SlashingCondition::LivenessFault`, and that
+    /// the two helpers (`consensus_double_sign`,
+    /// `consensus_liveness`) never cross-wire the proof kind and
+    /// the condition label. A regression in either direction
+    /// would either under-slash (DoubleSign labeled as
+    /// LivenessFault would slash 1% instead of 50%) or over-slash
+    /// (Liveness labeled as DoubleSign would slash 50% instead of
+    /// 1%).
+    #[test]
+    fn slashing_proof_condition_invariant_double_sign_vs_liveness() {
+        let offender = addr(0x42);
+        let r = SlashingReport::consensus_double_sign(
+            offender,
+            100,
+            "h1".into(),
+            "h2".into(),
+            vec![1, 2, 3],
+            vec![4, 5, 6],
+            None,
+        );
+        assert_eq!(r.condition(), SlashingCondition::DoubleSign);
+
+        let r2 =
+            SlashingReport::consensus_liveness(offender, roles::VALIDATOR, 10, 20, 5, 10, None);
+        assert_eq!(r2.condition(), SlashingCondition::LivenessFault);
+    }
 }
