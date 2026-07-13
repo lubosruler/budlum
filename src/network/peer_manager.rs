@@ -280,7 +280,7 @@ impl PeerManager {
         self.peers
             .iter()
             .filter_map(|(id, s)| {
-                if !s.banned_until.is_some_and(|until| now < until) {
+                if s.banned_until.is_none_or(|until| now >= until) {
                     return None;
                 }
                 let expires_unix = s.ban_expires_unix.unwrap_or_else(|| {
