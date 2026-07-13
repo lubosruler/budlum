@@ -287,7 +287,7 @@ impl Blockchain {
         let mut validator_snapshots = BTreeMap::new();
         validator_snapshots.insert(
             state.epoch_index,
-            Self::build_validator_snapshot_from_state(state.epoch_index, &state),
+            Self::build_validator_snapshot_from_state(state.epoch_index, &state, chain_id),
         );
 
         for block in chain_vec.iter().skip(start_index) {
@@ -303,7 +303,7 @@ impl Blockchain {
             };
             validator_snapshots.insert(
                 state.epoch_index,
-                Self::build_validator_snapshot_from_state(state.epoch_index, &state),
+                Self::build_validator_snapshot_from_state(state.epoch_index, &state, chain_id),
             );
         }
 
@@ -1319,7 +1319,7 @@ impl Blockchain {
     }
 
     fn build_validator_snapshot(&self, epoch: u64) -> ValidatorSetSnapshot {
-        Self::build_validator_snapshot_from_state(epoch, &self.state)
+        Self::build_validator_snapshot_from_state(epoch, &self.state, self.chain_id)
     }
 
     /// Tur 5: real ZK-proof submission with fee + reward + claim policy.
@@ -1647,6 +1647,7 @@ impl Blockchain {
     fn build_validator_snapshot_from_state(
         epoch: u64,
         state: &AccountState,
+        chain_id: u64,
     ) -> ValidatorSetSnapshot {
         let active_validators = state.get_active_validators();
         let entries: Vec<ValidatorEntry> = active_validators
@@ -1665,7 +1666,7 @@ impl Blockchain {
                 };
                 let has_no_bls_key =
                     entry.bls_public_key.is_empty() || entry.pop_signature.is_empty();
-                if has_no_bls_key || crate::chain::finality::verify_pop(&entry) {
+                if has_no_bls_key || crate::chain::finality::verify_pop(&entry, chain_id) {
                     Some(entry)
                 } else {
                     warn!(

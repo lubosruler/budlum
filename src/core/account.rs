@@ -7,6 +7,10 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 pub const MIN_TX_FEE: u64 = 1;
+/// Tur 11.7 / A8: protocol bounds for governance fee/reward proposals.
+pub const MAX_BASE_FEE: u64 = 1_000_000;
+pub const MIN_BLOCK_REWARD: u64 = 0;
+pub const MAX_BLOCK_REWARD: u64 = 10_000 * crate::tokenomics::BUD_UNIT;
 pub const GENESIS_BALANCE: u64 = 1_000_000_000;
 pub const UNBONDING_EPOCHS: u64 = 7;
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -710,15 +714,33 @@ impl AccountState {
         use crate::core::governance::ProposalType;
         match &proposal.p_type {
             ProposalType::ChangeBaseFee(new_fee) => {
-                self.base_fee = *new_fee;
-                tracing::info!("Executing Governance: BaseFee changed to {}", new_fee);
+                // Tur 11.7 / A8: clamp to protocol bounds (never accept unbounded fee).
+                if *new_fee < MIN_TX_FEE || *new_fee > MAX_BASE_FEE {
+                    tracing::warn!(
+                        "Rejecting ChangeBaseFee {}: outside [{}, {}]",
+                        new_fee,
+                        MIN_TX_FEE,
+                        MAX_BASE_FEE
+                    );
+                } else {
+                    self.base_fee = *new_fee;
+                    tracing::info!("Executing Governance: BaseFee changed to {}", new_fee);
+                }
             }
             ProposalType::ChangeBlockReward(new_reward) => {
-                self.tokenomics.block_reward = *new_reward;
-                tracing::info!(
-                    "Executing Governance: BlockReward changed to {}",
-                    new_reward
-                );
+                if *new_reward > MAX_BLOCK_REWARD {
+                    tracing::warn!(
+                        "Rejecting ChangeBlockReward {}: above MAX_BLOCK_REWARD {}",
+                        new_reward,
+                        MAX_BLOCK_REWARD
+                    );
+                } else {
+                    self.tokenomics.block_reward = *new_reward;
+                    tracing::info!(
+                        "Executing Governance: BlockReward changed to {}",
+                        new_reward
+                    );
+                }
             }
             ProposalType::SlashValidator(addr) => {
                 if let Some(v) = self.validators.get_mut(addr) {
@@ -729,13 +751,53 @@ impl AccountState {
                 }
             }
             ProposalType::ParameterUpdate(key, value) => {
-                tracing::info!(
-                    "Executing Governance: Parameter {} updated to {}",
-                    key,
-                    value
-                );
+                // Tur 11.7 / A8: wire ParameterUpdate into RegistryParams with bounds.
+                match self.apply_registry_parameter_update(key, value) {
+                    Ok(()) => tracing::info!(
+                        "Executing Governance: Parameter {} updated to {}",
+                        key,
+                        value
+                    ),
+                    Err(e) => tracing::warn!("Rejecting ParameterUpdate {}={}: {}", key, value, e),
+                }
             }
         }
+    }
+
+    /// Apply a single registry parameter update if it parses and passes bounds.
+    fn apply_registry_parameter_update(&mut self, key: &str, value: &str) -> Result<(), String> {
+        let mut params = *self.registry.params();
+        match key {
+            "min_stake" => {
+                params.min_stake = value
+                    .parse::<u64>()
+                    .map_err(|e| format!("invalid min_stake: {e}"))?;
+            }
+            "unbonding_epochs" => {
+                params.unbonding_epochs = value
+                    .parse::<u64>()
+                    .map_err(|e| format!("invalid unbonding_epochs: {e}"))?;
+            }
+            "double_sign_slash_ratio_fixed" => {
+                params.double_sign_slash_ratio_fixed = value
+                    .parse::<u64>()
+                    .map_err(|e| format!("invalid double_sign_slash_ratio_fixed: {e}"))?;
+            }
+            "liveness_slash_ratio_fixed" => {
+                params.liveness_slash_ratio_fixed = value
+                    .parse::<u64>()
+                    .map_err(|e| format!("invalid liveness_slash_ratio_fixed: {e}"))?;
+            }
+            "malicious_slash_ratio_fixed" => {
+                params.malicious_slash_ratio_fixed = value
+                    .parse::<u64>()
+                    .map_err(|e| format!("invalid malicious_slash_ratio_fixed: {e}"))?;
+            }
+            other => return Err(format!("unknown registry parameter: {other}")),
+        }
+        params.validate()?;
+        self.registry.set_params(params);
+        Ok(())
     }
     pub fn add_balance(&mut self, public_key: &Address, amount: u64) {
         let account = self.get_or_create(public_key);
@@ -1254,5 +1316,110 @@ mod tests {
             err.contains("signature") || err.contains("Invalid signature"),
             "expected signature error, got: {err}"
         );
+    }
+
+    /// Tur 11.7 / A8: out-of-range base fee proposals are rejected.
+    #[test]
+    fn tur117_change_base_fee_bounds() {
+        use crate::core::governance::{Proposal, ProposalType};
+        let mut state = AccountState::new();
+        let old = state.base_fee;
+        let p = Proposal::new(
+            1,
+            Address::from([1u8; 32]),
+            ProposalType::ChangeBaseFee(0),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.base_fee, old, "zero fee must be rejected");
+
+        let p = Proposal::new(
+            2,
+            Address::from([1u8; 32]),
+            ProposalType::ChangeBaseFee(MAX_BASE_FEE + 1),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.base_fee, old, "over-max fee must be rejected");
+
+        let p = Proposal::new(
+            3,
+            Address::from([1u8; 32]),
+            ProposalType::ChangeBaseFee(42),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.base_fee, 42);
+    }
+
+    /// Tur 11.7 / A8: ParameterUpdate binds to RegistryParams with validation.
+    #[test]
+    fn tur117_parameter_update_registry_bounds() {
+        use crate::core::governance::{Proposal, ProposalType};
+        let mut state = AccountState::new();
+        let old = state.registry.params().min_stake;
+
+        // Reject too-small min_stake.
+        let p = Proposal::new(
+            1,
+            Address::from([2u8; 32]),
+            ProposalType::ParameterUpdate("min_stake".into(), "1".into()),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.registry.params().min_stake, old);
+
+        // Accept a valid increase.
+        let p = Proposal::new(
+            2,
+            Address::from([2u8; 32]),
+            ProposalType::ParameterUpdate("min_stake".into(), "5000".into()),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.registry.params().min_stake, 5000);
+
+        // Reject zero unbonding.
+        let old_u = state.registry.params().unbonding_epochs;
+        let p = Proposal::new(
+            3,
+            Address::from([2u8; 32]),
+            ProposalType::ParameterUpdate("unbonding_epochs".into(), "0".into()),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.registry.params().unbonding_epochs, old_u);
+    }
+
+    /// Tur 11.7 / A8: block reward cannot exceed protocol max.
+    #[test]
+    fn tur117_change_block_reward_bounds() {
+        use crate::core::governance::{Proposal, ProposalType};
+        let mut state = AccountState::new();
+        let old = state.tokenomics.block_reward;
+        let p = Proposal::new(
+            1,
+            Address::from([3u8; 32]),
+            ProposalType::ChangeBlockReward(MAX_BLOCK_REWARD + 1),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.tokenomics.block_reward, old);
+        let p = Proposal::new(
+            2,
+            Address::from([3u8; 32]),
+            ProposalType::ChangeBlockReward(100),
+            0,
+            10,
+        );
+        state.execute_proposal(&p);
+        assert_eq!(state.tokenomics.block_reward, 100);
     }
 }

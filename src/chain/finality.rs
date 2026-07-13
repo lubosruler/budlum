@@ -126,9 +126,12 @@ pub fn checkpoint_signing_message(epoch: u64, height: u64, hash: &str) -> Vec<u8
     msg
 }
 
-pub fn pop_signing_message(address: &Address, bls_pk: &[u8]) -> Vec<u8> {
+/// Domain-separated BLS Proof-of-Possession message (Tur 11.7 / A7).
+/// Includes `chain_id` so a PoP captured on testnet cannot be replayed on mainnet.
+pub fn pop_signing_message(chain_id: u64, address: &Address, bls_pk: &[u8]) -> Vec<u8> {
     let mut msg = Vec::new();
     msg.extend_from_slice(b"BUDLUM_BLS_POP");
+    msg.extend_from_slice(&chain_id.to_le_bytes());
     msg.extend_from_slice(&address.0);
     msg.extend_from_slice(bls_pk);
     msg
@@ -206,7 +209,7 @@ pub fn verify_bls_sig(pk: &[u8], msg: &[u8], sig: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
-pub fn verify_pop(entry: &ValidatorEntry) -> bool {
+pub fn verify_pop(entry: &ValidatorEntry, chain_id: u64) -> bool {
     if entry.bls_public_key.is_empty() || entry.pop_signature.is_empty() {
         return false;
     }
@@ -246,7 +249,7 @@ pub fn verify_pop(entry: &ValidatorEntry) -> bool {
     }
 
     // Verify PoP: e(sig, G2_gen) == e(H(pop_msg), pk)
-    let msg = pop_signing_message(&entry.address, &entry.bls_public_key);
+    let msg = pop_signing_message(chain_id, &entry.address, &entry.bls_public_key);
     let h_msg = hash_to_g1(&msg);
 
     let g2_gen_neg = -G2Affine::generator();
@@ -770,7 +773,11 @@ mod tests {
                 addr_bytes[0] = (i + 1) as u8;
                 let addr = Address::from(addr_bytes);
 
-                let pop_msg = pop_signing_message(&addr, &pk_bytes);
+                let pop_msg = pop_signing_message(
+                    crate::core::transaction::DEFAULT_CHAIN_ID,
+                    &addr,
+                    &pk_bytes,
+                );
                 let pop_sig = sign_msg(sk, &pop_msg);
 
                 ValidatorEntry {
@@ -795,11 +802,31 @@ mod tests {
     #[test]
     fn test_verify_pop() {
         let (snap, _) = make_snapshot_with_keys(1, 1000);
-        assert!(verify_pop(&snap.validators[0]));
+        assert!(verify_pop(
+            &snap.validators[0],
+            crate::core::transaction::DEFAULT_CHAIN_ID
+        ));
 
         let mut invalid = snap.validators[0].clone();
         invalid.pop_signature[0] ^= 0xFF;
-        assert!(!verify_pop(&invalid));
+        assert!(!verify_pop(
+            &invalid,
+            crate::core::transaction::DEFAULT_CHAIN_ID
+        ));
+    }
+
+    /// Tur 11.7 / A7: PoP signed under chain_id A must not verify under chain_id B.
+    #[test]
+    fn tur117_pop_chain_id_domain_separation() {
+        let (snap, _) = make_snapshot_with_keys(1, 1000);
+        let entry = &snap.validators[0];
+        assert!(verify_pop(
+            entry,
+            crate::core::transaction::DEFAULT_CHAIN_ID
+        ));
+        // Different chain_id → different message → signature fails.
+        assert!(!verify_pop(entry, 1)); // mainnet id
+        assert!(!verify_pop(entry, 42)); // testnet id
     }
 
     #[test]
@@ -1036,7 +1063,7 @@ mod tests {
             pq_public_key: Vec::new(),
         };
         assert!(
-            !verify_pop(&entry),
+            !verify_pop(&entry, crate::core::transaction::DEFAULT_CHAIN_ID),
             "verify_pop must reject an entry with a non-decodable BLS public key"
         );
 

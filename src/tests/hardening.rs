@@ -201,7 +201,10 @@ mod hardening_tests {
         // verify_pop boş key ile false döner (PoP yok); ama build_validator_snapshot
         // boş key durumunda bypass yapar (genesis güven). Burada sadece
         // verify_pop'un false döndüğünü doğruluyoruz — bypass başka yerde.
-        assert!(!verify_pop(&genesis_style));
+        assert!(!verify_pop(
+            &genesis_style,
+            crate::core::transaction::DEFAULT_CHAIN_ID
+        ));
 
         // Geçersiz PoP (sahte) — production filtresi bunu reddetmeli
         let invalid = ValidatorEntry {
@@ -213,7 +216,10 @@ mod hardening_tests {
         };
         // Sahte key/sig de verify_pop'tan false dönmeli; production
         // filtresi bunu snapshot'tan çıkarır (rogue-key koruması).
-        assert!(!verify_pop(&invalid));
+        assert!(!verify_pop(
+            &invalid,
+            crate::core::transaction::DEFAULT_CHAIN_ID
+        ));
     }
 
     // === TUR 6 SECURITY FIX (Güvenlik Denetimi §2) =========================

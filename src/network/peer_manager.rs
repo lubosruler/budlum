@@ -1,6 +1,6 @@
 use libp2p::PeerId;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tracing::warn;
 pub const INVALID_BLOCK_PENALTY: i32 = -10;
 pub const INVALID_TX_PENALTY: i32 = -5;
@@ -19,6 +19,9 @@ pub const MSG_REFILL_RATE: f64 = 5.0;
 pub struct PeerScore {
     pub score: i32,
     pub banned_until: Option<Instant>,
+    /// Absolute ban expiry (unix seconds). Survives restart; `banned_until`
+    /// is recomputed from this on reload (Tur 11.7 / A4).
+    pub ban_expires_unix: Option<u64>,
     pub invalid_blocks: u32,
     pub invalid_txs: u32,
     pub valid_contributions: u32,
@@ -34,6 +37,7 @@ impl Default for PeerScore {
         PeerScore {
             score: 0,
             banned_until: None,
+            ban_expires_unix: None,
             invalid_blocks: 0,
             invalid_txs: 0,
             valid_contributions: 0,
@@ -186,6 +190,7 @@ impl PeerManager {
     pub fn ban_peer(&mut self, peer_id: &PeerId) {
         let score = self.get_or_create(peer_id);
         score.banned_until = Some(Instant::now() + BAN_DURATION);
+        score.ban_expires_unix = Some(unix_now_secs().saturating_add(BAN_DURATION.as_secs()));
         warn!("Peer {} banned for {:?}", peer_id, BAN_DURATION);
     }
     pub fn is_banned(&self, peer_id: &PeerId) -> bool {
@@ -213,17 +218,20 @@ impl PeerManager {
     pub fn unban_peer(&mut self, peer_id: &PeerId) {
         if let Some(score) = self.peers.get_mut(peer_id) {
             score.banned_until = None;
+            score.ban_expires_unix = None;
             score.score = 0;
         }
     }
     pub fn cleanup_expired_bans(&mut self) {
         let now = Instant::now();
+        let now_unix = unix_now_secs();
         for score in self.peers.values_mut() {
-            if let Some(until) = score.banned_until {
-                if now >= until {
-                    score.banned_until = None;
-                    score.score = 0;
-                }
+            let expired_instant = score.banned_until.is_some_and(|until| now >= until);
+            let expired_unix = score.ban_expires_unix.is_some_and(|exp| now_unix >= exp);
+            if expired_instant || expired_unix {
+                score.banned_until = None;
+                score.ban_expires_unix = None;
+                score.score = 0;
             }
         }
     }
@@ -264,26 +272,80 @@ impl PeerManager {
         scored.into_iter().take(n).map(|(id, _)| *id).collect()
     }
 
-    pub fn get_persisted_banned_peers(&self) -> Vec<String> {
+    /// Snapshot of still-active bans with absolute expiry (unix seconds).
+    /// Tur 11.7 / A4: remaining duration is reconstructed on reload.
+    pub fn get_persisted_banned_peers(&self) -> Vec<PersistedBan> {
         let now = Instant::now();
+        let now_unix = unix_now_secs();
         self.peers
             .iter()
-            .filter(|(_, s)| s.banned_until.is_some_and(|until| now < until))
-            .map(|(id, _)| id.to_base58())
+            .filter_map(|(id, s)| {
+                if !s.banned_until.is_some_and(|until| now < until) {
+                    return None;
+                }
+                let expires_unix = s.ban_expires_unix.unwrap_or_else(|| {
+                    // Fallback for in-memory bans set before unix field existed.
+                    let remaining = s.ban_remaining().unwrap_or(BAN_DURATION);
+                    now_unix.saturating_add(remaining.as_secs())
+                });
+                if expires_unix <= now_unix {
+                    return None;
+                }
+                Some(PersistedBan {
+                    peer_id: id.to_base58(),
+                    expires_unix,
+                })
+            })
             .collect()
     }
 
-    pub fn reload_banned_peers(&mut self, peer_ids: &[String]) {
-        let until = Instant::now() + BAN_DURATION;
-        for pid_str in peer_ids {
-            if let Ok(pid) = pid_str.parse::<PeerId>() {
-                let entry = self.peers.entry(pid).or_default();
-                entry.banned_until = Some(until);
-                entry.score = BAN_THRESHOLD;
+    /// Restore bans from durable storage using absolute expiry timestamps.
+    /// Remaining duration = `expires_unix - now` (never restarts a full ban window).
+    pub fn reload_banned_peers(&mut self, bans: &[PersistedBan]) {
+        let now_unix = unix_now_secs();
+        for ban in bans {
+            if ban.expires_unix <= now_unix {
+                continue; // already expired
             }
+            let Ok(pid) = ban.peer_id.parse::<PeerId>() else {
+                continue;
+            };
+            let remaining = Duration::from_secs(ban.expires_unix - now_unix);
+            let entry = self.peers.entry(pid).or_default();
+            entry.banned_until = Some(Instant::now() + remaining);
+            entry.ban_expires_unix = Some(ban.expires_unix);
+            entry.score = BAN_THRESHOLD;
         }
     }
+
+    /// Legacy helper: reload peer IDs with a *full* ban window (pre-Tur-11.7 format).
+    pub fn reload_banned_peers_legacy(&mut self, peer_ids: &[String]) {
+        let bans: Vec<PersistedBan> = peer_ids
+            .iter()
+            .map(|peer_id| PersistedBan {
+                peer_id: peer_id.clone(),
+                expires_unix: unix_now_secs().saturating_add(BAN_DURATION.as_secs()),
+            })
+            .collect();
+        self.reload_banned_peers(&bans);
+    }
 }
+
+/// Durable ban record (Tur 11.7 / A4).
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct PersistedBan {
+    pub peer_id: String,
+    /// Unix timestamp (seconds) when the ban expires.
+    pub expires_unix: u64,
+}
+
+fn unix_now_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,5 +400,46 @@ mod tests {
             manager.report_good_behavior(&peer);
         }
         assert_eq!(manager.get_score(&peer), MAX_SCORE);
+    }
+
+    /// Tur 11.7 / A4: reload uses absolute expiry, not a fresh full BAN_DURATION.
+    #[test]
+    fn tur117_ban_reload_preserves_remaining() {
+        let mut manager = PeerManager::new();
+        let peer = test_peer_id();
+        // Simulate a ban that expires in 60s (not a full hour).
+        let expires = unix_now_secs() + 60;
+        manager.reload_banned_peers(&[PersistedBan {
+            peer_id: peer.to_base58(),
+            expires_unix: expires,
+        }]);
+        assert!(manager.is_banned(&peer));
+        let remaining = manager
+            .get_peer_info(&peer)
+            .and_then(|s| s.ban_remaining())
+            .expect("remaining ban");
+        // Allow a few seconds of slack for test runtime.
+        assert!(
+            remaining.as_secs() <= 60 && remaining.as_secs() >= 55,
+            "remaining should be ~60s, got {:?}",
+            remaining
+        );
+        // Persisted snapshot must carry the same absolute expiry.
+        let persisted = manager.get_persisted_banned_peers();
+        assert_eq!(persisted.len(), 1);
+        assert_eq!(persisted[0].expires_unix, expires);
+    }
+
+    /// Tur 11.7 / A4: already-expired absolute timestamps are not re-banned.
+    #[test]
+    fn tur117_expired_ban_not_reloaded() {
+        let mut manager = PeerManager::new();
+        let peer = test_peer_id();
+        manager.reload_banned_peers(&[PersistedBan {
+            peer_id: peer.to_base58(),
+            expires_unix: unix_now_secs().saturating_sub(10),
+        }]);
+        assert!(!manager.is_banned(&peer));
+        assert!(manager.get_persisted_banned_peers().is_empty());
     }
 }

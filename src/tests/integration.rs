@@ -312,7 +312,11 @@ mod integration_tests {
         // kullanılıyordu — bu, güvenlik denetimi Madde 3 kapsamında
         // kapatılan rogue-key saldırısına açıktı). PoP = sk · H(msg)
         // where msg = "BUDLUM_BLS_POP" || address || bls_pk.
-        let pop_msg = crate::chain::finality::pop_signing_message(&pubkey, &bls_pk);
+        let pop_msg = crate::chain::finality::pop_signing_message(
+            crate::core::transaction::DEFAULT_CHAIN_ID,
+            &pubkey,
+            &bls_pk,
+        );
         let h_pop = crate::chain::finality::hash_to_g1(&pop_msg);
         let pop_sig_point = bls12_381::G1Projective::from(h_pop) * bls_sk;
         validator.pop_signature = bls12_381::G1Affine::from(pop_sig_point)
@@ -499,8 +503,11 @@ mod integration_tests {
         let bls_pk_point = bls12_381::G2Affine::from(bls12_381::G2Projective::generator() * bls_sk);
         validator.bls_public_key = bls_pk_point.to_compressed().to_vec();
         // TUR 3: gerçek BLS PoP üret (önceden sahte sıfır vektör).
-        let pop_msg =
-            crate::chain::finality::pop_signing_message(&pubkey, &validator.bls_public_key);
+        let pop_msg = crate::chain::finality::pop_signing_message(
+            crate::core::transaction::DEFAULT_CHAIN_ID,
+            &pubkey,
+            &validator.bls_public_key,
+        );
         let h_pop = crate::chain::finality::hash_to_g1(&pop_msg);
         let pop_sig_point = bls12_381::G1Projective::from(h_pop) * bls_sk;
         validator.pop_signature = bls12_381::G1Affine::from(pop_sig_point)
@@ -726,8 +733,11 @@ mod integration_tests {
             .iter()
             .enumerate()
             .map(|(i, (addr, stake))| {
-                let pop_msg =
-                    crate::chain::finality::pop_signing_message(addr, &bls_keys[i].public_key);
+                let pop_msg = crate::chain::finality::pop_signing_message(
+                    crate::core::transaction::DEFAULT_CHAIN_ID,
+                    addr,
+                    &bls_keys[i].public_key,
+                );
                 let pop_sig = sign_bls(&bls_keys[i].secret_key, &pop_msg);
                 ValidatorEntry {
                     address: *addr,
@@ -1126,13 +1136,14 @@ mod integration_tests {
             .map(|_| libp2p::PeerId::random().to_base58())
             .collect();
 
-        pm.reload_banned_peers(&banned_ids);
+        pm.reload_banned_peers_legacy(&banned_ids);
 
         let persisted = pm.get_persisted_banned_peers();
         assert_eq!(persisted.len(), 3);
         for id in &banned_ids {
             let pid = id.parse::<libp2p::PeerId>().unwrap();
             assert!(pm.is_banned(&pid));
+            assert!(persisted.iter().any(|b| b.peer_id == *id));
         }
     }
 
@@ -1143,7 +1154,7 @@ mod integration_tests {
         let pid = libp2p::PeerId::random();
 
         let banned = vec![pid.to_base58()];
-        pm.reload_banned_peers(&banned);
+        pm.reload_banned_peers_legacy(&banned);
         assert!(pm.is_banned(&pid));
 
         pm.unban_peer(&pid);

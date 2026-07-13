@@ -60,7 +60,8 @@ fn make_snapshot_with_keys(n: usize, stake_each: u64) -> (ValidatorSetSnapshot, 
             let (sk, pk_bytes) = make_test_key(i as u8);
             sks.push(sk);
             let addr = addr_for(i);
-            let pop_msg = pop_signing_message(&addr, &pk_bytes);
+            let pop_msg =
+                pop_signing_message(crate::core::transaction::DEFAULT_CHAIN_ID, &addr, &pk_bytes);
             let pop_sig = sign_bls(&sk, &pop_msg);
             ValidatorEntry {
                 address: addr,

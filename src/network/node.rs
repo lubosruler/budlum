@@ -423,17 +423,37 @@ impl Node {
         };
         match std::fs::read_to_string(db_path) {
             Ok(data) => {
+                // Tur 11.7 / A4: prefer absolute-expiry records; accept legacy
+                // string-only lists for one-version migration.
                 #[derive(serde::Deserialize)]
-                struct BanList {
+                struct BanListV2 {
+                    banned_peers: Vec<crate::network::peer_manager::PersistedBan>,
+                }
+                #[derive(serde::Deserialize)]
+                struct BanListLegacy {
                     banned_peers: Vec<String>,
                 }
-                if let Ok(list) = serde_json::from_str::<BanList>(&data) {
+
+                if let Ok(list) = serde_json::from_str::<BanListV2>(&data) {
                     if !list.banned_peers.is_empty() {
                         if let Ok(mut pm) = self.peer_manager.lock() {
+                            let n = list.banned_peers.len();
                             pm.reload_banned_peers(&list.banned_peers);
                             info!(
-                                "Reloaded {} banned peers from {}",
-                                list.banned_peers.len(),
+                                "Reloaded {} banned peers (with expiry) from {}",
+                                n,
+                                db_path.display()
+                            );
+                        }
+                    }
+                } else if let Ok(list) = serde_json::from_str::<BanListLegacy>(&data) {
+                    if !list.banned_peers.is_empty() {
+                        if let Ok(mut pm) = self.peer_manager.lock() {
+                            let n = list.banned_peers.len();
+                            pm.reload_banned_peers_legacy(&list.banned_peers);
+                            info!(
+                                "Reloaded {} banned peers (legacy full-window) from {}",
+                                n,
                                 db_path.display()
                             );
                         }

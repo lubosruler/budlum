@@ -480,12 +480,50 @@ impl PermissionlessRegistry {
             ((reg.stake as u128 * slash_ratio_fixed as u128) / FIXED_POINT_SCALE as u128) as u64;
         reg.stake = reg.stake.saturating_sub(penalty);
         reg.status = MemberStatus::Slashed;
+        let remaining_stake = reg.stake;
+
+        // Tur 11.7 / A5: cross-role slash — jail every other registration of
+        // the same address so a slashed validator cannot continue as relayer/prover.
+        self.slash_cross_role(account, role, condition, slash_ratio_fixed);
 
         Ok(SlashOutcome {
             condition,
             penalty,
-            remaining_stake: reg.stake,
+            remaining_stake,
         })
+    }
+
+    /// Jail (and proportionally slash) all other roles held by `account`.
+    fn slash_cross_role(
+        &mut self,
+        account: Address,
+        primary_role: RoleId,
+        _condition: SlashingCondition,
+        slash_ratio_fixed: u64,
+    ) {
+        let other_keys: Vec<RoleId> = self
+            .registrations
+            .keys()
+            .filter_map(|(role, addr)| {
+                if *addr == account && *role != primary_role {
+                    Some(*role)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for role in other_keys {
+            if let Some(reg) = self.registrations.get_mut(&(role, account)) {
+                if matches!(reg.status, MemberStatus::Slashed) {
+                    continue;
+                }
+                let penalty = ((reg.stake as u128 * slash_ratio_fixed as u128)
+                    / FIXED_POINT_SCALE as u128) as u64;
+                reg.stake = reg.stake.saturating_sub(penalty);
+                reg.status = MemberStatus::Slashed;
+            }
+        }
     }
 
     /// Slash directly from a canonical [`SlashingReport`].
@@ -719,5 +757,31 @@ mod tests {
             .unwrap();
         assert!(reg.is_active(&addr(7), roles::VALIDATOR));
         assert!(reg.is_active(&addr(7), roles::RELAYER));
+    }
+
+    /// Tur 11.7 / A5: slashing one role jails the same address in other roles.
+    #[test]
+    fn tur117_cross_role_slash_jails_all_roles() {
+        let mut reg = PermissionlessRegistry::new();
+        reg.register_validator(addr(77), 10_000, 0).unwrap();
+        reg.register_relayer(addr(77), MIN_REGISTRATION_STAKE, 0)
+            .unwrap();
+        assert!(reg.is_active(&addr(77), roles::VALIDATOR));
+        assert!(reg.is_active(&addr(77), roles::RELAYER));
+
+        reg.slash(
+            addr(77),
+            roles::VALIDATOR,
+            SlashingCondition::DoubleSign,
+            FIXED_POINT_SCALE / 2,
+        )
+        .unwrap();
+
+        assert!(!reg.is_active(&addr(77), roles::VALIDATOR));
+        assert!(!reg.is_active(&addr(77), roles::RELAYER));
+        // Relayer stake also reduced by the same ratio.
+        let relayer = reg.get(&addr(77), roles::RELAYER).unwrap();
+        assert_eq!(relayer.stake, MIN_REGISTRATION_STAKE / 2);
+        assert!(matches!(relayer.status, MemberStatus::Slashed));
     }
 }
