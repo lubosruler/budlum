@@ -2213,6 +2213,15 @@ impl Blockchain {
         }
 
         if let Some(last_block) = self.chain.last() {
+            // Tur 9 (security audit §3): the trait-level `record_block`
+            // no longer mutates PoW difficulty (validation is pure).
+            // Instead, the chain-aware `record_block_with_chain` is
+            // called here, AFTER the block has been durably committed
+            // and the chain is in its post-commit state. Other engines
+            // (PoS, PoA, BFT, ZK) keep their default no-op
+            // `record_block` semantics and are unaffected.
+            self.consensus
+                .record_block_with_chain(last_block, &self.chain, self.storage.as_ref());
             if let Err(e) = self
                 .consensus
                 .record_block(last_block, self.storage.as_ref())

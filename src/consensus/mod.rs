@@ -46,6 +46,22 @@ pub trait ConsensusEngine: Send + Sync {
     ) -> Result<(), ConsensusError> {
         Ok(())
     }
+
+    /// Tur 9 (security audit §3): chain-aware variant of `record_block`.
+    /// Called from `blockchain.rs` AFTER a block has been durably
+    /// committed and the chain is in its post-commit state. The
+    /// default implementation is a no-op; engines that need access to
+    /// the full chain (e.g. `PoWEngine` for difficulty adjustment)
+    /// override it. Validation (`validate_block`) MUST remain pure —
+    /// any state mutation triggered by a block landing on the chain
+    /// belongs here, not in validation.
+    fn record_block_with_chain(
+        &self,
+        _block: &Block,
+        _chain: &[Block],
+        _storage: Option<&crate::storage::db::Storage>,
+    ) {
+    }
     fn load_state(&self, _storage: &crate::storage::db::Storage) -> Result<(), ConsensusError> {
         Ok(())
     }
