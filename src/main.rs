@@ -303,35 +303,34 @@ async fn main() {
     );
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    let hsm_signer: Option<Arc<dyn ConsensusSigner>> = if config.signer_backend.as_deref()
-        == Some("pkcs11")
-    {
-        let module_path = config.pkcs11_module_path.as_deref().unwrap_or("");
-        let slot_id = config.pkcs11_slot_id.unwrap_or(0);
-        let pin_env = config.pkcs11_token_pin_env.as_deref().unwrap_or("");
-        if module_path.is_empty() || pin_env.is_empty() {
-            eprintln!(
+    let hsm_signer: Option<Arc<dyn ConsensusSigner>> =
+        if config.signer_backend.as_deref() == Some("pkcs11") {
+            let module_path = config.pkcs11_module_path.as_deref().unwrap_or("");
+            let slot_id = config.pkcs11_slot_id.unwrap_or(0);
+            let pin_env = config.pkcs11_token_pin_env.as_deref().unwrap_or("");
+            if module_path.is_empty() || pin_env.is_empty() {
+                eprintln!(
                 "ERROR: PKCS#11 backend requires --pkcs11-module-path and --pkcs11-token-pin-env"
             );
-            std::process::exit(1);
-        }
-        match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
-            module_path.to_string(),
-            slot_id,
-            pin_env.to_string(),
-        ) {
-            Ok(signer) => {
-                println!("PKCS#11 HSM initialized (slot: {})", slot_id);
-                Some(Arc::new(signer))
-            }
-            Err(e) => {
-                eprintln!("CRITICAL: Failed to initialize PKCS#11 signer: {}", e);
                 std::process::exit(1);
             }
-        }
-    } else {
-        None
-    };
+            match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
+                module_path.to_string(),
+                slot_id,
+                pin_env.to_string(),
+            ) {
+                Ok(signer) => {
+                    println!("PKCS#11 HSM initialized (slot: {})", slot_id);
+                    Some(Arc::new(signer))
+                }
+                Err(e) => {
+                    eprintln!("CRITICAL: Failed to initialize PKCS#11 signer: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        } else {
+            None
+        };
 
     let consensus: Arc<dyn ConsensusEngine> = match consensus_type {
         ConsensusType::PoW => {
