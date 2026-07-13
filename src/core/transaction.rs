@@ -110,11 +110,16 @@ impl Transaction {
             &serde_json::to_vec(&p_type).expect("BUG: ProposalType must serialize"),
         );
 
+        // Tur 9.5 (security audit §10): a non-zero default fee is set
+        // so the consensus-level cost-floor check in
+        // `apply_transaction_checked` is satisfied for proposals
+        // built via this helper. Callers can still override the
+        // fee afterwards if they need a different value.
         Self::new_with_chain_id(
             from,
             Address::zero(),
             0,
-            0,
+            1,
             nonce,
             data,
             DEFAULT_CHAIN_ID,
@@ -127,11 +132,15 @@ impl Transaction {
         data.push(if vote_for { 1 } else { 0 });
         data.extend_from_slice(&proposal_id.to_le_bytes());
 
+        // Tur 9.5 (security audit §10): same rationale as
+        // `new_proposal` — the consensus cost-floor check needs a
+        // non-zero fee, and this helper is the canonical
+        // governance-vote constructor.
         Self::new_with_chain_id(
             from,
             Address::zero(),
             0,
-            0,
+            1,
             nonce,
             data,
             DEFAULT_CHAIN_ID,
@@ -303,8 +312,44 @@ impl Transaction {
                     return false;
                 }
             }
-            TransactionType::Unstake => {}
-            TransactionType::Vote => {}
+            // Tur 9.5 (security audit §10): Unstake and Vote need
+            // explicit cost-floor + shape validation. Without these
+            // an attacker can submit zero-fee, zero-amount, empty-data
+            // Unstake/Vote transactions that pass every other check
+            // and bloat the mempool / chain. The precheck layer
+            // (`tx_precheck`) catches them at the RPC boundary, but
+            // internal paths (consensus-driven apply, replay, etc.)
+            // bypass that layer — so the canonical check must live
+            // in `is_valid` (and is mirrored in
+            // `apply_transaction_checked` so consensus cannot be
+            // fooled by a forged tx that cleared `is_valid` somehow).
+            TransactionType::Unstake => {
+                if self.amount == 0 {
+                    println!("Unstake amount cannot be 0");
+                    return false;
+                }
+                if self.fee == 0 {
+                    println!("Unstake fee cannot be 0 (cost-floor)");
+                    return false;
+                }
+                if !self.data.is_empty() {
+                    println!("Unstake TX data must be empty");
+                    return false;
+                }
+            }
+            TransactionType::Vote => {
+                if self.fee == 0 {
+                    println!("Vote fee cannot be 0 (cost-floor)");
+                    return false;
+                }
+                // A governance vote is 9 bytes (bool + u64 proposal_id),
+                // a proposal is >8 bytes (u64 duration + JSON ProposalType).
+                // Anything shorter is a malformed / spam vote.
+                if self.data.len() < 9 {
+                    println!("Vote TX data too short (need 9 bytes for vote or >8 for proposal)");
+                    return false;
+                }
+            }
             TransactionType::ContractCall => {
                 if self.amount != 0 {
                     println!("Contract call TX amount must be 0");

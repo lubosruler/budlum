@@ -19,6 +19,47 @@ impl Executor {
             return Ok(());
         }
 
+        // Tur 9.5 (security audit §10): enforce the cost-floor /
+        // shape checks for Unstake and Vote at the consensus
+        // boundary. The `tx_precheck` layer catches these at the
+        // RPC boundary, but consensus (this function) is the
+        // canonical gatekeeper — a zero-fee, zero-amount, empty-data
+        // Unstake/Vote must be rejected here too, otherwise an
+        // internal path (replay, sync, etc.) could inject spam
+        // that bypasses the RPC check.
+        //
+        // We do NOT call `is_valid()` here because that helper
+        // also runs the full signature check, which is performed
+        // by the caller (`validate_and_add_block` /
+        // `validate_pool_transaction`); running it twice is
+        // redundant and also breaks the in-test pattern of
+        // constructing unsigned txs for unit-test convenience.
+        // The cost-floor / shape rules below are the consensus
+        // invariant — duplicated here, not derived from `is_valid`.
+        match tx.tx_type {
+            TransactionType::Unstake => {
+                if tx.amount == 0 {
+                    return Err(BudlumError::validation(
+                        "unstake_amount_zero",
+                        "Unstake amount cannot be 0",
+                    ));
+                }
+                if tx.fee == 0 {
+                    return Err(BudlumError::validation(
+                        "unstake_fee_zero",
+                        "Unstake fee cannot be 0 (consensus cost-floor)",
+                    ));
+                }
+            }
+            TransactionType::Vote if tx.fee == 0 => {
+                return Err(BudlumError::validation(
+                    "vote_fee_zero",
+                    "Vote fee cannot be 0 (consensus cost-floor)",
+                ));
+            }
+            _ => {}
+        }
+
         let total_cost = tx.total_cost();
 
         {
@@ -430,4 +471,88 @@ mod tests {
         assert_eq!(alice_acc.balance, 93);
         assert_eq!(alice_acc.nonce, 1);
     }
+}
+
+/// Tur 9.5 (security audit §10): a zero-fee Unstake must be
+/// rejected at the consensus boundary, not only at the RPC
+/// `tx_precheck` boundary. Without this, an internal path
+/// (replay, sync, etc.) could inject zero-fee Unstake spam
+/// that bloats the mempool and chain without paying the
+/// cost-floor.
+#[test]
+fn consensus_rejects_zero_fee_unstake() {
+    let mut state = AccountState::new();
+    let alice = Address::from_hex(&"01".repeat(32)).unwrap();
+    state.add_balance(&alice, 1_000_000);
+    state.add_validator(alice, 1_000);
+
+    let mut tx = Transaction::new(alice, Address::zero(), 100, vec![]);
+    tx.tx_type = TransactionType::Unstake;
+    tx.fee = 0; // zero-fee spam
+    tx.nonce = 0;
+    let kp = crate::crypto::primitives::KeyPair::generate().unwrap();
+    tx.sign(&kp);
+
+    let err = Executor::apply_transaction(&mut state, &tx)
+        .expect_err("zero-fee Unstake must be rejected at consensus");
+    assert!(
+        err.contains("unstake_fee_zero") || err.contains("Unstake fee cannot be 0"),
+        "expected cost-floor error, got: {err}"
+    );
+}
+
+/// Tur 9.5 (security audit §10): a zero-amount Unstake must
+/// be rejected. Without this, an Unstake with amount=0 would
+/// be a silent no-op (executor skips the stake subtraction
+/// because `validator.stake < 0` is false, but still bumps the
+/// nonce and pays the fee). It also bypasses the unbonding
+/// queue invariant.
+#[test]
+fn consensus_rejects_zero_amount_unstake() {
+    let mut state = AccountState::new();
+    let alice = Address::from_hex(&"01".repeat(32)).unwrap();
+    state.add_balance(&alice, 1_000_000);
+    state.add_validator(alice, 1_000);
+
+    let mut tx = Transaction::new(alice, Address::zero(), 0, vec![]);
+    tx.tx_type = TransactionType::Unstake;
+    tx.fee = 1;
+    tx.nonce = 0;
+    let kp = crate::crypto::primitives::KeyPair::generate().unwrap();
+    tx.sign(&kp);
+
+    let err = Executor::apply_transaction(&mut state, &tx)
+        .expect_err("zero-amount Unstake must be rejected at consensus");
+    assert!(
+        err.contains("unstake_amount_zero") || err.contains("Unstake amount cannot be 0"),
+        "expected amount-zero error, got: {err}"
+    );
+}
+
+/// Tur 9.5 (security audit §10): a zero-fee Vote must be
+/// rejected at consensus. Same rationale as the Unstake
+/// cost-floor: governance spam must not be free.
+#[test]
+fn consensus_rejects_zero_fee_vote() {
+    let mut state = AccountState::new();
+    let alice = Address::from_hex(&"01".repeat(32)).unwrap();
+    state.add_balance(&alice, 1_000_000);
+    state.add_validator(alice, 1_000);
+
+    // 9-byte vote data: bool + u64 proposal_id
+    let mut data = vec![1u8];
+    data.extend_from_slice(&42u64.to_le_bytes());
+    let mut tx = Transaction::new(alice, Address::zero(), 0, data);
+    tx.tx_type = TransactionType::Vote;
+    tx.fee = 0; // zero-fee spam
+    tx.nonce = 0;
+    let kp = crate::crypto::primitives::KeyPair::generate().unwrap();
+    tx.sign(&kp);
+
+    let err = Executor::apply_transaction(&mut state, &tx)
+        .expect_err("zero-fee Vote must be rejected at consensus");
+    assert!(
+        err.contains("vote_fee_zero") || err.contains("Vote fee cannot be 0"),
+        "expected cost-floor error, got: {err}"
+    );
 }
