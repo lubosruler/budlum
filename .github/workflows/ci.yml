@@ -22,8 +22,16 @@ jobs:
         with:
           version: "29.x"
       - uses: Swatinem/rust-cache@v2
+      - name: Produce format patch
+        run: |
+          cargo fmt --all
+          git diff --binary > budlum-rustfmt.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: budlum-rustfmt
+          path: budlum-rustfmt.patch
       - name: Format
-        run: cargo fmt --all -- --check
+        run: git diff --exit-code
       - name: Clippy
         run: cargo clippy --lib --tests -- -D warnings
       - name: Test
@@ -44,8 +52,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: budzero
+      - name: Produce format patch
+        run: |
+          cargo fmt --all
+          git diff --binary > ../budzero-rustfmt.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: budzero-rustfmt
+          path: budzero-rustfmt.patch
       - name: Format
-        run: cargo fmt --all -- --check
+        working-directory: .
+        run: git diff --exit-code
       - name: Check
         run: cargo check --workspace --all-targets
       - name: Clippy
