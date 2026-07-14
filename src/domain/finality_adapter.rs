@@ -345,17 +345,16 @@ impl DomainFinalityAdapter for PoWHeaderChainFinalityAdapter {
                 "Expected PoWHeaderChain finality proof".into(),
             ));
         };
-        let params = domain.pow_parameters.as_ref().ok_or_else(|| {
-            FinalityError("PoW header-chain domain has no pow_parameters".into())
-        })?;
+        let params = domain
+            .pow_parameters
+            .as_ref()
+            .ok_or_else(|| FinalityError("PoW header-chain domain has no pow_parameters".into()))?;
         params
             .validate(domain.min_confirmations)
             .map_err(FinalityError)?;
 
         if headers.is_empty() {
-            return Ok(FinalityStatus::Rejected(
-                "PoW header chain is empty".into(),
-            ));
+            return Ok(FinalityStatus::Rejected("PoW header chain is empty".into()));
         }
         if headers.len() > params.max_headers as usize {
             return Ok(FinalityStatus::Rejected(format!(

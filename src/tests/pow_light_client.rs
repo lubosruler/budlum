@@ -31,13 +31,7 @@ fn mine_header(
 fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
     let mut chain = Blockchain::new(Arc::new(PoWEngine::new(0)), None, 1337, None);
 
-    let mut source = default_domain(
-        41,
-        ConsensusKind::PoW,
-        41_001,
-        POW_HEADER_CHAIN_ADAPTER,
-        3,
-    );
+    let mut source = default_domain(41, ConsensusKind::PoW, 41_001, POW_HEADER_CHAIN_ADAPTER, 3);
     source.operator = Some(address(41));
     source.bridge_enabled = true;
     source.pow_parameters = Some(PoWDomainParameters {
@@ -59,13 +53,7 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
 
     // The legacy domain remains usable for archival settlement, but its
     // self-declared confirmation proof must never authorize mint.
-    let mut legacy = default_domain(
-        43,
-        ConsensusKind::PoW,
-        43_001,
-        "pow-confirmation-depth",
-        64,
-    );
+    let mut legacy = default_domain(43, ConsensusKind::PoW, 43_001, "pow-confirmation-depth", 64);
     legacy.operator = Some(address(43));
     legacy.bridge_enabled = true;
     chain
@@ -77,17 +65,7 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
         .register_bridge_asset(asset, source.id)
         .expect("asset registration");
     let (_transfer, event) = chain
-        .lock_bridge_transfer(
-            source.id,
-            42,
-            1,
-            0,
-            asset,
-            address(7),
-            address(8),
-            500,
-            100,
-        )
+        .lock_bridge_transfer(source.id, 42, 1, 0, asset, address(7), address(8), 500, 100)
         .expect("bridge lock");
 
     let mut events = DomainEventTree::new();

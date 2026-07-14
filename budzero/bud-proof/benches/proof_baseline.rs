@@ -16,10 +16,7 @@ fn instruction(opcode: Opcode, rd: u8, rs1: u8, rs2: u8) -> u64 {
 }
 
 fn program_hash(program: &[u64]) -> [u8; 32] {
-    let bytes: Vec<u8> = program
-        .iter()
-        .flat_map(|word| word.to_le_bytes())
-        .collect();
+    let bytes: Vec<u8> = program.iter().flat_map(|word| word.to_le_bytes()).collect();
     let mut hasher = Keccak::v256();
     hasher.update(&bytes);
     let mut output = [0u8; 32];

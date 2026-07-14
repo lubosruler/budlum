@@ -154,7 +154,10 @@ impl Storage {
         };
         let bytes = encode(&backup)?;
         let path = path.as_ref();
-        if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        if let Some(parent) = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
             std::fs::create_dir_all(parent)?;
         }
         let mut partial = path.as_os_str().to_owned();
@@ -214,14 +217,14 @@ impl Storage {
         let snapshot_path = snapshot_path.as_ref();
         let target_db_path = target_db_path.as_ref();
         if target_db_path.exists()
-            && std::fs::read_dir(target_db_path)?.next().transpose()?.is_some()
+            && std::fs::read_dir(target_db_path)?
+                .next()
+                .transpose()?
+                .is_some()
         {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::AlreadyExists,
-                format!(
-                    "restore target {} is not empty",
-                    target_db_path.display()
-                ),
+                format!("restore target {} is not empty", target_db_path.display()),
             ));
         }
 
@@ -253,19 +256,13 @@ impl Storage {
             db.flush()?;
         }
 
-        let restored = Self::new(
-            target_db_path
-                .to_str()
-                .ok_or_else(|| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidInput,
-                        "restore target path is not valid UTF-8",
-                    )
-                })?,
-        )?;
-        let errors = restored
-            .check_integrity()
-            .map_err(std::io::Error::other)?;
+        let restored = Self::new(target_db_path.to_str().ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "restore target path is not valid UTF-8",
+            )
+        })?)?;
+        let errors = restored.check_integrity().map_err(std::io::Error::other)?;
         if !errors.is_empty() {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,

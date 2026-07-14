@@ -255,10 +255,7 @@ async fn main() {
             eprintln!("CRITICAL: failed to open database for backup: {error}");
             std::process::exit(1);
         });
-        let backup_dir = config
-            .backup_dir
-            .as_deref()
-            .unwrap_or("./data/backups");
+        let backup_dir = config.backup_dir.as_deref().unwrap_or("./data/backups");
         let backup = write_database_backup(
             &storage,
             Path::new(backup_dir),
@@ -534,9 +531,7 @@ async fn main() {
     )
     .with_metrics(metrics.clone());
 
-    if let Some((backup_storage, backup_dir, backup_interval, retention_count)) =
-        backup_schedule
-    {
+    if let Some((backup_storage, backup_dir, backup_interval, retention_count)) = backup_schedule {
         tokio::spawn(async move {
             // Blockchain initialization (including genesis) completed before
             // this task is created, so the first backup is restorable.
