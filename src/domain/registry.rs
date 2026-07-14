@@ -55,6 +55,35 @@ impl ConsensusDomainRegistry {
             ));
         }
 
+        // Tur 14, Faz 1 (B.U.D. Storage ConsensusDomain, vision §8.1):
+        // a `StorageAttestation` domain MUST use the dedicated
+        // `STORAGE_ATTESTATION_ADAPTER` finality adapter, and the
+        // parameters must validate. This is the same fail-fast-at-the-edge
+        // pattern as the PoW header-chain branch above.
+        if let crate::domain::types::ConsensusKind::StorageAttestation(params) = &domain.kind {
+            if domain.finality_adapter != crate::domain::types::STORAGE_ATTESTATION_ADAPTER {
+                return Err(format!(
+                    "Domain {} uses StorageAttestation with non-storage finality adapter '{}' \
+                     (expected '{}')",
+                    domain.id, domain.finality_adapter,
+                    crate::domain::types::STORAGE_ATTESTATION_ADAPTER
+                ));
+            }
+            if domain.operator_bond < params.min_operator_bond {
+                return Err(format!(
+                    "Domain {} operator_bond {} below StorageAttestation min_operator_bond {}",
+                    domain.id, domain.operator_bond, params.min_operator_bond
+                ));
+            }
+            params.validate()?;
+        } else if domain.finality_adapter == crate::domain::types::STORAGE_ATTESTATION_ADAPTER {
+            return Err(format!(
+                "Domain {} uses the storage-attestation adapter with a non-StorageAttestation \
+                 consensus kind",
+                domain.id
+            ));
+        }
+
         self.domains.insert(domain.id, domain);
         Ok(())
     }
@@ -126,6 +155,31 @@ pub fn domain_leaf_hash(domain: &ConsensusDomain) -> Hash32 {
             domain.finality_adapter.as_bytes(),
             &domain.min_confirmations.to_le_bytes(),
             &pow_parameters,
+            &[domain.bridge_enabled as u8],
+            &block_scheme,
+            &state_scheme,
+            &tx_scheme,
+        ])
+    } else if let crate::domain::types::ConsensusKind::StorageAttestation(storage) = &domain.kind {
+        // Tur 14, Faz 1: B.U.D. storage domains get a V3 leaf that mixes the
+        // storage parameters into the leaf. Without this, two storage domains
+        // with different chunk_size / challenge_interval would hash to the
+        // same leaf and the registry root would no longer be a sound
+        // commitment to the per-domain parameters.
+        let storage_params = crate::domain::storage_params::storage_params_bytes(storage);
+        hash_fields_bytes(&[
+            b"BDLM_DOMAIN_REGISTRY_LEAF_V3",
+            &domain.id.to_le_bytes(),
+            &kind,
+            status,
+            &domain.domain_chain_id.to_le_bytes(),
+            &operator,
+            &domain.operator_bond.to_le_bytes(),
+            &domain.config_hash,
+            &domain.validator_set_hash,
+            domain.finality_adapter.as_bytes(),
+            &domain.min_confirmations.to_le_bytes(),
+            &storage_params,
             &[domain.bridge_enabled as u8],
             &block_scheme,
             &state_scheme,

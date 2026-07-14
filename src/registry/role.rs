@@ -39,6 +39,7 @@ impl std::fmt::Display for RoleId {
             roles::VERIFIER => write!(f, "verifier"),
             roles::RELAYER => write!(f, "relayer"),
             roles::PROVER => write!(f, "prover"),
+            roles::STORAGE_OPERATOR => write!(f, "storage_operator"),
             RoleId(id) => write!(f, "role#{id}"),
         }
     }
@@ -59,6 +60,20 @@ pub mod roles {
     /// submission is fully permissionless (STARK proofs are self-verifying);
     /// registering as a PROVER is only required to be eligible for rewards.
     pub const PROVER: RoleId = RoleId(4);
+    /// B.U.D. storage operator (Tur 14, Faz 1).
+    ///
+    /// Registration is OPTIONAL — opening a `StorageDeal` is itself
+    /// permissionless (the deal's `operator_bond` is the only gate, see
+    /// `domain::storage_deal::StorageRegistry::open_deal`). Registering as
+    /// `STORAGE_OPERATOR` is only required to be eligible for the
+    /// per-deal reward stream and to appear in the active-operator set
+    /// returned by `bud_storageActiveOperators` (Tur 14.5 RPC surface).
+    ///
+    /// Like every other role, it is permissionless: any account can
+    /// register by staking the `min_stake` floor from
+    /// `PermissionlessRegistry::params`. No whitelist, no admin gate
+    /// (master context, CLAUDE.md §2).
+    pub const STORAGE_OPERATOR: RoleId = RoleId(5);
 }
 
 #[cfg(test)]
@@ -79,5 +94,13 @@ mod tests {
         assert_eq!(format!("{}", roles::VERIFIER), "verifier");
         assert_eq!(format!("{}", roles::RELAYER), "relayer");
         assert_eq!(format!("{}", roles::PROVER), "prover");
+        assert_eq!(format!("{}", roles::STORAGE_OPERATOR), "storage_operator");
+    }
+
+    #[test]
+    fn storage_operator_role_id_value_is_5() {
+        // Pin the protocol-level role id (5) so a future bump is a
+        // deliberate, audited change.
+        assert_eq!(roles::STORAGE_OPERATOR.value(), 5);
     }
 }

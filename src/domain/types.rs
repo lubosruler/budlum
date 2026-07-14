@@ -2,12 +2,22 @@ use crate::core::address::Address;
 use crate::core::block::Block;
 use crate::core::hash::hash_fields_bytes;
 use crate::domain::finality_adapter::FinalityProof;
+use crate::domain::storage_params::StorageDomainParams;
 use serde::{Deserialize, Serialize};
 
 pub type DomainId = u32;
 pub type Hash32 = [u8; 32];
 
 pub const POW_HEADER_CHAIN_ADAPTER: &str = "pow-header-chain-v1";
+
+/// Canonical name of the storage-attestation domain finality adapter.
+///
+/// Set as the `ConsensusDomain::finality_adapter` value when registering a
+/// `StorageAttestation` domain. Distinct from the PoW header-chain adapter
+/// (`POW_HEADER_CHAIN_ADAPTER`) because storage finality is **not** the same
+/// shape as bounded-PoW header finality (Faz 3 will introduce
+/// `StorageFinalityAdapter`, vision §3 + §8.3).
+pub const STORAGE_ATTESTATION_ADAPTER: &str = "storage-attestation-v1";
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ConsensusKind {
@@ -17,6 +27,15 @@ pub enum ConsensusKind {
     Bft,
     Zk,
     Custom(String),
+    /// B.U.D. Storage ConsensusDomain (Tur 14, Faz 1, vision §8.1).
+    ///
+    /// Carries the bounded `StorageDomainParams` so the type system forces
+    /// every consumer to handle the storage-specific limits. We use a new
+    /// enum variant (not `Custom("StorageProofOfReplication")`) because the
+    /// parameter bundle is part of the consensus surface — see Tur 14 plan
+    /// §3.1: "yeni bir hash fonksiyonu icat etme" / "yeni bir köprü protokolü
+    /// icat etme" but it IS a new domain kind that needs its own typing.
+    StorageAttestation(StorageDomainParams),
 }
 
 impl ConsensusKind {
@@ -32,7 +51,22 @@ impl ConsensusKind {
                 out.extend_from_slice(name.as_bytes());
                 out
             }
+            ConsensusKind::StorageAttestation(params) => {
+                // Tag + parameters: distinct from any `Custom(...)` string so
+                // downstream code that already pattern-matches on `as_bytes()`
+                // can recognize storage domains unambiguously.
+                let mut out = b"storage_attestation:".to_vec();
+                out.extend_from_slice(&crate::domain::storage_params::storage_params_bytes(
+                    params,
+                ));
+                out
+            }
         }
+    }
+
+    /// Convenience: is this a B.U.D. storage domain?
+    pub fn is_storage(&self) -> bool {
+        matches!(self, ConsensusKind::StorageAttestation(_))
     }
 }
 

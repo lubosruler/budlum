@@ -345,6 +345,24 @@ impl PermissionlessRegistry {
         )
     }
 
+    /// Tur 14, Faz 1: convenience wrapper for the B.U.D. `STORAGE_OPERATOR`
+    /// role. Like every other role, registration is permissionless — any
+    /// account can join by staking the `min_stake` floor. There is no
+    /// whitelist, no admin gate (master context, CLAUDE.md §2).
+    pub fn register_storage_operator(
+        &mut self,
+        account: Address,
+        stake: u64,
+        current_epoch: u64,
+    ) -> Result<(), RegistryError> {
+        self.register(
+            account,
+            crate::registry::role::roles::STORAGE_OPERATOR,
+            stake,
+            current_epoch,
+        )
+    }
+
     /// Idempotently synchronise a role's bonded stake to `total_stake`.
     ///
     /// This is the bridge used to keep the registry in lock-step with the
