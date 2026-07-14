@@ -307,7 +307,7 @@ pub trait BudlumApi {
     #[method(name = "bud_storageOpenChallenge")]
     async fn storage_open_challenge(
         &self,
-        request: crate::domain::RetrievalChallengeRequest,
+        request: crate::domain::storage_deal::RetrievalChallengeRequest,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Operator answers an open challenge with a `range_hash`. The chain
@@ -317,7 +317,7 @@ pub trait BudlumApi {
     #[method(name = "bud_storageAnswerChallenge")]
     async fn storage_answer_challenge(
         &self,
-        response: crate::domain::RetrievalResponse,
+        response: crate::domain::storage_deal::RetrievalResponse,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Look up a finalized `ChallengeResult` by `challenge_id`.

@@ -3,7 +3,7 @@ use crate::chain::chain_actor::ChainHandle;
 use crate::core::address::Address;
 use crate::core::block::Block;
 use crate::core::transaction::Transaction;
-use crate::domain::{
+use crate::domain::storage_deal::{
     RetrievalChallenge, RetrievalChallengeRequest, RetrievalResponse, StorageRegistry,
 };
 use crate::network::node::NodeClient;
@@ -1463,7 +1463,7 @@ impl BudlumApiServer for RpcServer {
         let result = reg
             .answer_challenge(
                 response.challenge_id,
-                response.range_hash,
+                response._range_hash,
                 responder,
                 response.response_epoch,
             )

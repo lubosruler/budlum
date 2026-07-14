@@ -139,7 +139,7 @@ pub struct RetrievalChallenge {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RetrievalResponse {
     pub challenge_id: u64,
-    pub range_hash: ContentId,
+    pub _range_hash: ContentId,
     pub responder: Address,
     pub response_epoch: u64,
 }
@@ -432,7 +432,7 @@ impl StorageRegistry {
     pub fn answer_challenge(
         &mut self,
         challenge_id: u64,
-        _range_hash: ContentId,
+        __range_hash: ContentId,
         responder: Address,
         response_epoch: u64,
     ) -> Result<ChallengeResult, StorageError> {

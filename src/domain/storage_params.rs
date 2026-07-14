@@ -2,7 +2,7 @@
 //! (Tur 14, Faz 1).
 //!
 //! Vision reference: `budlum-xyz/B.U.D./BUD_Merkeziyetsiz_Depolama_Vizyonu.md`,
-//! §8.1. The vision proposes `ConsensusKind::StorageAttestation(StorageDomainParams)`
+//! §8.1. The vision proposes `ConsensusKind::StorageAttestation(StorageDomainParams)`()
 //! as a NEW enum variant (not a `Custom("...")` string) so the type system
 //! forces every consumer to handle the storage parameters explicitly.
 //!
@@ -37,8 +37,8 @@ pub const MIN_CHUNK_SIZE: u32 = 1024; // 1 KiB
 ///
 /// The vision document calls these `StorageDomainParams` in §8.1. We follow
 /// the same name. All numeric fields are bounded to prevent resource
-/// exhaustion (an operator cannot register a domain with `challenge_interval
-/// = 0` and force the chain to issue a challenge every block).
+/// exhaustion (an operator cannot register a domain with `challenge_interval`
+/// = 0 and force the chain to issue a challenge every block).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StorageDomainParams {
     /// Default chunk size used by clients when sharding content for this
@@ -52,10 +52,10 @@ pub struct StorageDomainParams {
     /// active operator. `0` is rejected — challenges must be periodic.
     pub challenge_interval: u64,
     /// Minimum operator bond, in the same `u64` units as
-    /// [`ConsensusDomain::operator_bond`](crate::domain::types::ConsensusDomain::operator_bond)
-    /// (1 token = 1_000_000 fixed-point). This is the **storage-specific**
-    /// minimum; the domain still has to satisfy the protocol-level
-    /// `MIN_DOMAIN_OPERATOR_BOND` from `domain::registry`.
+    /// `ConsensusDomain::operator_bond` (1 token = 1_000_000 fixed-point).
+    /// This is the **storage-specific** minimum; the domain still has to
+    /// satisfy the protocol-level `MIN_DOMAIN_OPERATOR_BOND` from
+    /// `domain::registry`.
     pub min_operator_bond: u64,
 }
 

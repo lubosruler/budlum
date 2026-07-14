@@ -537,6 +537,9 @@ impl Blockchain {
             ConsensusKind::PoA => domain.finality_adapter == "poa-authority-quorum",
             ConsensusKind::Bft => domain.finality_adapter == "bft-quorum-commit",
             ConsensusKind::Zk => domain.finality_adapter == "zk-proof-verification",
+            ConsensusKind::StorageAttestation(_) => {
+                domain.finality_adapter == "storage-attestation-v1"
+            }
             ConsensusKind::Custom(name) => {
                 if name.trim().is_empty() {
                     return Err(format!(
@@ -545,9 +548,6 @@ impl Blockchain {
                     ));
                 }
                 !domain.finality_adapter.trim().is_empty()
-            }
-            ConsensusKind::StorageAttestation(_) => {
-                domain.finality_adapter == crate::domain::STORAGE_ATTESTATION_ADAPTER
             }
         };
 

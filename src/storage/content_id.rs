@@ -105,10 +105,6 @@ mod tests {
 
     #[test]
     fn content_id_collisions_impossible_for_truncated_payloads() {
-        // Prefix-collision sanity check: hashing the lengths before the
-        // payload in `hash_fields_bytes` is exactly what prevents
-        // `ContentId::of(b"ab") == ContentId::of(b"a" | "b")` style
-        // collisions. We exercise the property via the public API.
         let one = ContentId::of(b"ab");
         let two = ContentId::of(b"a").0;
         let three = ContentId::of(b"b").0;
@@ -120,15 +116,11 @@ mod tests {
 
     #[test]
     fn subrange_hash_is_deterministic_and_distinct() {
-        let chunk = b"abcdefghij"; // 10 bytes
+        let chunk = b"abcdefghij";
         let a = ContentId::of_subrange(chunk, 2, 5);
         let b = ContentId::of_subrange(chunk, 2, 5);
         assert_eq!(a, b);
-        // Different range → different hash.
         assert_ne!(a, ContentId::of_subrange(chunk, 2, 6));
-        // And full-content hash differs from any subrange hash, so the
-        // value-space for ContentIds is the union of full and subrange
-        // hashes — they never collide by accident.
         assert_ne!(a, ContentId::of(chunk));
     }
 
@@ -136,10 +128,8 @@ mod tests {
     fn out_of_range_subrange_returns_tagged_placeholder_not_a_panic() {
         let chunk = b"abc";
         let oor = ContentId::of_subrange(chunk, 10, 20);
-        // Determinism:
         let oor2 = ContentId::of_subrange(chunk, 10, 20);
         assert_eq!(oor, oor2);
-        // Distinct from any real subrange and from a full-content hash:
         assert_ne!(oor, ContentId::of_subrange(chunk, 0, 1));
         assert_ne!(oor, ContentId::of(chunk));
     }
