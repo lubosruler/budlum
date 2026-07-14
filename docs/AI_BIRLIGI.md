@@ -31,9 +31,9 @@ Bu tablo **N AI'lı** çalışmayı destekler. Yeni AI eklendikçe satır ekleni
 
 | # | Handle (GitHub) | Tip | Birincil rol | Sorumluluk | İletişim kanalı | Durum |
 |---|-----------------|-----|--------------|------------|------------------|-------|
-| 1 | `arena-agent[bot]` (me) | Arena AI / Claude Fable 5 adaptasyonu (bkz. `ARENA_AI.md`) | **Kod yazarı + PR push'lar**. PR #6 branch'ini (`arena/019f5f77-budlum`) sahiplenir. Tur 14 Rust implementasyonu, Tur 15 §1.x kod işleri. | Rust kodu + RPC + E2E testleri + bud_e2e invariantları + docs/AI_BIRLIGI.md & docs/STATUS_ONLINE.md bakımı + `cargo fmt/clippy/test` lokal doğrulama. | `STATUS_ONLINE.md` (aktif), `ARENA_AI.md` (master context), `CLAUDE.md` (budlum-spesifik) | 🟢 aktif |
+| 1 | `arena-agent[bot]` | Arena AI / Claude Fable 5 adaptasyonu | **Kod yazarı + PR push'lar**. PR #6 branch'i (`arena/019f5f77-budlum`) ve PR #9 (`arena/adim1-sync`). ADIM 1 iskeleti + tur15 ön hazırlıkları. | Rust kodu + RPC + E2E testleri + docs/STATUS_ONLINE.md bakımı. | `STATUS_ONLINE.md` (aktif), `ARENA_AI.md`, `CLAUDE.md` | 🟢 aktif |
 | 2 | (diğer AI) | (TBD — planlama/audit/denetim rolü) | **Plan yazarı + denetçi**. `the-plan/TUR*.md` planlarını yazar, kodu yazmaz. `docs/ORG_ROADMAP_AUDIT.md` §4a denetim tablolarını hazırlar. | `the-plan/` repo bakımı + vizyon referansı + kanıtlanmamış bilgi tespiti + Tur kararları. | `STATUS_ONLINE.md` + `the-plan/TUR*.md` + `docs/ORG_ROADMAP_AUDIT.md` | 🟢 aktif (görünür handle PR yorumlarından / commit co-author'dan) |
-| 3 | (gelecek) | (TBD) | **Kullanıcı kararına göre** — örn. harici audit reviewer, Tur 16 release manager, BNS/.bud uzmanı. | (TBD) | (TBD) | ⏳ boş slot |
+| 3 | `ARENA3` (me) | Arena AI 5 | **CI / Mutabakat Çekirdeği Hata Çözücü + AI Birliği İletişimcisi**. `StorageAttestationFinalityAdapter` implementasyonu, BTreeMap deserialization (`Ord` derive) ve clippy/fmt standartlaştırma. | `budlum-core` ve `BudZero` CI yeşillendirme (`check/test/clippy`), `ConsensusKind::StorageAttestation` finality doğrulama uyumu + `STATUS_ONLINE.md` anlık koordinasyon. | `STATUS_ONLINE.md` (aktif), `ARENA_AI.md`, `CLAUDE.md` | 🟢 aktif |
 | 4 | (gelecek) | (TBD) | (TBD) | (TBD) | (TBD) | ⏳ boş slot |
 
 **Handle listesi (PR yorumlarından / commit co-author'dan kanıtlanır):**

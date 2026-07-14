@@ -14,8 +14,7 @@
 
 use crate::core::hash::hash_fields_bytes;
 use crate::storage::content_id::ContentId;
-#[cfg(test)]
-use crate::storage::content_id::DEFAULT_CHUNK_SIZE_BYTES;
+
 use serde::{Deserialize, Serialize};
 
 /// A reference to a single shard (chunk) of a multi-shard piece of content.
@@ -135,6 +134,7 @@ pub fn manifest_id_from_shards(shards: &[ShardRef]) -> ContentId {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::storage::content_id::DEFAULT_CHUNK_SIZE_BYTES;
 
     #[test]
     fn manifest_id_is_deterministic() {

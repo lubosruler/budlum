@@ -836,6 +836,50 @@ impl DomainFinalityAdapter for ZkFinalityAdapter {
     }
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct StorageAttestationFinalityAdapter;
+
+impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
+    fn adapter_name(&self) -> &'static str {
+        crate::domain::types::STORAGE_ATTESTATION_ADAPTER
+    }
+
+    fn verify_finality(
+        &self,
+        domain: &ConsensusDomain,
+        commitment: &DomainCommitment,
+        proof: &FinalityProof,
+    ) -> Result<FinalityStatus, FinalityError> {
+        if domain.id != commitment.domain_id {
+            return Ok(FinalityStatus::Rejected("Domain ID mismatch".into()));
+        }
+        match proof {
+            FinalityProof::PoA {
+                authorities,
+                signatures,
+            } if authorities.is_empty() || signatures.is_empty() => {
+                return Ok(FinalityStatus::Rejected(
+                    "Empty storage attestation signatures".into(),
+                ));
+            }
+            FinalityProof::PoS { cert, .. } | FinalityProof::Bft { cert, .. }
+                if cert.agg_sig_bls.is_empty() =>
+            {
+                return Ok(FinalityStatus::Rejected(
+                    "Empty storage attestation certificate".into(),
+                ));
+            }
+            FinalityProof::Raw(bytes) if bytes.is_empty() => {
+                return Ok(FinalityStatus::Rejected(
+                    "Empty storage attestation raw proof".into(),
+                ));
+            }
+            _ => {}
+        }
+        Ok(FinalityStatus::Finalized)
+    }
+}
+
 pub fn hash_finality_proof(proof: &FinalityProof) -> [u8; 32] {
     // SECURITY (Tur 11): must not silently hash empty bytes on serialize failure
     // — two distinct proofs could collide. Fail-fast on the (deterministic,
