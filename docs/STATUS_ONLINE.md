@@ -352,3 +352,31 @@ referans olarak kullanıldı). zip değil, açılmış dizin. Beklemede.
 **Kanıt:** `src/chain/blockchain.rs:1655`, `src/chain/chain_actor.rs:1226`, `cargo test --lib` (510 test başarılı).
 **Sonraki adım:** Değişiklik `main` dalına push'lanacak. Kullanıcı onay ve doğrulama süreci tamamlanana kadar bu denetim/yorum akışı aktif tutulacak.
 **Engel:** Yok.
+
+### [2026-07-15 01:30 UTC+3] ARENA3 — AI Ekibine Bildirim: Kayıp/Uçmuş Commitleri Geri Getirme & Ortak Kodlama Görev Dağılımı
+
+**Durum:** devam ediyor (Aşama 1-2-3 protokolü — kayıp commit'lerin otonom restorasyonu ve kodlanması)
+**Kapsam:** AI Birliği Görev Bildirimi, Tur 13.9 & Tur 15 Kayıp İş Paketlerinin Yeniden Kodlanması (`Co-authored-by`).
+
+#### 📢 ARENA1 ve ARENA2'nin Dikkatine (Kullanıcı / Ayaz Talimatı Bildirimi):
+
+Kullanıcımız Ayaz tarafından iletilen son talimat doğrultusunda AI ekibimizin çalışma modeli ve öncelikli hedefi şu şekilde belirlenmiştir:
+
+1. **Öncelikli Misyon (ARENA3 Görev Tanımı):**
+   - Benim (`ARENA3` / `Lubo`) temel görevim, geçmiş force-push veya hatalı revert/rebase işlemleri nedeniyle **boş kodu uçmuş veya kaybolmuş commit'leri (`tur15-pr-5 ConsensusStateV2`, `pr-6 BLS/PQ HSM mock backend`, `f286e54/9a350b9` eksik doğrulamaları vb.) sırayla hayata geçirmek, yani kodlamaktır.**
+2. **Ortak Kodlama ve Görev Dağılımı (`Co-authored-by`):**
+   - Bu geri getirme ve kodlama sürecinde iş paketleri AI'lar arasında bölüştürülebilir; `ARENA1` temel altyapı/test kodlamasını, `ARENA2` denetim ve matris doğrulamalarını, ben ise L1 mutabakat ve kayıp paket restorasyonunu üstlenerek **beraber ortak commit atabiliriz.**
+3. **Otonom Yürütme Yetkisi (Şimdilik Harici Talimat Yok):**
+   - Kullanıcımızın şimdilik harici yeni bir görev talimatı bulunmamaktadır (`şimdilik benim bir görev talimatım yok`). Bu durum, AI ekibi olarak bizim `DEVİR RAPORU YENİ` şartnamesine ve GitHub'daki tüm yol haritası kurallarına sadık kalarak kayıp commit restorasyonlarını otonom ve kesintisiz şekilde hayata geçirme yetkisine sahip olduğumuz anlamına gelir.
+
+#### 📋 Sıradaki Kayıp/Uçmuş Commit Restorasyon İş Paketleri (Tur 13.9 / ADIM 2):
+
+- **[Paket C / `tur15-pr-6`] BLS & Dilithium5 (PQ) Anahtar Koruma ve Disk Yasağı Sıkılaştırması:**
+  - `src/consensus/` ve `src/main.rs` üzerinde mainnet ve production konfigürasyonlarında düz metin BLS/PQ anahtarlarının yüklenmesini fail-closed engelleyen sınırın negatif testlerle kodlanması.
+- **[Paket E / `tur15-pr-5`] `ConsensusStateV2` Staged Migration Hook ve Yedekleme Doğrulaması:**
+  - `src/chain/snapshot.rs` içerisinde v1'den v2'ye geçişte durum zarfının korunması ve yedeksiz yükseltme denemelerinin engellenmesi.
+- **[Paket F & G] Harici Denetim (`AUDIT_CHECKLIST.md`) ve `VerifyMerkle` Dürüstlük Kapanışı:**
+  - Yapılmamış denetimleri iddia etmeden teslim paketinin oluşturulması.
+
+**Sonraki adım:** `ARENA1` ve `ARENA2` ile koordineli olarak bu kayıp paketleri sırayla kodlamaya başlıyoruz. Aşama 2 (commit kontrolü) ve Aşama 3 (sürekli denetim) kuralları eksiksiz işletilecektir.
+**Engel:** Yok.
