@@ -327,3 +327,47 @@ referans olarak kullanıldı). zip değil, açılmış dizin. Beklemede.
 **Kanıt:** `git diff src/chain/chain_actor.rs`, E2E test entegrasyonu (`cargo test --lib -j 1`).
 **Sonraki adım:** Değişiklikler `main` dalına push'landı. Kullanıcı onayı gerçekleşene kadar AI'lar arası sürekli denetim ve `STATUS_ONLINE.md` üzerinden yorum/mutabakat akışı sürdürülecek.
 **Engel:** Yok.
+
+---
+
+## 2026-07-15 — ADIM2 Mainnet Hazırlığı Başlangıcı
+
+### [2026-07-15 00:20 UTC+3] ARENA1 — Mainnet hazırlık raporu hazırlandı, 4 stratejik karar kullanıcıya sunuldu
+
+**Durum:** tamamlandı (rapor) — karar bekliyor
+**Kapsam:** ADIM2 | mainnet hazırlık | roadmap | stratejik karar
+**Aksiyon:**
+1. **Kod tabanı taraması:** `src/` production kodunda TODO/FIXME/STUB yok. BudZero'da 7 TODO var (6'sı optimizasyon, 1'i kritik: VerifyMerkle path verification).
+2. **Kritik blocker'lar belirlendi:**
+   - **VerifyMerkle Z-B gate:** `proves_verify_merkle_valid_64_depth` testi `#[ignore]`. Production'da `VerifyMerkle` disabled. B.U.D. Faz 3 bağımlı.
+   - **BLS/PQ HSM:** Gerçek PKCS#11 Ed25519 HSM var ama BLS/PQ için yok. `AI_BIRLIGI.md` §4.5'te "Mock backend" seçilmiş ama kodda sadece gerçek HSM var.
+   - **B.U.D. mainnet dahil mi:** Faz 3 kapalıyken B.U.D. sadece "interim retrieval challenge" (ekonomik oyun teorisi, kriptografik kanıt yok).
+   - **Harici audit:** Henüz yapılmadı. `docs/operations/` altında SBOM + dependency audit script var ama harici firma denetimi yok.
+3. **`docs/MAINNET_READINESS.md` oluşturuldu:** 6 bölüm, 4 stratejik karar (her biri için A/B/C seçenekleri), ADIM2-3-4-5 planı, açık teknik borçlar tablosu.
+4. **Diğer AI'lara notlar eklendi:** ARENA2'ye (ConsensusStateV2 migration + README), ARENA3'e (Prometheus + quota + VerifyMerkle gate kararı uygulama).
+
+**Kanıt:**
+- `docs/MAINNET_READINESS.md` (yeni dosya, 290+ satır)
+- `grep -rn "TODO\|FIXME\|XXX\|HACK\|STUB" src/ --include="*.rs" | grep -v "test" | grep -v "panic!"` → 0 sonuç (production kodu temiz)
+- `cargo test --lib` → 510 passed, 0 failed
+- `cargo fmt --all -- --check` → temiz
+- `cargo clippy --lib --tests -- -D warnings` → temiz
+
+**Sonraki adım:**
+1. Kullanıcı §2.1-2.4 arasındaki 4 stratejik kararı verecek.
+2. Kararlara göre ADIM2 branch'i açılacak (`arena/adim2-mainnet-prep`).
+3. Görevler AI'lar arasında dağıtılacak.
+
+**Engel:** Kullanıcı kararı bekleniyor. ADIM2'ye başlamak için 4 stratejik seçenekten en az biri netleşmeli.
+
+### [2026-07-15 00:20 UTC+3] ARENA1 — ARENA2 ve ARENA3'e: Lütfen `docs/MAINNET_READINESS.md` §5'i okuyun
+
+**Durum:** bilgi notu
+**Kapsam:** AI koordinasyon
+**Aksiyon:**
+- **ARENA2:** Lütfen `docs/MAINNET_READINESS.md` §5.1'i oku. Sana önerilen görevler: ADIM2 → 2.3 (ConsensusStateV2 migration hook) + 2.4 (README roadmap kapanış tablosu). `ORG_ROADMAP_AUDIT.md` §4a'daki 18 madde tablosunu da gözden geçirip hangilerinin hâlâ "açık" olduğunu raporla.
+- **ARENA3:** Lütfen `docs/MAINNET_READINESS.md` §5.2'yi oku. Sana önerilen görevler: ADIM2 → 2.5 (Prometheus histogram) + 2.6 (per-IP quota netleştirme) + 2.1 (VerifyMerkle production gate kararının uygulanması). Ayrıca `chain_actor.rs` entegrasyonu (`e5fd27f`) için teşekkürler — eksik bir `ChainCommand` var mı diye son kontrol yapabilir misin?
+
+**Kanıt:** `docs/MAINNET_READINESS.md` §5 "Diğer AI'lara Notlar"
+**Sonraki adım:** ARENA2 ve ARENA3 yorumlarını `STATUS_ONLINE.md`'ye yazacak.
+**Engel:** Yok.
