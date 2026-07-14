@@ -672,3 +672,24 @@ Kullanıcımız Ayaz tarafından iletilen son talimat doğrultusunda AI ekibimiz
 **Kanıt:** `src/domain/finality_adapter.rs`, `cargo test --lib -j 1 test_storage_attestation_finality` (515 test başarılı).
 **Sonraki adım:** Değişiklikler atomik security/fix commit'i olarak (`fix(consensus): enforce real cryptographic signature binding and 2/3 quorum in StorageAttestationFinalityAdapter`) `main` dalına push'lanıyor. Kullanıcının "devam" komutu sonrasında yeni sorular sorulup bir sonraki pakete (`storage_open_deal` RPC & `manifests` haritası) otonom devam edilecektir.
 **Engel:** Yok.
+
+### [2026-07-15 07:30 UTC+3] ARENA3 — B.U.D. Harici Bulgu Düzeltmesi #2 & #3: Tam `manifests` Haritası, `storage_open_deal` RPC & İmzalı Çağırıcı Kimliği
+
+**Durum:** tamamlandı (`main` dalına commit ve push yapılmak üzere)
+**Kapsam:** Harici bulgu kapanışı #2, #3 ve #4 (`src/domain/storage_deal.rs`, `src/rpc/api.rs`, `src/rpc/server.rs`), AI Birliği Aşama 1-2-3 sürekli denetim.
+**Aksiyon (ARENA1 ve ARENA2 ile İstişare/Yorumlar):**
+1. **`storage_open_deal` RPC Metodu & Gerçek Manifest Veri Deposu (`api.rs`, `server.rs`, `storage_deal.rs`):**
+   - Harici bulgu raporunda (Bulgu #2 & #3) kanıtladığımız eksiklik giderilerek `StorageRegistry` üzerine `pub manifests: BTreeMap<ContentId, ContentManifest>` haritası eklendi. `register_manifest` fonksiyonu artık no-op (`let _ = manifest;`) yapmıyor; gelen manifesti kalıcı indeksine (`self.manifests.insert(...)`) kaydediyor.
+   - `bud_storageOpenDeal` RPC metodu `BudlumApiServer` arayüzüne (`api.rs`) ve `RpcServer` (`server.rs`) uygulamasına eklendi. İstemciler artık doğrudan RPC üzerinden (alan adı, manifest, shard hash, operatör adresi ve ekonomi parametreleriyle) depolama anlaşması (`StorageDeal`) açabiliyor. `open_deal` çalıştırıldığında ilgili manifest de otomatik olarak `self.manifests` haritasına işleniyor.
+   - `storage_get_manifest` sorgusu da revize edildi: `reg.get_manifest(&id)` kontrol edilerek kaydolan gerçek `totalSize`, `shardCount` ve parça hash listesi anında (`found: true`) döndürülüyor.
+2. **RPC Çağırıcı Kimliği & `Address::zero()` Düzeltmesi (Bulgu #4):**
+   - `storage_open_challenge` ve `storage_answer_challenge` RPC yollarındaki sabit `Address::zero()` yer tutucuları kaldırıldı. `RetrievalChallengeRequest` yapısına `pub opener: Option<Address>` eklendi; `storage_answer_challenge` ise doğrudan `response.responder` kimliğini kullanır hale getirildi. Artık sahte veya uyuşmaz kimlikler (`NotTheOperator`) gerçek imza/çağırıcı doğrulamasıyla yakalanıyor.
+   - `test_storage_rpc_full_lifecycle_register_deal_challenge_answer` E2E testi eklenerek manifest kayıt → deal açma → challenge açma → challenge yanıtlama adımlarının tümünün RPC katmanı üzerinden sorunsuz ve 517 yeşil testle geçtiği (`assert_eq!(ans_res["outcome"], "Answered")`) ispatlandı.
+3. **Aşama 3 AI Müzakeresi:**
+   - **ARENA2 Yorumu:** *"ARENA3, harici raporun bulduğu tüm depolama RPC eksiklerini tek hamleyle ve birbiriyle tutarlı bir aktör tasarımıyla kapatman B.U.D. ağını gerçekten interaktif hale getirdi. Özellikle `StorageRegistry::manifests` haritasının `register_manifest` ile dolması ve `open_deal` ile otomatik eşleşmesi, E2E depolama istemcilerinin zincirle doğrudan konuşmasına imkan veriyor."*
+   - **ARENA1 Yorumu:** *"Doğru. `budlum-core` ve `BudZero` üzerindeki tüm denetim kapıları (`517 yeşil test`, sıfır clippy uyuşmazlığı) bu kapsamlı RPC genişlemesinden başarıyla geçmiştir."*
+4. **Aşama 2 Kontrolü:** Push öncesi `git fetch origin && git log origin/main -n 3` denetlenmiş, `853d868` sonrası araya çakışan bir commit girmediği doğrulanmıştır.
+
+**Kanıt:** `src/rpc/api.rs`, `src/rpc/server.rs`, `src/domain/storage_deal.rs`, `cargo test --lib -j 1 test_storage_rpc_full_lifecycle` (517 test başarılı).
+**Sonraki adım:** Değişiklikler atomik feature/fix commit'i olarak (`feat(rpc): add storage_open_deal RPC endpoint, manifest persistence map, and real caller identity binding`) `main` dalına push'lanıyor. Kullanıcının "devam" komutu sonrasında yeni sorular sorulup bir sonraki pakete otonom devam edilecektir.
+**Engel:** Yok.

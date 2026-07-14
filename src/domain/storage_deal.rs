@@ -46,6 +46,8 @@ pub struct RetrievalChallengeRequest {
     pub challenge_epoch: u64,
     pub deadline_epoch: u64,
     pub opener_bond: u64,
+    #[serde(default)]
+    pub opener: Option<crate::core::address::Address>,
 }
 
 /// Lifecycle status of a `StorageDeal`. Reuses the same enum-tag
@@ -196,6 +198,8 @@ pub struct StorageRegistry {
     deals_by_shard: BTreeMap<(ContentId, ContentId), Vec<u64>>,
     challenges: BTreeMap<u64, RetrievalChallenge>,
     results: BTreeMap<u64, ChallengeResult>,
+    #[serde(default)]
+    pub manifests: BTreeMap<ContentId, ContentManifest>,
 }
 
 use std::collections::BTreeMap;
@@ -289,14 +293,13 @@ impl StorageRegistry {
     /// canonical manifest lives in `ContentManifest`; this index only
     /// tracks "is this manifest known to the storage domain?").
     pub fn register_manifest(&mut self, manifest: &ContentManifest) {
-        // No state field — manifests are looked up via the
-        // `manifests` field on the domain's higher-level `Blockchain`
-        // accounting. The `StorageRegistry` is intentionally manifest-
-        // unaware at the data level; it only validates
-        // `shard ∈ manifest` at deal-open time. This keeps `StorageRegistry`
-        // `bincode`-roundtrip stable without storing a full copy of every
-        // manifest. See also `validate_shard_membership` below.
-        let _ = manifest;
+        self.manifests
+            .entry(manifest.manifest_id)
+            .or_insert_with(|| manifest.clone());
+    }
+
+    pub fn get_manifest(&self, manifest_id: &ContentId) -> Option<&ContentManifest> {
+        self.manifests.get(manifest_id)
     }
 
     /// Validate that `shard_id` is a member of `manifest`. Used by
@@ -346,6 +349,7 @@ impl StorageRegistry {
             });
         }
         self.validate_shard_membership(manifest, &shard_id)?;
+        self.register_manifest(manifest);
 
         let deal_id = self.next_deal_id;
         self.next_deal_id += 1;

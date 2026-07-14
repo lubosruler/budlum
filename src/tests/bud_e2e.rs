@@ -109,7 +109,8 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
         byte_end: 16,
         challenge_epoch: 150,
         deadline_epoch: 200,
-        opener_bond: 50_000, // anti-spam bond
+        opener_bond: 50_000,
+        opener: Some(Address::from([3u8; 32])),
     };
     let challenge_id = reg
         .open_challenge(

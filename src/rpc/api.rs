@@ -275,6 +275,21 @@ pub trait BudlumApi {
         manifest: crate::storage::ContentManifest,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
+    /// Open a new `StorageDeal` for a specific shard of a registered manifest.
+    #[method(name = "bud_storageOpenDeal")]
+    async fn storage_open_deal(
+        &self,
+        domain_id: u32,
+        manifest: crate::storage::ContentManifest,
+        shard_id: String,
+        operator: String,
+        replica_index: u8,
+        start_epoch: u64,
+        end_epoch: u64,
+        economics: crate::domain::storage_deal::StorageEconomicsParams,
+        domain_params: crate::domain::storage_params::StorageDomainParams,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
     /// Look up a previously-registered `ContentManifest` by its
     /// `manifest_id`.
     #[method(name = "bud_storageGetManifest")]

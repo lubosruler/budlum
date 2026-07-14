@@ -431,4 +431,72 @@ mod rpc_tests {
             .unwrap()
             .starts_with("0x"));
     }
+
+    #[tokio::test]
+    async fn test_storage_rpc_full_lifecycle_register_deal_challenge_answer() {
+        let (server, _) = setup().await;
+        let manifest = crate::storage::ContentManifest::from_bytes_sliced(
+            b"hello storage rpc lifecycle test",
+            16,
+        )
+        .unwrap();
+        let s_id = manifest.shards[0].shard_id;
+
+        let reg_res = server
+            .storage_register_manifest(manifest.clone())
+            .await
+            .unwrap();
+        assert_eq!(reg_res["shardCount"], manifest.shard_count);
+
+        let get_man = server
+            .storage_get_manifest(format!("0x{}", hex::encode(manifest.manifest_id.0)))
+            .await
+            .unwrap();
+        assert_eq!(get_man["found"], true);
+
+        let op = Address::from([7u8; 32]);
+        let deal_res = server
+            .storage_open_deal(
+                1,
+                manifest.clone(),
+                format!("0x{}", hex::encode(s_id.0)),
+                format!("0x{}", op.to_hex()),
+                0,
+                10,
+                100,
+                crate::domain::storage_deal::StorageEconomicsParams {
+                    operator_bond: 2_000_000,
+                    fee_per_epoch: 10,
+                },
+                crate::domain::storage_params::StorageDomainParams::default(),
+            )
+            .await
+            .unwrap();
+        let deal_id = deal_res["dealId"].as_u64().unwrap();
+
+        let chal_res = server
+            .storage_open_challenge(crate::domain::storage_deal::RetrievalChallengeRequest {
+                deal_id,
+                byte_start: 0,
+                byte_end: 15,
+                challenge_epoch: 15,
+                deadline_epoch: 25,
+                opener_bond: 50,
+                opener: Some(Address::from([8u8; 32])),
+            })
+            .await
+            .unwrap();
+        let challenge_id = chal_res["challengeId"].as_u64().unwrap();
+
+        let ans_res = server
+            .storage_answer_challenge(crate::domain::storage_deal::RetrievalResponse {
+                challenge_id,
+                _range_hash: crate::storage::content_id::ContentId([0u8; 32]),
+                responder: op,
+                response_epoch: 18,
+            })
+            .await
+            .unwrap();
+        assert_eq!(ans_res["outcome"], "Answered");
+    }
 }
