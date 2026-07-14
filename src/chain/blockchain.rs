@@ -528,12 +528,15 @@ impl Blockchain {
             return Err(format!("Domain {} has invalid chain id 0", domain.id));
         }
 
-        let expected_adapter = match &domain.kind {
-            ConsensusKind::PoW => Some("pow-confirmation-depth"),
-            ConsensusKind::PoS => Some("pos-qc-finality"),
-            ConsensusKind::PoA => Some("poa-authority-quorum"),
-            ConsensusKind::Bft => Some("bft-quorum-commit"),
-            ConsensusKind::Zk => Some("zk-proof-verification"),
+        let adapter_valid = match &domain.kind {
+            ConsensusKind::PoW => {
+                domain.finality_adapter == "pow-confirmation-depth"
+                    || domain.finality_adapter == POW_HEADER_CHAIN_ADAPTER
+            }
+            ConsensusKind::PoS => domain.finality_adapter == "pos-qc-finality",
+            ConsensusKind::PoA => domain.finality_adapter == "poa-authority-quorum",
+            ConsensusKind::Bft => domain.finality_adapter == "bft-quorum-commit",
+            ConsensusKind::Zk => domain.finality_adapter == "zk-proof-verification",
             ConsensusKind::Custom(name) => {
                 if name.trim().is_empty() {
                     return Err(format!(
@@ -541,19 +544,15 @@ impl Blockchain {
                         domain.id
                     ));
                 }
-                None
+                !domain.finality_adapter.trim().is_empty()
             }
         };
 
-        if let Some(expected) = expected_adapter {
-            if domain.finality_adapter != expected {
-                return Err(format!(
-                    "Domain {} adapter mismatch: expected {}, got {}",
-                    domain.id, expected, domain.finality_adapter
-                ));
-            }
-        } else if domain.finality_adapter.trim().is_empty() {
-            return Err(format!("Domain {} has empty finality adapter", domain.id));
+        if !adapter_valid {
+            return Err(format!(
+                "Domain {} has incompatible finality adapter {} for {:?}",
+                domain.id, domain.finality_adapter, domain.kind
+            ));
         }
 
         Ok(())
