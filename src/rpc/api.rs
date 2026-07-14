@@ -252,4 +252,78 @@ pub trait BudlumApi {
 
     #[method(name = "bud_nodeInfo")]
     async fn node_info(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    // === TUR 14 — B.U.D. Storage RPC surface ============================
+    // The 7 RPCs below are the public, permissionless query/mutation surface
+    // for the storage domain. Per the data-sovereignty rule (Tur 14.5 plan
+    // §0.5) every endpoint is callable by any account on a standard node
+    // — no team-gated "official indexer" or admin-only RPC exists.
+    //
+    // IMPORTANT: `bud_storageAnswerChallenge` accepts a `range_hash` only;
+    // it does NOT carry shard bytes. The chain does not store the bytes
+    // (only the ContentId/manifest commitments), and the retrieval
+    // challenge is *interim* (not full Proof-of-Storage — see Tur 14.5
+    // §2.5 / vision §9.1). Off-chain verifiers must recompute the
+    // expected range hash from the public shard bytes.
+
+    /// Register a `ContentManifest` with the storage domain. Returns the
+    /// deterministic `manifest_id` (ContentId) so the caller can address
+    /// subsequent deal-open / query calls.
+    #[method(name = "bud_storageRegisterManifest")]
+    async fn storage_register_manifest(
+        &self,
+        manifest: crate::storage::ContentManifest,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Look up a previously-registered `ContentManifest` by its
+    /// `manifest_id`.
+    #[method(name = "bud_storageGetManifest")]
+    async fn storage_get_manifest(
+        &self,
+        manifest_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// All `StorageDeal`s bound to a given `manifest_id` (any replica
+    /// index, any operator, any status). Permissionless read.
+    #[method(name = "bud_storageGetDealsByManifest")]
+    async fn storage_get_deals_by_manifest(
+        &self,
+        manifest_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// All `StorageDeal`s bound to a given `(manifest_id, shard_id)` pair.
+    /// Used by clients that downloaded one shard and want to know which
+    /// operators are also holding it.
+    #[method(name = "bud_storageGetDealsByShard")]
+    async fn storage_get_deals_by_shard(
+        &self,
+        manifest_id: String,
+        shard_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Open a `RetrievalChallenge` against an active deal. Anyone may call
+    /// this; the anti-spam mechanism is `opener_bond` (returned on
+    /// success, burned on false positive). Permissionless.
+    #[method(name = "bud_storageOpenChallenge")]
+    async fn storage_open_challenge(
+        &self,
+        request: crate::domain::RetrievalChallengeRequest,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Operator answers an open challenge with a `range_hash`. The chain
+    /// only verifies timing + operator identity + structural validity; the
+    /// hash itself is recomputed by off-chain verifiers from the public
+    /// shard bytes.
+    #[method(name = "bud_storageAnswerChallenge")]
+    async fn storage_answer_challenge(
+        &self,
+        response: crate::domain::RetrievalResponse,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Look up a finalized `ChallengeResult` by `challenge_id`.
+    #[method(name = "bud_storageGetOutcome")]
+    async fn storage_get_outcome(
+        &self,
+        challenge_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
 }

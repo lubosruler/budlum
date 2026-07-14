@@ -31,6 +31,23 @@ use crate::storage::content_id::ContentId;
 use crate::storage::manifest::ContentManifest;
 use serde::{Deserialize, Serialize};
 
+/// RPC-facing DTO for `bud_storageOpenChallenge`.
+///
+/// Wraps the chain-relevant fields so the JSON shape is explicit and
+/// stable. Decouples the on-chain `RetrievalChallenge` (which carries
+/// `opener` as the resolved `Address` and `opener_bond` already debited
+/// from the caller's stake) from the request (which is the raw caller
+/// intent).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RetrievalChallengeRequest {
+    pub deal_id: u64,
+    pub byte_start: u64,
+    pub byte_end: u64,
+    pub challenge_epoch: u64,
+    pub deadline_epoch: u64,
+    pub opener_bond: u64,
+}
+
 /// Lifecycle status of a `StorageDeal`. Reuses the same enum-tag
 /// convention as the `permissionless::MemberStatus` enum — explicit
 /// variants so the economic surface is auditable.

@@ -3,7 +3,11 @@ use crate::chain::chain_actor::ChainHandle;
 use crate::core::address::Address;
 use crate::core::block::Block;
 use crate::core::transaction::Transaction;
+use crate::domain::{
+    RetrievalChallenge, RetrievalChallengeRequest, RetrievalResponse, StorageRegistry,
+};
 use crate::network::node::NodeClient;
+use crate::storage::content_id::ContentId;
 use futures::future::BoxFuture;
 use hyper::header::{HeaderValue, AUTHORIZATION};
 use hyper::StatusCode;
@@ -205,6 +209,11 @@ pub struct RpcServer {
     node: NodeClient,
     security: RpcSecurityConfig,
     mode: RpcMode,
+    /// B.U.D. storage registry (Tur 14, Faz 5). Wrapped in `Arc<Mutex<_>>`
+    /// so the same registry is shared with future consensus-side
+    /// producers. The public RPC surface mutates it; the chain layer reads
+    /// from a snapshot at block-application time.
+    storage: Arc<Mutex<StorageRegistry>>,
 }
 
 impl RpcServer {
@@ -214,6 +223,7 @@ impl RpcServer {
             node,
             security: RpcSecurityConfig::default(),
             mode: RpcMode::Public,
+            storage: Arc::new(Mutex::new(StorageRegistry::new())),
         }
     }
 
@@ -227,6 +237,7 @@ impl RpcServer {
             node,
             security,
             mode: RpcMode::Public,
+            storage: Arc::new(Mutex::new(StorageRegistry::new())),
         }
     }
 
@@ -241,6 +252,22 @@ impl RpcServer {
             node,
             security,
             mode,
+            storage: Arc::new(Mutex::new(StorageRegistry::new())),
+        }
+    }
+
+    /// Construct with a shared storage registry (e.g. a chain-level one).
+    pub fn with_storage(
+        chain: ChainHandle,
+        node: NodeClient,
+        storage: Arc<Mutex<StorageRegistry>>,
+    ) -> Self {
+        Self {
+            chain,
+            node,
+            security: RpcSecurityConfig::default(),
+            mode: RpcMode::Public,
+            storage,
         }
     }
 
@@ -1252,6 +1279,283 @@ impl BudlumApiServer for RpcServer {
             "rpcMode": match self.mode { RpcMode::Public => "public", RpcMode::Operator => "operator" },
         }))
     }
+
+    // === TUR 14 — B.U.D. Storage RPC implementations ====================
+    // The chain layer does not yet own a storage registry; we hold one on
+    // the RPC server (`Arc<Mutex<StorageRegistry>>`) and snapshot it for
+    // the chain-side accounting at block-application time (Faz 5 follow-up
+    // in Tur 15). For Tur 14 the registry is RPC-driven and survives only
+    // for the life of the process — that is the documented scope of this
+    // iskeleton's RPC surface (vision §8.1 "accounting only").
+
+    async fn storage_register_manifest(
+        &self,
+        manifest: crate::storage::ContentManifest,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let manifest_id = manifest.manifest_id;
+        let mut reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        reg.register_manifest(&manifest);
+        Ok(serde_json::json!({
+            "manifestId": format!("0x{}", hex::encode(manifest_id.0)),
+            "totalSize": manifest.total_size,
+            "shardCount": manifest.shard_count,
+        }))
+    }
+
+    async fn storage_get_manifest(
+        &self,
+        manifest_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean = manifest_id.strip_prefix("0x").unwrap_or(&manifest_id);
+        let bytes = hex::decode(clean).map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("Invalid manifest_id hex: {e}"),
+                None::<()>,
+            )
+        })?;
+        if bytes.len() != 32 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "manifest_id must be 32 bytes",
+                None::<()>,
+            ));
+        }
+        let mut arr = [0u8; 32];
+        arr.copy_from_slice(&bytes);
+        let id = ContentId(arr);
+        // Look across deals for the (manifest, shard) pairs to reconstruct
+        // the original manifest from per-shard deals (since the registry
+        // itself does not duplicate manifest bytes).
+        let reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        let shards: Vec<serde_json::Value> = reg
+            .deals_for_manifest(&id)
+            .iter()
+            .map(|d| {
+                serde_json::json!({
+                    "shardId": format!("0x{}", hex::encode(d.shard_id.0)),
+                    "size": d.shard_id.0.len(),
+                })
+            })
+            .collect();
+        Ok(serde_json::json!({
+            "manifestId": format!("0x{}", hex::encode(id.0)),
+            "found": !shards.is_empty(),
+            "dealsObserved": shards.len(),
+            "shards": shards,
+        }))
+    }
+
+    async fn storage_get_deals_by_manifest(
+        &self,
+        manifest_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let id = parse_content_id(&manifest_id)?;
+        let reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        let deals: Vec<serde_json::Value> = reg
+            .deals_for_manifest(&id)
+            .into_iter()
+            .map(storage_deal_to_json)
+            .collect();
+        Ok(serde_json::json!({
+            "manifestId": format!("0x{}", hex::encode(id.0)),
+            "count": deals.len(),
+            "deals": deals,
+        }))
+    }
+
+    async fn storage_get_deals_by_shard(
+        &self,
+        manifest_id: String,
+        shard_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let mid = parse_content_id(&manifest_id)?;
+        let sid = parse_content_id(&shard_id)?;
+        let reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        let deals: Vec<serde_json::Value> = reg
+            .deals_for_shard(&mid, &sid)
+            .into_iter()
+            .map(storage_deal_to_json)
+            .collect();
+        Ok(serde_json::json!({
+            "manifestId": format!("0x{}", hex::encode(mid.0)),
+            "shardId": format!("0x{}", hex::encode(sid.0)),
+            "count": deals.len(),
+            "deals": deals,
+        }))
+    }
+
+    async fn storage_open_challenge(
+        &self,
+        request: RetrievalChallengeRequest,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // `opener` is resolved from the call's transaction — for the
+        // permissionless RPC surface the opener is taken from the bound
+        // `ChainHandle` (in this Tur 14 layer we don't yet have a signed
+        // tx, so we accept a zero address as a placeholder; Tur 15 will
+        // bind the actual signature). The op-chain-side enforcement
+        // happens via `submit_registry_slashing_report`'s reporter path.
+        // The opener_bond itself is the anti-spam gate (zero bond = rejected).
+        let opener = Address::zero();
+        let mut reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        let challenge_id = reg
+            .open_challenge(
+                request.deal_id,
+                request.byte_start,
+                request.byte_end,
+                request.challenge_epoch,
+                request.deadline_epoch,
+                opener,
+                request.opener_bond,
+            )
+            .map_err(|e| {
+                ErrorObjectOwned::owned(-32602, format!("Invalid challenge: {e}"), None::<()>)
+            })?;
+        let challenge = reg.get_challenge(challenge_id).cloned();
+        Ok(serde_json::json!({
+            "challengeId": challenge_id,
+            "challenge": challenge.map(retrieval_challenge_to_json),
+        }))
+    }
+
+    async fn storage_answer_challenge(
+        &self,
+        response: RetrievalResponse,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // The responder is the signer of the bound tx (zero placeholder
+        // in this Tur 14 layer; the chain-side `StorageRegistry` enforces
+        // the operator-identity match, so a non-operator gets a
+        // `NotTheOperator` error regardless of who calls this RPC).
+        let responder = Address::zero();
+        let mut reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        let result = reg
+            .answer_challenge(
+                response.challenge_id,
+                response.range_hash,
+                responder,
+                response.response_epoch,
+            )
+            .map_err(|e| {
+                ErrorObjectOwned::owned(-32602, format!("Invalid response: {e}"), None::<()>)
+            })?;
+        Ok(serde_json::json!({
+            "challengeId": result.challenge_id,
+            "dealId": result.deal_id,
+            "outcome": format!("{:?}", result.outcome),
+            "finalizedEpoch": result.finalized_epoch,
+            "slashedBond": result.slashed_bond,
+        }))
+    }
+
+    async fn storage_get_outcome(
+        &self,
+        challenge_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let reg = self.storage.lock().map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("storage registry lock poisoned: {e}"),
+                None::<()>,
+            )
+        })?;
+        match reg.get_result(challenge_id) {
+            Some(r) => Ok(serde_json::json!({
+                "challengeId": r.challenge_id,
+                "dealId": r.deal_id,
+                "outcome": format!("{:?}", r.outcome),
+                "finalizedEpoch": r.finalized_epoch,
+                "slashedBond": r.slashed_bond,
+            })),
+            None => Ok(serde_json::Value::Null),
+        }
+    }
+}
+
+fn parse_content_id(s: &str) -> Result<ContentId, ErrorObjectOwned> {
+    let clean = s.strip_prefix("0x").unwrap_or(s);
+    let bytes = hex::decode(clean).map_err(|e| {
+        ErrorObjectOwned::owned(
+            -32602,
+            format!("Invalid hex: {e}"),
+            None::<()>,
+        )
+    })?;
+    if bytes.len() != 32 {
+        return Err(ErrorObjectOwned::owned(
+            -32602,
+            "expected 32-byte hex string",
+            None::<()>,
+        ));
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(ContentId(arr))
+}
+
+fn storage_deal_to_json(d: &crate::domain::StorageDeal) -> serde_json::Value {
+    serde_json::json!({
+        "dealId": d.deal_id,
+        "domainId": d.domain_id,
+        "manifestId": format!("0x{}", hex::encode(d.manifest_id.0)),
+        "shardId": format!("0x{}", hex::encode(d.shard_id.0)),
+        "operator": d.operator.to_string(),
+        "operatorBond": d.economics.operator_bond,
+        "feePerEpoch": d.economics.fee_per_epoch,
+        "replicaIndex": d.replica_index,
+        "dealStartEpoch": d.deal_start_epoch,
+        "dealEndEpoch": d.deal_end_epoch,
+        "status": format!("{:?}", d.status),
+    })
+}
+
+fn retrieval_challenge_to_json(c: &RetrievalChallenge) -> serde_json::Value {
+    serde_json::json!({
+        "challengeId": c.challenge_id,
+        "dealId": c.deal_id,
+        "shardId": format!("0x{}", hex::encode(c.shard_id.0)),
+        "byteStart": c.byte_start,
+        "byteEnd": c.byte_end,
+        "challengeEpoch": c.challenge_epoch,
+        "deadlineEpoch": c.deadline_epoch,
+        "opener": c.opener.to_string(),
+        "openerBond": c.opener_bond,
+    })
 }
 
 #[cfg(test)]

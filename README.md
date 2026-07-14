@@ -134,7 +134,7 @@ Aligned with [budlum-xyz/Budlum](https://github.com/budlum-xyz/Budlum) Research 
 | Personas (user / developer / enterprise PoA) | `config/personas/*` + [docs/PERSONAS.md](docs/PERSONAS.md) | Tur **13** |
 | Archive/backup/runbooks | Archive fail-closed policy, atomic verified backup + restore drill, PoA/RPC/HSM runbook | ✓ Tur **13.5** |
 | BudZero performance | Reproducible proof time/size baseline harness | ✓ baseline Tur **13.5** |
-| B.U.D. storage network | Out of scope here | **Tur 14** only |
+| B.U.D. storage network | Implemented (Faz 1-2 + Faz 5 iskeleti); Faz 3 pending Z-B gate | **Tur 14** |
 | External audit / TLA+ / Privacy / AI | Process / research — not claimed done | Checklist Tur 13.9 |
 
 ## Research Roadmap Status (Budlum + BudZero — B.U.D. Hariç)
@@ -193,6 +193,42 @@ cargo run -- --config config/personas/developer.toml
 ```
 
 ---
+
+## B.U.D. (Broad Universal Database) — Tur 14
+
+**Tur 14 Faz 1-2 + Faz 5** iskeleti eklendi. `ConsensusKind::StorageAttestation`
+yeni enum varyantı + `STORAGE_OPERATOR = RoleId(5)` (permissionless) +
+`ContentId` / `ContentManifest` / `StorageRegistry` (deal + challenge
+ekonomisi) + 7 yeni JSON-RPC uç noktası. 3-aktör E2E testi + 9
+ekip-bağımsızlık invariantı (`src/tests/bud_e2e.rs`).
+
+**ÖNEMLİ — interim retrieval sınırlama:** `RetrievalChallenge` gerçek
+**Proof-of-Storage DEĞİLDİR** (Tur 14.5 plan §2.5). Operatör sadece
+istenen byte-range'i saklayarak testi geçebilir. Tam kanıt (Faz 3,
+vision §8.3) BudZKVM `VerifyMerkle` + 64-depth SMT production gate'ine
+bağlıdır; o Z-B gate kapanana kadar "proof-of-storage" iddiası YAPILMAZ
+(sahte-yeşil yol riski, vision §9.1).
+
+**Veri egemenliği kuralı (Tur 14.5 plan §0.5):** B.U.D.'un hiçbir
+kritik fonksiyonu (deal açma, ücret ödeme, operatör keşfi, erişilebilirlik
+denetimi, slashing) "Budlum ekibinin çalıştırdığı bir servise"
+bağımlı değildir. Whitelist / admin / pause / freeze hook'u YOK.
+Tüm 7 storage RPC herhangi bir node tarafından sunulur.
+
+B.U.D. storage RPC'leri (`src/rpc/api.rs`):
+
+| RPC | Yön | Amaç |
+|-----|-----|------|
+| `bud_storageRegisterManifest` | write | `ContentManifest` kaydı, `manifest_id` döner |
+| `bud_storageGetManifest` | read | `manifest_id` → manifest bilgisi |
+| `bud_storageGetDealsByManifest` | read | Tüm deal'lar (replica dahil) |
+| `bud_storageGetDealsByShard` | read | `(manifest_id, shard_id)` → deal'lar |
+| `bud_storageOpenChallenge` | write | Herkes; opener_bond > 0 anti-spam |
+| `bud_storageAnswerChallenge` | write | Sadece deal.operator; on-chain hash-only dogrulama |
+| `bud_storageGetOutcome` | read | `challenge_id` → `ChallengeResult` |
+
+**B.U.D. mainnet launch'a dahil mi:** Tur 15 §1.2 bittikten sonra
+değerlendirilecek. Şu an devnet-only.
 
 ## License
 
