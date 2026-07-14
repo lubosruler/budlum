@@ -82,6 +82,17 @@ impl StorageDomainParams {
     }
 }
 
+impl Default for StorageDomainParams {
+    fn default() -> Self {
+        Self {
+            chunk_size: DEFAULT_CHUNK_SIZE,
+            max_committed_chunks: 1_000_000,
+            challenge_interval: 100,
+            min_operator_bond: 1_000_000,
+        }
+    }
+}
+
 /// A canonical, deterministic byte encoding of `StorageDomainParams`.
 ///
 /// Used to (a) feed the domain's `config_hash` so two registrations with the

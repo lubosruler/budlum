@@ -857,26 +857,69 @@ impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
             FinalityProof::PoA {
                 authorities,
                 signatures,
-            } if authorities.is_empty() || signatures.is_empty() => {
-                return Ok(FinalityStatus::Rejected(
-                    "Empty storage attestation signatures".into(),
-                ));
+            } => {
+                if authorities.is_empty() || signatures.is_empty() {
+                    return Ok(FinalityStatus::Rejected(
+                        "Empty storage attestation signatures".into(),
+                    ));
+                }
+                let authority_set: std::collections::BTreeSet<crate::core::address::Address> =
+                    authorities.iter().copied().collect();
+                let msg = poa_commit_signing_message(
+                    domain.id,
+                    commitment.domain_height,
+                    &commitment.domain_block_hash,
+                );
+                let mut valid_signers = std::collections::BTreeSet::new();
+                for sig in signatures {
+                    if !authority_set.contains(&sig.authority) {
+                        return Ok(FinalityStatus::Rejected(
+                            "Storage attestation signature from unlisted authority".into(),
+                        ));
+                    }
+                    if crate::crypto::primitives::verify_signature(
+                        &msg,
+                        &sig.signature,
+                        sig.authority.as_bytes(),
+                    )
+                    .is_err()
+                    {
+                        return Ok(FinalityStatus::Rejected(
+                            "Storage attestation signature verification failed".into(),
+                        ));
+                    }
+                    valid_signers.insert(sig.authority);
+                }
+                let required = (authority_set.len() * 2 + 2) / 3;
+                if valid_signers.len() >= required {
+                    Ok(FinalityStatus::Finalized)
+                } else {
+                    Ok(FinalityStatus::Pending {
+                        required_depth: required as u64,
+                        observed_depth: valid_signers.len() as u64,
+                    })
+                }
             }
-            FinalityProof::PoS { cert, .. } | FinalityProof::Bft { cert, .. }
-                if cert.agg_sig_bls.is_empty() =>
-            {
-                return Ok(FinalityStatus::Rejected(
-                    "Empty storage attestation certificate".into(),
-                ));
+            FinalityProof::PoS { cert, .. } | FinalityProof::Bft { cert, .. } => {
+                if cert.agg_sig_bls.is_empty() {
+                    return Ok(FinalityStatus::Rejected(
+                        "Empty storage attestation certificate".into(),
+                    ));
+                }
+                let commitment_hash = hex::encode(commitment.domain_block_hash);
+                if cert.checkpoint_height != commitment.domain_height
+                    || cert.checkpoint_hash != commitment_hash
+                {
+                    return Ok(FinalityStatus::Rejected(
+                        "Storage attestation certificate height/hash mismatch".into(),
+                    ));
+                }
+                Ok(FinalityStatus::Finalized)
             }
-            FinalityProof::Raw(bytes) if bytes.is_empty() => {
-                return Ok(FinalityStatus::Rejected(
-                    "Empty storage attestation raw proof".into(),
-                ));
-            }
-            _ => {}
+            _ => Ok(FinalityStatus::Rejected(
+                "Unsupported or unverified storage attestation proof format".into(),
+            )),
         }
-        Ok(FinalityStatus::Finalized)
     }
 }
 
@@ -1264,5 +1307,70 @@ mod tests {
                 .unwrap(),
             FinalityStatus::Rejected(_)
         ));
+    }
+
+    #[test]
+    fn test_storage_attestation_finality_enforces_cryptographic_signatures_and_quorum() {
+        use crate::crypto::primitives::KeyPair;
+        let adapter = StorageAttestationFinalityAdapter;
+        let domain = default_domain(
+            5,
+            crate::domain::ConsensusKind::StorageAttestation(crate::domain::StorageDomainParams {
+                min_operator_bond: 100,
+                chunk_size: 1024,
+                challenge_interval: 10,
+                ..Default::default()
+            }),
+            1337,
+            crate::domain::types::STORAGE_ATTESTATION_ADAPTER,
+            0,
+        );
+        let mut commitment = commitment(crate::domain::ConsensusKind::StorageAttestation(
+            crate::domain::StorageDomainParams::default(),
+        ));
+        commitment.domain_id = 5;
+
+        assert!(matches!(
+            adapter
+                .verify_finality(&domain, &commitment, &FinalityProof::Raw(vec![1, 2, 3]))
+                .unwrap(),
+            FinalityStatus::Rejected(_)
+        ));
+
+        let kp = KeyPair::generate().unwrap();
+        let auth_addr = crate::core::address::Address::from(kp.public_key_bytes());
+        let fake_proof = FinalityProof::PoA {
+            authorities: vec![auth_addr],
+            signatures: vec![PoAAuthoritySignature {
+                authority: auth_addr,
+                signature: vec![0u8; 64],
+            }],
+        };
+        assert!(matches!(
+            adapter
+                .verify_finality(&domain, &commitment, &fake_proof)
+                .unwrap(),
+            FinalityStatus::Rejected(_)
+        ));
+
+        let msg = poa_commit_signing_message(
+            domain.id,
+            commitment.domain_height,
+            &commitment.domain_block_hash,
+        );
+        let real_sig = kp.sign(&msg);
+        let real_proof = FinalityProof::PoA {
+            authorities: vec![auth_addr],
+            signatures: vec![PoAAuthoritySignature {
+                authority: auth_addr,
+                signature: real_sig.to_vec(),
+            }],
+        };
+        assert_eq!(
+            adapter
+                .verify_finality(&domain, &commitment, &real_proof)
+                .unwrap(),
+            FinalityStatus::Finalized
+        );
     }
 }
