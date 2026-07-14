@@ -7,32 +7,9 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  formatter:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: "1.94.0"
-          components: rustfmt
-      - name: Apply rustfmt and push
-        run: |
-          cargo fmt --all
-          cargo fmt --manifest-path budzero/Cargo.toml --all
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add -A
-            git commit -m "style: apply rustfmt [skip ci]"
-            git push origin HEAD:${{ github.ref_name }}
-          fi
-
   budlum:
     name: Budlum Core
     runs-on: ubuntu-latest
@@ -48,16 +25,8 @@ jobs:
         with:
           version: "29.x"
       - uses: Swatinem/rust-cache@v2
-      - name: Produce format patch
-        run: |
-          cargo fmt --all
-          git diff --binary > budlum-rustfmt.patch
-      - uses: actions/upload-artifact@v4
-        with:
-          name: budlum-rustfmt
-          path: budlum-rustfmt.patch
       - name: Format
-        run: git diff --exit-code
+        run: cargo fmt --all -- --check
       - name: Clippy
         run: cargo clippy --lib --tests -- -D warnings
       - name: Test
@@ -78,17 +47,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: budzero
-      - name: Produce format patch
-        run: |
-          cargo fmt --all
-          git diff --binary > ../budzero-rustfmt.patch
-      - uses: actions/upload-artifact@v4
-        with:
-          name: budzero-rustfmt
-          path: budzero-rustfmt.patch
       - name: Format
-        working-directory: .
-        run: git diff --exit-code
+        run: cargo fmt --all -- --check
       - name: Check
         run: cargo check --workspace --all-targets
       - name: Clippy
