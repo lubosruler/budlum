@@ -1157,11 +1157,11 @@ impl Node {
                                         // güvenlik denetimi gereksinimini karşılar.
                                         // TUR 6: ayrıca bu height'ın session'ının son aktivite
                                         // zamanını da yenilememiz gerek (timeout reset).
-                                        let entry = &mut self.in_progress_snapshots
-                                            .get_mut(&height)
-                                            .expect("active_session checked above");
-                                        entry.1 = Instant::now();
-                                        let chunk_buf = &mut entry.2;
+                                        let (_, last_active, chunk_buf) = self
+                                            .in_progress_snapshots
+                                            .entry(height)
+                                            .or_insert_with(|| (session_id, Instant::now(), Vec::new()));
+                                        *last_active = Instant::now();
                                         // Vec'i tam boyuta genişlet (None ile doldur)
                                         if chunk_buf.len() < total as usize {
                                             chunk_buf.resize(total as usize, None);
@@ -1171,8 +1171,8 @@ impl Node {
                                         if chunk_buf.iter().all(|c| c.is_some()) {
                                             info!("Snapshot reassembly complete for height {} (session={})", height, session_id);
                                             let mut full_data = Vec::new();
-                                            for chunk in chunk_buf.drain(..) {
-                                                full_data.extend(chunk.unwrap());
+                                            for chunk_bytes in chunk_buf.drain(..).flatten() {
+                                                full_data.extend(chunk_bytes);
                                             }
                                             self.in_progress_snapshots.remove(&height);
 
@@ -1696,7 +1696,9 @@ impl Node {
                                                                 let _ = self.swarm.behaviour_mut().sync.send_request(&peer, req.to_bytes());
                                                             }
                                                         }
-                                                        self.peer_manager.lock().unwrap().report_good_behavior(&peer);
+                                                        if let Ok(mut pm) = self.peer_manager.lock() {
+                                                            pm.report_good_behavior(&peer);
+                                                        }
                                                     }
                                                     NetworkMessage::Blocks(blocks) => {
                                                         if !blocks.is_empty() {
@@ -1723,7 +1725,9 @@ impl Node {
                                                             }
                                                         }
                                                         self.sync_state.store(0, Ordering::SeqCst);
-                                                        self.peer_manager.lock().unwrap().report_good_behavior(&peer);
+                                                        if let Ok(mut pm) = self.peer_manager.lock() {
+                                                            pm.report_good_behavior(&peer);
+                                                        }
                                                     }
                                                     _ => {}
                                                 }
@@ -1733,8 +1737,9 @@ impl Node {
                                 }
                                 request_response::Event::OutboundFailure { peer, error, .. } => {
                                     warn!("Outbound sync failure to {}: {:?}", peer, error);
-                                    let mut pm = self.peer_manager.lock().unwrap();
-                                    pm.report_timeout(&peer);
+                                    if let Ok(mut pm) = self.peer_manager.lock() {
+                                        pm.report_timeout(&peer);
+                                    }
                                 }
                                 request_response::Event::InboundFailure { peer, error, .. } => {
                                     warn!("Inbound sync failure from {}: {:?}", peer, error);
