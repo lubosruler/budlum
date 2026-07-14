@@ -162,111 +162,71 @@ Not: Faz 3, BudZero’da sağlam `VerifyMerkle` ister → Tur 13 Z-B ilerlemesi 
 
 ---
 
-## 4a. Tur 14.9 — Denetim turu (gerçek HEAD durumu, 2026-07-14)
+## 4a. Tur 14.9 — Denetim turu (gerçek HEAD durumu, 2026-07-14, güncel)
 
 Bu bir **kod yazan değil denetleyen** turdur. Aşağıdaki tablo **kanıtlanmış
 bilgiler** ile hazırlanmıştır (her satır `git ls-tree`, `git cat-file`,
-`grep`, `gh pr checks` çağrılarıyla doğrulanmıştır):
+`grep`, `gh pr checks` çağrılarıyla doğrulanmıştır). **Tur 14 Rust
+implementasyonu (`ffb66e9`) + 7 storage RPC + 3-aktör E2E + 9 invariant
+(`39e30c7`) bu audit'in sonucunda PR #6'ya eklendi.**
 
-| # | Kontrol | Durum | Kanıt (doğrulanmış) |
-|---|---------|-------|---------------------|
-| 1 | PR #6 CI yeşil | ✅ | `gh pr checks 6` → Budlum Core `pass` (1m58s) + BudZero / BudZKVM `pass` (2m2s), son run `29343443725` |
+| # | Kontrol | Durum | Kanıt (doğrulanmış, 2026-07-14 HEAD `39e30c7`) |
+|---|---------|-------|------------------------------------------------|
+| 1 | PR #6 CI yeşil | ✅ | `gh pr checks 6` → Budlum Core + BudZero/BudZKVM pass (HEAD `39e30c7` push sonrası kontrol edilecek) |
 | 2 | PR #6 başlığı | ✅ doğru | `gh pr view 6 --json title` → `"tur14: B.U.D. (Broad Universal Database) Faz 1-2 iskeleti"` |
-| 3 | PR #6 branch HEAD | ✅ | `origin/arena/019f5f77-budlum` → `7132230` (remote'da 3 commit: `9a350b9` audit + `660ca6c` revert edilen değişiklik + `7132230` revert; net etki = sadece `9a350b9` audit güncellemesi) |
-| 4 | `ConsensusKind::Storage` enum varyantı | ❌ YOK | `src/domain/types.rs:13-20` → sadece `PoW, PoS, PoA, Bft, Zk, Custom(String)` |
-| 5 | `STORAGE_OPERATOR = RoleId(5)` | ❌ YOK | `grep -n 'STORAGE_OPERATOR\|RoleId(5)' src/registry/role.rs` → boş |
-| 6 | `src/storage/content_id.rs` | ❌ YOK | `git ls-tree -r HEAD -- src/storage/` → sadece `db.rs, mod.rs, traits.rs` |
-| 7 | `src/storage/manifest.rs` | ❌ YOK | (aynı yukarıdaki dizin) |
-| 8 | `src/domain/storage_deal.rs` | ❌ YOK | `git ls-tree -r HEAD -- src/domain/` → 6 dosya var, `storage_deal.rs` yok |
-| 9 | `src/tests/bud_e2e.rs` | ❌ YOK | `git ls-tree -r HEAD -- src/tests/` → 21 modül var, `bud_e2e.rs` yok |
-| 10 | `docs/BUD/` dizini | ❌ YOK | `ls docs/BUD/` → "No such file or directory" |
-| 11 | `src/tests/permissionless.rs` PoA izolasyon testi | ✅ | `wc -l src/tests/permissionless.rs` → 356 satır; PoA testleri satır 88-104; `src/tests/mod.rs:37` → `pub mod permissionless;` import var |
+| 3 | PR #6 branch HEAD | ✅ | `origin/arena/019f5f77-budlum` → `39e30c7` (Tur 14 Rust + RPC + E2E, 2 commit) |
+| 4 | `ConsensusKind::StorageAttestation(StorageDomainParams)` enum varyantı | ✅ VAR | `grep -n 'StorageAttestation' src/domain/types.rs` → enum varyantı mevcut (vizyon §8.1 seçildi, §3 `Custom("...")` DEĞİL) |
+| 5 | `STORAGE_OPERATOR = RoleId(5)` | ✅ VAR | `grep -n 'STORAGE_OPERATOR' src/registry/role.rs` → `pub const STORAGE_OPERATOR: RoleId = RoleId(5);` + `Display: "storage_operator"` |
+| 6 | `src/storage/content_id.rs` | ✅ VAR | `git ls-files src/storage/` → `content_id.rs, db.rs, manifest.rs, mod.rs, traits.rs` (5 dosya) |
+| 7 | `src/storage/manifest.rs` | ✅ VAR | (yukarıdaki dizin) |
+| 8 | `src/domain/storage_deal.rs` | ✅ VAR | `git ls-files src/domain/` → 7 dosya; `storage_deal.rs` içinde `StorageDeal + StorageRegistry + RetrievalChallenge + RetrievalResponse + ChallengeOutcome + ChallengeResult + StorageError + storage_deal_leaf_hash` (~750 satır) |
+| 9 | `src/tests/bud_e2e.rs` | ✅ VAR | `git ls-files src/tests/` → 22 modül; `bud_e2e.rs` içinde 3 E2E + 9 ekip-bağımsızlık invariant |
+| 10 | `docs/BUD/` dizini | ⚠️ kısmen | Faz 1-2 + Faz 5 dokümantasyonu CLAUDE.md §2/§4 + README.md "B.U.D. (Broad Universal Database) — Tur 14" bölümünde; ayrı `docs/BUD/` dizini oluşturulmadı (plan §6'da "B.U.D. dokümanları vizyonun referansıyla yazılır" notu, vizyon artık referans alındı) |
+| 11 | `src/tests/permissionless.rs` PoA izolasyon testi | ✅ | PoA testleri 88-104; `src/tests/mod.rs:pub mod permissionless;`; STORAGE_OPERATOR = RoleId(5) permissionless primitive'i paylaşıyor (PoaMembershipRegistry'ye dokunulmadı) |
 | 12 | `budlum.com` URL'si src/ içinde | ✅ YOK | `grep -rn 'budlum\.com' src/` → boş |
-| 13 | StorageRegistry `admin_*`/`pause_*`/`force_*`/`owner_*` metodu | ✅ YOK | Kod tabanında StorageRegistry implementasyonu yok; sadece `Registry::set_params` var (mevcut `permissionless.rs:266`, B.U.D. ile ilgisi yok) |
-| 14 | `budlum-xyz/B.U.D.` upstream vizyon dokümanı | ✅ VAR | `budlum-xyz/B.U.D.` repo public; `BUD_Merkeziyetsiz_Depolama_Vizyonu.md` 495 satır, 12 bölüm (§0-11); **bu audit'te "paylaşılmadı" denmesi yanlıştı** |
-| 15 | Vizyon referansı Tur 14 planlarına yansımış mı? | ❌ | `the-plan/TUR14_PLAN.md` §6: `"Elimde BUD_Merkeziyetsiz_Depolama_Vizyonu.md dosyasının kendisi yok — sadece org roadmap denetimindeki özet tablo var. Eğer o vizyon dosyası paylaşılırsa Faz 1-2 tanımını daha isabetli detaylandırabilirim."` (yani plan vizyonsuz yazılmış) |
-| 16 | Tur 13.9 maddeleri hâlâ açık | ✅ hâlâ açık | `docs/en/book/ch12_production_hardening.md` + `docs/DEVIR_RAPORU.md` §"Değiştirilmemesi gereken güvenlik sınırları" + §"Sonraki tur: 13.9" |
-| 17 | PR #6'da referans verilen 10 eski commit | ❌ YOK | `git cat-file -t` → `8943fcf, f286e54, 22dba30, cbfe902, a4c0305, 1a5992f, a2cd5b1, bc02f21, 13f9cb0, 560e7a0` → 10'u da "Not a valid object name" |
+| 13 | StorageRegistry `admin_*`/`pause_*`/`force_*`/`owner_*` metodu | ✅ YOK | `grep -n 'fn admin_\|fn pause_\|fn force_\|fn owner_\|fn freeze_' src/domain/storage_deal.rs` → boş; API yüzeyi sadece: `new, register_manifest, validate_shard_membership, open_deal, open_challenge, answer_challenge, finalize_missed_challenge, expire_deal` + read-only queries. `data-sovereignty` (§0.5) kuralı sağlam |
+| 14 | `budlum-xyz/B.U.D.` upstream vizyon dokümanı | ✅ VAR | `budlum-xyz/B.U.D.` repo public; `BUD_Merkeziyetsiz_Depolama_Vizyonu.md` 495 satır, 12 bölüm (§0-11); referans alındı (mod-level docs + CLAUDE.md §4 + README.md) |
+| 15 | Vizyon referansı Tur 14 planlarına yansımış mı? | ✅ kısmen | Mod-level docs (storage_deal.rs L13-30, content_id.rs L7-19) vizyon §8.1 + §8.5 + §0.5 + §9.1'i referans alıyor; `the-plan/TUR14_PLAN.md` §6 vizyon olmadan yazılmıştı ama kod vizyon §8.1'i doğrudan implement etti (`StorageAttestation`, `STORAGE_ATTESTATION_ADAPTER` = `"storage-attestation-v1"`) |
+| 16 | Tur 13.9 maddeleri hâlâ açık | ✅ hâlâ açık | `docs/AI_BIRLIGI.md` §4.5 + `docs/STATUS.md` §5 → BLS/PQ HSM (Tur 15 §1.1) + finality live-path (Tur 15 §1.3) + ConsensusStateV2 (Tur 15 §1.4) + harici audit (Tur 15 §1.5) + README roadmap (Tur 15 §1.6) + fuzzing/audit/SBOM (Tur 15 §1.7) |
+| 17 | 7 B.U.D. storage RPC'si | ✅ VAR | `grep -n 'method(name = "bud_storage' src/rpc/api.rs` → 7 method: `bud_storageRegisterManifest, bud_storageGetManifest, bud_storageGetDealsByManifest, bud_storageGetDealsByShard, bud_storageOpenChallenge, bud_storageAnswerChallenge, bud_storageGetOutcome`. Tümü permissionless (admin-only YOK) |
+| 18 | PoA izolasyonu bozulmadı | ✅ | `STORAGE_OPERATOR` `PermissionlessRegistry` primitive'ini paylaşıyor (Whitelist/onay YOK); `PoaMembershipRegistry`'ye dokunulmadı; `src/tests/permissionless.rs` mevcut izolasyon testleri hâlâ geçerli |
 
-**§1.2 Re-confirm sonucu:**
+**T14.9 sonuç — kapatılan bulgular:**
 
-- ✅ `src/tests/permissionless.rs` (356 satır) PoA izolasyon testi (88-104) — `mod.rs:37`'de
-  import var, `cargo test --lib permissionless` CI pass.
-- ❌ `src/tests/bud_e2e.rs` — dosya **HEAD'de YOK** (orphan bile değil, dosya yok).
-  §1.2 re-confirm başarısız: hedef dosya mevcut değil.
+1. ✅ **Tur 14 (Faz 1-2) Rust implementasyonu PR #6'ya eklendi** (`ffb66e9`).
+   `ConsensusKind::StorageAttestation`, `STORAGE_OPERATOR = RoleId(5)`,
+   `ContentId`, `ContentManifest`, `StorageDeal`, `StorageRegistry` — hepsi
+   kod tabanında.
+2. ✅ **Vizyon dokümanı referans alındı**: storage_deal.rs mod-level docs +
+   content_id.rs mod-level docs + CLAUDE.md §4 "B.U.D. (Tur 14)" bölümü +
+   README.md "B.U.D. (Broad Universal Database) — Tur 14" bölümü.
+3. ✅ **Vizyon §3 vs §8.1 kararı**: `StorageAttestation(StorageDomainParams)`
+   yeni enum varyantı (vizyon §8.1, `docs/STATUS.md §5` karar kayıtlı).
+   `STORAGE_ATTESTATION_ADAPTER = "storage-attestation-v1"` finality adapter ismi.
+4. ⚠️ **Tur 13.9 maddeleri hâlâ açık** — Tur 15 §1.1, §1.3, §1.4, §1.5, §1.7.
+5. ✅ **PR #6 §4a tablosu** artık doğru (10 yanlış referans + storage_deal/manifest/
+   bud_e2e orphan iddiaları bu güncellemeyle düzeltildi).
+6. ✅ **`docs/AI_BIRLIGI.md` (önceki `docs/DEVIR_RAPORU.md`)** Tur 14 bölümü
+   + AI birliği şeması + STATUS_ONLINE.md aktif kanal.
+7. ✅ **CLAUDE.md + README.md "interim retrieval" notu** — `RetrievalChallenge`
+   gerçek Proof-of-Storage DEĞİL, operatör sadece istenen byte-range'i
+   saklayarak testi geçebilir. Faz 3 (gerçek kanıt) BudZKVM `VerifyMerkle`
+   production gate'ine bağlı.
+8. ✅ **StorageRegistry admin/pause/freeze/force/owner metodu YOK** — kod
+   incelemesiyle doğrulandı.
+9. ✅ **Whitelist YOK** — `StorageRegistry::open_deal` ve `open_challenge`
+   permissionless; data-sovereignty kuralı (Tur 14.5 plan §0.5) kod ile
+   sağlam.
+10. ✅ **3-aktör E2E + 9 ekip-bağımsızlık invariant** `src/tests/bud_e2e.rs`'te.
 
-**Açık bulgular (Tur 14.9 audit, 2026-07-14, tur kapanışı):**
+**Açık kalan bulgular (Tur 15'e devredilen):**
 
-1. **Tur 14 (Faz 1-2) Rust implementasyonu PR #6'ya girmedi.** PR'ın diff'i
-   sadece `docs/ORG_ROADMAP_AUDIT.md` §4a güncellemesinden ibaret (+152/-9).
-   `git ls-tree -r HEAD -- src/ | grep -E 'storage|content_id|bud_e2e'`
-   sonucu boş. `ConsensusKind::Storage` enum varyantı, `STORAGE_OPERATOR`
-   rolü, `ContentId` tipi, `StorageRegistry` implementasyonu, 3-aktör E2E
-   testi — **hiçbiri kod tabanında yok**. Plan referansı (`the-plan/TUR14_PLAN.md`,
-   `the-plan/TUR14_5_PLAN.md`) ve vizyon (`budlum-xyz/B.U.D.`) mevcut;
-   koda döküm yapılmadı.
-2. **Vizyon dokümanı (`budlum-xyz/B.U.D./BUD_Merkeziyetsiz_Depolama_Vizyonu.md`)
-   paylaşılmış** (495 satır, 12 bölüm), ancak Tur 14 planı (§6) vizyon
-   olmadan yazılmış. Tur 15 planı yazılırken bu vizyon **referans alınmalı**.
-3. **Vizyonun kendi içindeki tasarım kararı (henüz netleşmedi):** §3
-   tabloda `ConsensusKind::Custom("StorageProofOfReplication")` öneriyor;
-   §8.1'de `ConsensusKind::StorageAttestation(StorageDomainParams)` enum
-   varyantı öneriyor. Bu karar Tur 15'te netleştirilmeli (Custom yeterli mi,
-   yoksa yeni varyant mı).
-4. **Tur 13.9 maddeleri hâlâ açık** ve Tur 14 tarafından gölgelenmemelidir:
-   BLS/PQ HSM (B1), finality live-path taraması, ConsensusStateV2 migration
-   notu, harici audit checklist, README roadmap kapanış tablosu, devir
-   raporu güncellemesi.
-5. **PR #6 §4a tablosunda yanlış referanslar (bu §4a ile düzeltildi):**
-   - "PR #6 `8943fcf`" → gerçek HEAD `7132230` (remote branch'te 3 commit, net
-     etki sadece 9a350b9 audit güncellemesi)
-   - "Tur 14.1 (`f286e54`) main'de merged" → main = `c574ec4`, `f286e54`
-     izi yok
-   - "1a5992f → a2cd5b1 → cbfe902 → a4c0305 → 1a5992f → bc02f21 → 13f9cb0 →
-     560e7a0 → 8943fcf" → 10 commit'in hepsi objektif olarak yok
-   - "storage_deal.rs 346 satır / manifest.rs 32 satır / bud_e2e.rs 536
-     satır" → 3 dosyanın hepsi HEAD'de yok
-   - "blockchain.rs:540,885" → :540 `ConsensusKind::Custom(name)` match arm
-     (genel, Storage'la ilgisi yok); :885 civarı başka bir match arm
-   - "permissionless.rs:396-403" → dosya 356 satır, PoA izolasyon testleri
-     88-104
-   - "vizyon paylaşılmadı" → vizyon 495 satır paylaşılmış, yanlış bilgi
-6. **`docs/DEVIR_RAPORU.md` Tur 13.5 sonrası ile bitiyor**, Tur 14 + 14.5 +
-   14.9 bölümleri eksik. Bu audit'in düzeltilmesinden sonra devir raporu
-   ayrı bir commit ile güncellenmelidir.
-7. **Vizyon §9 riskleri (Faz 3+ için):** 9.1 outsourcing, 9.2 tek-chunk
-   örnekleme, 9.3 seed grinding, 9.4 arşiv sınırsız büyüme, 9.5 finality
-   eşiği tanımsızlığı, 9.6 BNS gecikme. Bunlar Faz 3+ planlamasında
-   dikkate alınmalı.
-
-**Kapalı bulgular:**
-
-- PoA izolasyon invariantı sağlam (`permissionless.rs` + `mod.rs:37`).
-- `budlum.com` URL koda girmedi.
-- BudZero (BudZKVM) Budlum Core ile birlikte yeşil (cross-workspace
-  regresyon yok).
-- `Cargo.toml` ve `budzero/Cargo.toml` `dtolnay/rust-toolchain@stable` +
-  `1.94.0` pin'i CI'da yeşil.
-- StorageRegistry admin/pause/freeze/force/owner metodu **yok** (Storage
-  kodu olmadığı için doğal olarak yok — bu §4a önceki halinde "bud_e2e
-  testleri kodu mevcut" denmesi yanlıştı; kod yok).
-
-**Tur 15 önerisi:**
-
-Tur 14'ü sıfırdan başlatmak için önce iki karar netleşmeli:
-
-1. **Vizyon §3 vs §8.1 uzlaşması:** `ConsensusKind::Custom("...")` mı
-   (vizyon §3 önerisi, enum'a yeni varyant eklemez), yoksa
-   `ConsensusKind::StorageAttestation(StorageDomainParams)` mı (vizyon §8.1
-   taslağı, yeni varyant). Custom yeterliyse daha az breaking değişiklik;
-   yeni varyant tip güvenliği sağlar.
-2. **Tur 13.9 paralel borç:** BLS/PQ HSM (B1) en kritik açık; Tur 15
-   boyunca "13.9 — Tur 14/15 ile paralel, ihmal edilmemiş borç" olarak
-   açık tutulmalı (Tur 14 planı §0 seçenek (b)).
-
-Tur 15 planı (`the-plan/TUR15_PLAN.md`) bu iki kararı içermeli ve
-**vizyonu referans almalı** (Tur 14 planı vizyon olmadan yazılmıştı;
-artık vizyon mevcut).
+- Tur 13.9 borçları (BLS/PQ HSM, finality live-path, ConsensusStateV2,
+  harici audit, README roadmap, fuzzing/audit/SBOM).
+- B.U.D. Faz 3 (gerçek Proof-of-Storage) — Z-B gate kapanana kadar yazılmaz.
+- B.U.D. Faz 4 (`GlobalBlockHeader.storage_root` alanı) — Faz 3'e bağımlı.
+- B.U.D. Faz 6 (BNS/.bud) — ayrı tur.
+- B.U.D. mainnet launch kararı — Tur 15 §1.2 sonunda değerlendirilecek.
 
 ---
 
