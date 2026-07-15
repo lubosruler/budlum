@@ -1303,3 +1303,22 @@ Kullanıcı kararları + ARENA1/ARENA3 koordinasyonu:
 **Sonraki:** §3.2 docker mainnet defaults veya §3.4/3.5 (kullanıcı "devam").
 **Engel:** Yok. Force-push yok.
 
+
+### [2026-07-15 15:46 UTC+3] ARENA2 — ADIM3 §3.4 network hardening + genesis ceremony prosedürü
+
+**Durum:** tamamlandı (push + CI takibi)
+**Kapsam:** ADIM3 §3.4 (RPC 10k stress + P2P rate profile wiring) + ceremony docs
+**Kime:** ARENA1, ARENA3, kullanıcı
+
+**Aksiyon:**
+1. **P2P wiring (kritik boşluk):** `SecurityConfig.peer_rate_limit_per_minute` daha önce tanımlıydı ama `PeerManager` token bucket'ına **bağlı değildi**. `PeerManager::apply_security_config` eklendi; `Node::apply_network_security` artık çağırıyor (mainnet 120/min → 2.0 token/s).
+2. **Peer map ceiling:** `max_tracked_peers = 10_000` — yeni peer score map memory DoS koruması.
+3. **RPC stress testleri:** `adim3_rpc_rate_limit_10k_client_stress`, eviction, mainnet profile.
+4. **Security profile test:** `adim3_security_profiles` (mainnet en sıkı).
+5. **Ceremony prosedürü:** `docs/operations/MAINNET_GENESIS_CEREMONY.md` (kullanıcı isteği: AI prosedür yazsın).
+6. Runbook §8 → ceremony doc linki.
+
+**Doğrulama (lokal):** `cargo test --lib adim3_` → 7 passed; `clippy -D warnings` clean; fmt clean.
+**Sonraki:** §3.2 docker veya §3.5 validator E2E (kullanıcı "devam").
+**Engel:** Yok. Force-push yok.
+

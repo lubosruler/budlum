@@ -2001,4 +2001,82 @@ mod security_tests {
         let new_ip: std::net::IpAddr = "255.255.255.255".parse().unwrap();
         assert!(!is_per_ip_rate_limited(&config, &rates, Some(new_ip)));
     }
+
+    /// ADIM3 §3.4: mainnet SecurityConfig RPC numbers are enforced by the limiter.
+    #[test]
+    fn adim3_mainnet_rpc_security_profile() {
+        use crate::core::chain_config::Network;
+        let sec = Network::Mainnet.security_config();
+        assert_eq!(sec.rpc_rate_limit_per_minute, 300);
+        assert_eq!(sec.max_peers, 100);
+        assert!(sec.rpc_auth_required);
+        assert!(!sec.mdns_enabled);
+        assert!(sec.persist_banned_peers);
+
+        let config = RpcSecurityConfig {
+            rate_limit_per_minute: Some(sec.rpc_rate_limit_per_minute),
+            auth_required: sec.rpc_auth_required,
+            ..Default::default()
+        };
+        let rates = Arc::new(Mutex::new(HashMap::new()));
+        let ip: IpAddr = "203.0.113.10".parse().unwrap();
+
+        // Under limit: admit.
+        for _ in 0..10 {
+            assert!(is_per_ip_rate_limited(&config, &rates, Some(ip)));
+        }
+        assert_eq!(rates.lock().unwrap().get(&ip).map(|w| w.len()), Some(10));
+    }
+
+    /// ADIM3 §3.4: many distinct IPs up to the hard ceiling, then reject.
+    #[test]
+    fn adim3_rpc_rate_limit_10k_client_stress() {
+        let config = RpcSecurityConfig {
+            rate_limit_per_minute: Some(1),
+            ..Default::default()
+        };
+        let rates = Arc::new(Mutex::new(HashMap::new()));
+
+        for i in 0..MAX_TRACKED_RPC_CLIENTS {
+            let ip = IpAddr::V4(std::net::Ipv4Addr::from(i as u32));
+            assert!(
+                is_per_ip_rate_limited(&config, &rates, Some(ip)),
+                "client {i} should be admitted under ceiling"
+            );
+        }
+        assert_eq!(rates.lock().unwrap().len(), MAX_TRACKED_RPC_CLIENTS);
+
+        let overflow = IpAddr::V4(std::net::Ipv4Addr::new(255, 255, 255, 254));
+        assert!(
+            !is_per_ip_rate_limited(&config, &rates, Some(overflow)),
+            "client beyond 10k ceiling must be rejected"
+        );
+        // Map must not grow.
+        assert_eq!(rates.lock().unwrap().len(), MAX_TRACKED_RPC_CLIENTS);
+    }
+
+    /// ADIM3 §3.4: expired windows are evicted so the ceiling can admit new clients.
+    #[test]
+    fn adim3_rpc_rate_limit_evicts_expired_to_admit_new() {
+        let config = RpcSecurityConfig {
+            rate_limit_per_minute: Some(5),
+            ..Default::default()
+        };
+        let rates = Arc::new(Mutex::new(HashMap::new()));
+        {
+            let mut map = rates.lock().unwrap();
+            for i in 0..MAX_TRACKED_RPC_CLIENTS {
+                let mut window = VecDeque::new();
+                // Far in the past → expired relative to 60s window.
+                window.push_back(Instant::now() - Duration::from_secs(120));
+                let ip = IpAddr::V4(std::net::Ipv4Addr::from(i as u32));
+                map.insert(ip, window);
+            }
+        }
+        let new_ip: IpAddr = "198.51.100.1".parse().unwrap();
+        assert!(
+            is_per_ip_rate_limited(&config, &rates, Some(new_ip)),
+            "after expiring old windows, a new client must be admitted"
+        );
+    }
 }

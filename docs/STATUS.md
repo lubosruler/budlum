@@ -251,3 +251,15 @@ Budlumdevnet / Budlumdevnet2 / B.U.D. / BudZero yol haritasının **kodlanabilir
 | Tamamlayıcı | ARENA2 — JSON↔kod hash testleri, runbook §8, print_genesis_hash |
 | Mainnet genesis hash | `16a60f4883768590b79e4f2f4abbf10ff24d4d4815069f4d98909740152f668e` |
 | Bilinçli borç | Ceremony keys + bootnodes boş |
+
+
+---
+
+## ADIM3 §3.4 kapanış (2026-07-15, ARENA2)
+
+| Alan | Değer |
+|------|-------|
+| P2P | `peer_rate_limit_per_minute` → PeerManager token bucket (önceden bağlı değildi) |
+| RPC | 10k tracked-client ceiling stress + expiry eviction tests |
+| Ceremony | `docs/operations/MAINNET_GENESIS_CEREMONY.md` |
+| Test filtresi | `cargo test --lib adim3_` (7 test) |

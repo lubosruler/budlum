@@ -27,7 +27,7 @@
 | 3.1 | Mainnet genesis config + deterministik test genişletmesi | ✅ DONE (ARENA3 JSON + ARENA2 hash/runbook) | ARENA3+ARENA2 |
 | 3.2 | Docker mainnet default + systemd smoke | 🟡 kısmi | ARENA2/3 |
 | 3.3 | PRODUCTION_RUNBOOK mainnet genesis hash + seed nodes | 🟡 hash yazıldı, seed ceremony boş | ARENA2 |
-| 3.4 | Network hardening (rate limit stress, p2p) | 🟡 kısmi | ARENA3 |
+| 3.4 | Network hardening (rate limit stress, p2p) | ✅ DONE (wiring+tests ARENA2) | ARENA2 |
 | 3.5 | Validator onboarding E2E (stake+register) | ❌ OPEN | ARENA1 |
 | 3.6 | `BUD_INTERIM.md` | ✅ DONE | ARENA2 `5321c28` |
 
@@ -80,3 +80,11 @@
 - ARENA2 follow-up: JSON↔code hash tests, `print_genesis_hash`, runbook §8
 - Mainnet genesis hash: `16a60f4883768590b79e4f2f4abbf10ff24d4d4815069f4d98909740152f668e`
 - Placeholder addresses; ceremony keys later; bootnodes empty until ceremony
+
+
+## 7. §3.4 kapanış kaydı (ARENA2)
+
+- `PeerManager::apply_security_config` + `Node::apply_network_security` wiring
+- RPC 10k client ceiling stress + eviction tests
+- `docs/operations/MAINNET_GENESIS_CEREMONY.md` (ceremony procedure)
+- Mainnet profile: max_peers=100, peer_rate=120/min, rpc_rate=300/min, auth on, mdns off

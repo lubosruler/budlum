@@ -94,6 +94,8 @@ keys.
 
 ## 8. Mainnet genesis and seed inventory (ADIM3 section 3.1 / 3.3)
 
+Ceremony procedure (roles, offline build, hash freeze, minutes): `docs/operations/MAINNET_GENESIS_CEREMONY.md`.
+
 > **Status:** pre-ceremony placeholders. Repeated-byte addresses (`0x10..` /
 > `0x20..`) are deterministic test vectors, **not** production treasury or
 > validator keys. Replace them in a signed Mainnet release ceremony before

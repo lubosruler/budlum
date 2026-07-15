@@ -271,4 +271,25 @@ mod tests {
         assert_eq!(Network::Devnet.chain_id().value(), 1337);
         assert_eq!(Network::Mainnet.default_port(), 4001);
     }
+
+    /// ADIM3 §3.4: mainnet is the strictest security profile.
+    #[test]
+    fn adim3_security_profiles() {
+        let m = Network::Mainnet.security_config();
+        let t = Network::Testnet.security_config();
+        let d = Network::Devnet.security_config();
+
+        assert_eq!(m.max_peers, 100);
+        assert_eq!(m.peer_rate_limit_per_minute, 120);
+        assert_eq!(m.rpc_rate_limit_per_minute, 300);
+        assert!(m.rpc_auth_required);
+        assert!(m.persist_banned_peers);
+        assert!(!m.mdns_enabled);
+
+        assert!(t.peer_rate_limit_per_minute > m.peer_rate_limit_per_minute);
+        assert!(d.rpc_rate_limit_per_minute > t.rpc_rate_limit_per_minute);
+        assert!(!d.rpc_auth_required);
+        assert!(d.mdns_enabled);
+        assert!(!d.persist_banned_peers);
+    }
 }

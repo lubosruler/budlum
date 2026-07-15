@@ -74,7 +74,15 @@ impl PeerScore {
         self.rate_last_refill = now;
     }
     pub fn consume_token(&mut self) -> bool {
-        self.refill_tokens();
+        self.consume_token_with_rate(MSG_REFILL_RATE)
+    }
+
+    /// Refill using an explicit tokens/sec rate (ADIM3 §3.4 network profile).
+    pub fn consume_token_with_rate(&mut self, refill_rate: f64) -> bool {
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.rate_last_refill).as_secs_f64();
+        self.rate_tokens = (self.rate_tokens + elapsed * refill_rate).min(MAX_MSG_BURST);
+        self.rate_last_refill = now;
         if self.rate_tokens >= 1.0 {
             self.rate_tokens -= 1.0;
             true
@@ -95,6 +103,11 @@ impl PeerScore {
 }
 pub struct PeerManager {
     peers: HashMap<PeerId, PeerScore>,
+    /// Tokens refilled per second for general P2P messages.
+    /// Derived from `SecurityConfig.peer_rate_limit_per_minute` when applied.
+    pub(crate) msg_refill_rate: f64,
+    /// Soft ceiling on tracked peer score entries (memory DoS guard).
+    pub(crate) max_tracked_peers: usize,
 }
 impl Default for PeerManager {
     fn default() -> Self {
@@ -103,17 +116,46 @@ impl Default for PeerManager {
 }
 
 impl PeerManager {
+    /// Default burst refill (~5 msg/s) with 10k tracked-peer ceiling (ADIM3 §3.4).
     pub fn new() -> Self {
         PeerManager {
             peers: HashMap::new(),
+            msg_refill_rate: MSG_REFILL_RATE,
+            max_tracked_peers: 10_000,
         }
+    }
+
+    /// ADIM3 §3.4: apply network security profile to P2P rate limiting.
+    /// `peer_rate_limit_per_minute` becomes tokens/second = limit/60.
+    pub fn apply_security_config(&mut self, security: crate::core::chain_config::SecurityConfig) {
+        let per_min = security.peer_rate_limit_per_minute.max(1);
+        self.msg_refill_rate = (per_min as f64) / 60.0;
+        // Keep a hard memory ceiling independent of max_peers (connected).
+        self.max_tracked_peers = 10_000;
+    }
+
+    pub fn msg_refill_rate(&self) -> f64 {
+        self.msg_refill_rate
+    }
+
+    pub fn tracked_peer_count(&self) -> usize {
+        self.peers.len()
+    }
+
+    pub fn max_tracked_peers(&self) -> usize {
+        self.max_tracked_peers
     }
     fn get_or_create(&mut self, peer_id: &PeerId) -> &mut PeerScore {
         self.peers.entry(*peer_id).or_default()
     }
     pub fn check_rate_limit(&mut self, peer_id: &PeerId) -> bool {
+        // ADIM3 §3.4: refuse to grow the score map without bound (memory DoS).
+        if !self.peers.contains_key(peer_id) && self.peers.len() >= self.max_tracked_peers {
+            return false;
+        }
+        let refill = self.msg_refill_rate;
         let score = self.get_or_create(peer_id);
-        if !score.consume_token() {
+        if !score.consume_token_with_rate(refill) {
             score.score = (score.score + OVERSIZED_MESSAGE_PENALTY).max(MIN_SCORE);
             if score.score <= BAN_THRESHOLD {
                 let until = Instant::now() + BAN_DURATION;
@@ -441,5 +483,73 @@ mod tests {
         }]);
         assert!(!manager.is_banned(&peer));
         assert!(manager.get_persisted_banned_peers().is_empty());
+    }
+
+    /// ADIM3 §3.4: SecurityConfig.peer_rate_limit_per_minute wires into refill rate.
+    #[test]
+    fn adim3_peer_rate_limit_security_profile() {
+        use crate::core::chain_config::Network;
+
+        let mut manager = PeerManager::new();
+        let mainnet = Network::Mainnet.security_config();
+        manager.apply_security_config(mainnet);
+        // 120/min => 2.0 tokens/sec
+        assert!((manager.msg_refill_rate() - 2.0).abs() < f64::EPSILON);
+        assert_eq!(mainnet.max_peers, 100);
+        assert_eq!(mainnet.rpc_rate_limit_per_minute, 300);
+        assert!(mainnet.rpc_auth_required);
+        assert!(!mainnet.mdns_enabled);
+
+        let mut dev = PeerManager::new();
+        dev.apply_security_config(Network::Devnet.security_config());
+        // 1000/min => ~16.666 tokens/sec
+        assert!((dev.msg_refill_rate() - (1000.0 / 60.0)).abs() < 1e-9);
+    }
+
+    /// ADIM3 §3.4: tracked peer map has a hard ceiling (memory DoS guard).
+    #[test]
+    fn adim3_peer_manager_tracked_peer_ceiling() {
+        let mut manager = PeerManager::new();
+        manager.max_tracked_peers = 8;
+
+        // Fill with 8 synthetic peers via check_rate_limit.
+        for i in 0..8u8 {
+            // PeerId from random-ish bytes — use libp2p Keypair for uniqueness.
+            let keypair = libp2p::identity::Keypair::generate_ed25519();
+            let peer = keypair.public().to_peer_id();
+            assert!(
+                manager.check_rate_limit(&peer),
+                "first 8 peers must be admitted (i={i})"
+            );
+        }
+        assert_eq!(manager.tracked_peer_count(), 8);
+
+        let overflow = libp2p::identity::Keypair::generate_ed25519()
+            .public()
+            .to_peer_id();
+        assert!(
+            !manager.check_rate_limit(&overflow),
+            "9th distinct peer must be rejected at ceiling"
+        );
+        assert_eq!(manager.tracked_peer_count(), 8);
+    }
+
+    /// ADIM3 §3.4: burst exhaustion then rejection (token bucket).
+    #[test]
+    fn adim3_peer_rate_limit_burst_exhaustion() {
+        let mut manager = PeerManager::new();
+        // Near-zero refill so burst cannot recover mid-test.
+        manager.msg_refill_rate = 0.0;
+        let peer = test_peer_id();
+
+        let mut allowed = 0u32;
+        for _ in 0..50 {
+            if manager.check_rate_limit(&peer) {
+                allowed += 1;
+            }
+        }
+        // Default burst is MAX_MSG_BURST = 20.
+        assert_eq!(allowed, MAX_MSG_BURST as u32);
+        assert!(!manager.check_rate_limit(&peer));
     }
 }

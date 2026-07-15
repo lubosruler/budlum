@@ -349,6 +349,10 @@ impl Node {
         let security = network.security_config();
         self.max_peers = security.max_peers;
         self.mdns_enabled = security.mdns_enabled;
+        // ADIM3 §3.4: wire peer_rate_limit_per_minute into PeerManager token bucket.
+        if let Ok(mut pm) = self.peer_manager.lock() {
+            pm.apply_security_config(security);
+        }
         if security.persist_banned_peers && self.banned_peer_db.is_none() {
             self.banned_peer_db = Some(std::path::PathBuf::from(
                 format!("./data/{:?}/banned-peers.json", network).to_lowercase(),
