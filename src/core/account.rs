@@ -102,6 +102,7 @@ pub struct AccountState {
     /// State of the timed (annual) reserve burn.
     pub timed_burn: crate::tokenomics::TimedBurnState,
     pub bns_registry: crate::bns::BnsRegistry,
+    pub nft_registry: crate::nft::NftRegistry,
     /// On-chain burn-reserve account the timed burn consumes. `None` when $BUD
     /// tokenomics is not enabled for this chain (e.g. plain devnet genesis).
     pub burn_reserve_address: Option<Address>,
@@ -142,6 +143,7 @@ impl AccountState {
             tokenomics: crate::tokenomics::TokenomicsParams::default(),
             timed_burn: crate::tokenomics::TimedBurnState::new(),
             bns_registry: crate::bns::BnsRegistry::new(),
+            nft_registry: crate::nft::NftRegistry::new(),
             burn_reserve_address: None,
             team_vesting: None,
             unbonding_queue: Vec::new(),
@@ -171,6 +173,7 @@ impl AccountState {
             tokenomics: crate::tokenomics::TokenomicsParams::default(),
             timed_burn: crate::tokenomics::TimedBurnState::new(),
             bns_registry: crate::bns::BnsRegistry::new(),
+            nft_registry: crate::nft::NftRegistry::new(),
             burn_reserve_address: None,
             team_vesting: None,
             unbonding_queue: Vec::new(),
@@ -215,6 +218,7 @@ impl AccountState {
             tokenomics: crate::tokenomics::TokenomicsParams::default(),
             timed_burn: crate::tokenomics::TimedBurnState::new(),
             bns_registry: crate::bns::BnsRegistry::new(),
+            nft_registry: crate::nft::NftRegistry::new(),
             burn_reserve_address: None,
             team_vesting: None,
             unbonding_queue: Vec::new(),

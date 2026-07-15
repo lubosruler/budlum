@@ -275,10 +275,69 @@ impl Executor {
                 let (name, duration): (String, u64) = bincode::deserialize(&tx.data)
                     .map_err(|e| BudlumError::validation("bns_invalid_data", e.to_string()))?;
 
+                let cost = state.bns_registry.calculate_cost(&name, duration);
+                if tx.amount < cost {
+                    return Err(BudlumError::validation("bns_insufficient_payment", format!("Required: {}, provided: {}", cost, tx.amount)));
+                }
+
                 state
                     .bns_registry
                     .register(name, tx.from, state.epoch_index, duration)
                     .map_err(|e| BudlumError::validation("bns_registration_failed", e.to_string()))?;
+
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_sub(tx.fee).saturating_sub(tx.amount);
+                sender.nonce = sender.nonce.saturating_add(1);
+                
+                // Add to burn snapshot (half of name revenue is burned, for example)
+                // TODO: Integrate with Tokenomics burn path
+            }
+            TransactionType::BnsSetContent => {
+                // ... existing ...
+                let (name, cid): (String, crate::storage::content_id::ContentId) = bincode::deserialize(&tx.data)
+                    .map_err(|e| BudlumError::validation("bns_invalid_data", e.to_string()))?;
+
+                state
+                    .bns_registry
+                    .set_content(&name, &tx.from, cid)
+                    .map_err(|e| BudlumError::validation("bns_set_content_failed", e.to_string()))?;
+
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_sub(tx.fee);
+                sender.nonce = sender.nonce.saturating_add(1);
+            }
+            TransactionType::BnsRegisterSubdomain => {
+                // data: bincode({ parent_name: String, sub_label: String, sub_owner: Address })
+                let (parent, label, sub_owner): (String, String, Address) = bincode::deserialize(&tx.data)
+                    .map_err(|e| BudlumError::validation("bns_invalid_data", e.to_string()))?;
+
+                state
+                    .bns_registry
+                    .register_subdomain(&parent, label, sub_owner, &tx.from)
+                    .map_err(|e| BudlumError::validation("bns_subdomain_failed", e.to_string()))?;
+
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_sub(tx.fee);
+                sender.nonce = sender.nonce.saturating_add(1);
+            }
+            TransactionType::NftMint => {
+                // data: bincode({ cid: ContentId, author_name: Option<String> })
+                let (cid, author_name): (crate::storage::content_id::ContentId, Option<String>) = bincode::deserialize(&tx.data)
+                    .map_err(|e| BudlumError::validation("nft_invalid_data", e.to_string()))?;
+
+                state.nft_registry.mint(tx.from, cid, state.epoch_index, author_name);
+
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_sub(tx.fee);
+                sender.nonce = sender.nonce.saturating_add(1);
+            }
+            TransactionType::NftTransfer => {
+                // data: bincode({ nft_id: u64, to: Address })
+                let (id, to): (u64, Address) = bincode::deserialize(&tx.data)
+                    .map_err(|e| BudlumError::validation("nft_invalid_data", e.to_string()))?;
+
+                state.nft_registry.transfer(id, &tx.from, to)
+                    .map_err(|e| BudlumError::validation("nft_transfer_failed", e.to_string()))?;
 
                 let sender = state.get_or_create(&tx.from);
                 sender.balance = sender.balance.saturating_sub(tx.fee);

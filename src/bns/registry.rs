@@ -1,5 +1,6 @@
 use crate::bns::types::{BnsError, BnsResolved, NameRecord};
 use crate::core::address::Address;
+use crate::storage::content_id::ContentId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -18,6 +19,16 @@ impl BnsRegistry {
         }
     }
 
+    pub fn calculate_cost(&self, name: &str, duration: u64) -> u64 {
+        let length = name.len();
+        let multiplier = match length {
+            1..=3 => 100, // Very short, very expensive
+            4..=6 => 10,  // Short, moderately expensive
+            _ => 1,       // Normal
+        };
+        self.base_cost * multiplier * duration
+    }
+
     pub fn register(
         &mut self,
         name: String,
@@ -28,8 +39,7 @@ impl BnsRegistry {
         if name.len() < 3 || name.len() > 32 {
             return Err(BnsError::InvalidName);
         }
-        if self.names.contains_key(&name) {
-            let record = self.names.get(&name).unwrap();
+        if let Some(record) = self.names.get(&name) {
             if record.expires_at > current_epoch {
                 return Err(BnsError::NameTaken);
             }
@@ -63,6 +73,49 @@ impl BnsRegistry {
         Ok(())
     }
 
+    pub fn register_subdomain(
+        &mut self,
+        parent_name: &str,
+        sub_label: String,
+        owner: Address,
+        caller: &Address,
+    ) -> Result<(), BnsError> {
+        let parent = self.names.get_mut(parent_name).ok_or(BnsError::InvalidName)?;
+        if &parent.owner != caller {
+            return Err(BnsError::NotOwner);
+        }
+        parent.subdomains.insert(sub_label, owner);
+        Ok(())
+    }
+
+    pub fn resolve_subdomain(&self, parent_name: &str, sub_label: &str, current_epoch: u64) -> Option<Address> {
+        let parent = self.names.get(parent_name)?;
+        if parent.expires_at > current_epoch {
+            parent.subdomains.get(sub_label).cloned()
+        } else {
+            None
+        }
+    }
+
+    pub fn set_content(&mut self, name: &str, owner: &Address, cid: ContentId) -> Result<(), BnsError> {
+        let record = self.names.get_mut(name).ok_or(BnsError::InvalidName)?;
+        if &record.owner != owner {
+            return Err(BnsError::NotOwner);
+        }
+        record.content_id = Some(cid);
+        Ok(())
+    }
+
+    pub fn resolve_content(&self, name: &str, current_epoch: u64) -> Option<ContentId> {
+        self.names.get(name).and_then(|record| {
+            if record.expires_at > current_epoch {
+                record.content_id
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn resolve(&self, name: &str, current_epoch: u64) -> Option<Address> {
         self.names.get(name).and_then(|record| {
             if record.expires_at > current_epoch {
@@ -82,6 +135,7 @@ impl BnsRegistry {
                 address: if expired { None } else { record.address },
                 storage_root: if expired { None } else { record.storage_root },
                 storage_domain_id: if expired { None } else { record.storage_domain_id },
+                content_id: if expired { None } else { record.content_id },
                 is_expired: expired,
             }
         }).filter(|r| !r.is_expired)

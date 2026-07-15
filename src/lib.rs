@@ -1,4 +1,5 @@
 pub mod bns;
+pub mod nft;
 pub mod chain;
 pub mod cli;
 pub mod consensus;

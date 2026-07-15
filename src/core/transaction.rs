@@ -59,6 +59,10 @@ pub enum TransactionType {
     Vote,
     ContractCall,
     BnsRegister,
+    BnsSetContent,
+    BnsRegisterSubdomain,
+    NftMint,
+    NftTransfer,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

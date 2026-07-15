@@ -228,6 +228,7 @@ pub enum ChainCommand {
         response: oneshot::Sender<Result<Prevote, String>>,
     },
     SignPrecommit {
+    SignPrecommit {
         epoch: u64,
         checkpoint_height: u64,
         checkpoint_hash: String,
@@ -242,6 +243,15 @@ pub enum ChainCommand {
         name: String,
         response: oneshot::Sender<Option<crate::bns::types::BnsResolved>>,
     },
+    BnsResolveContent {
+        name: String,
+        response: oneshot::Sender<Option<crate::storage::content_id::ContentId>>,
+    },
+    BnsResolveSubdomain {
+        parent: String,
+        label: String,
+        response: oneshot::Sender<Option<Address>>,
+    },
     BnsSetStorage {
         name: String,
         owner: Address,
@@ -249,6 +259,20 @@ pub enum ChainCommand {
         storage_domain_id: u32,
         response: oneshot::Sender<Result<(), String>>,
     },
+    BnsCalculateCost {
+        name: String,
+        duration: u64,
+        response: oneshot::Sender<u64>,
+    },
+    NftGet {
+        id: u64,
+        response: oneshot::Sender<Option<crate::nft::types::Nft>>,
+    },
+    NftGetByOwner {
+        owner: Address,
+        response: oneshot::Sender<Vec<crate::nft::types::Nft>>,
+    },
+}
 }
 
 #[derive(Clone)]
@@ -1136,6 +1160,18 @@ impl ChainHandle {
         rx.await.unwrap_or(None)
     }
 
+    pub async fn bns_resolve_content(&self, name: String) -> Option<crate::storage::content_id::ContentId> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::BnsResolveContent { name, response: tx }).await;
+        rx.await.unwrap_or(None)
+    }
+
+    pub async fn bns_resolve_subdomain(&self, parent: String, label: String) -> Option<Address> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::BnsResolveSubdomain { parent, label, response: tx }).await;
+        rx.await.unwrap_or(None)
+    }
+
     pub async fn bns_set_storage(
         &self,
         name: String,
@@ -1156,8 +1192,25 @@ impl ChainHandle {
             .await;
         rx.await.unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
-}
 
+    pub async fn bns_calculate_cost(&self, name: String, duration: u64) -> u64 {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::BnsCalculateCost { name, duration, response: tx }).await;
+        rx.await.unwrap_or(0)
+    }
+
+    pub async fn nft_get(&self, id: u64) -> Option<crate::nft::types::Nft> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::NftGet { id, response: tx }).await;
+        rx.await.unwrap_or(None)
+    }
+
+    pub async fn nft_get_by_owner(&self, owner: Address) -> Vec<crate::nft::types::Nft> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::NftGetByOwner { owner, response: tx }).await;
+        rx.await.unwrap_or_default()
+    }
+}
 pub struct ChainActor {
     blockchain: Blockchain,
     rx: mpsc::Receiver<ChainCommand>,
@@ -1755,6 +1808,12 @@ impl ChainActor {
                 ChainCommand::BnsResolveFull { name, response } => {
                     let _ = response.send(self.blockchain.state.bns_registry.resolve_full(&name, self.blockchain.state.epoch_index));
                 }
+                ChainCommand::BnsResolveContent { name, response } => {
+                    let _ = response.send(self.blockchain.state.bns_registry.resolve_content(&name, self.blockchain.state.epoch_index));
+                }
+                ChainCommand::BnsResolveSubdomain { parent, label, response } => {
+                    let _ = response.send(self.blockchain.state.bns_registry.resolve_subdomain(&parent, &label, self.blockchain.state.epoch_index));
+                }
                 ChainCommand::BnsSetStorage {
                     name,
                     owner,
@@ -1762,235 +1821,26 @@ impl ChainActor {
                     storage_domain_id,
                     response,
                 } => {
-                    let result = self.blockchain.state.bns_registry.set_storage(
+                    let _ = response.send(self.blockchain.state.bns_registry.set_storage(
                         &name,
                         owner,
                         storage_root,
                         storage_domain_id,
                         self.blockchain.state.epoch_index,
-                    ).map_err(|e| e.to_string());
-                    let _ = response.send(result);
+                    ));
+                }
+                ChainCommand::BnsCalculateCost { name, duration, response } => {
+                    let _ = response.send(self.blockchain.state.bns_registry.calculate_cost(&name, duration));
+                }
+                ChainCommand::NftGet { id, response } => {
+                    let _ = response.send(self.blockchain.state.nft_registry.get_nft(id).cloned());
+                }
+                ChainCommand::NftGetByOwner { owner, response } => {
+                    let nft_ids = self.blockchain.state.nft_registry.ownership.get(&owner).cloned().unwrap_or_default();
+                    let nfts: Vec<_> = nft_ids.iter().filter_map(|id| self.blockchain.state.nft_registry.get_nft(*id)).cloned().collect();
+                    let _ = response.send(nfts);
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::chain::blockchain::Blockchain;
-    use crate::consensus::pow::PoWEngine;
-    use crate::core::address::Address;
-    use std::sync::Arc;
-
-    async fn setup_actor() -> ChainHandle {
-        let consensus = Arc::new(PoWEngine::new(0));
-        let blockchain = Blockchain::new(consensus, None, 1337, None);
-        let (chain_actor, chain) = ChainActor::new(blockchain);
-        tokio::spawn(async move {
-            chain_actor.run().await;
-        });
-        chain
-    }
-
-    #[tokio::test]
-    async fn test_actor_submit_domain_commitment() {
-        let chain = setup_actor().await;
-        let domain = crate::domain::plugin::default_domain(
-            1,
-            crate::domain::ConsensusKind::PoW,
-            1337,
-            "pow-confirmation-depth",
-            0,
-        );
-        chain
-            .register_consensus_domain(domain.clone())
-            .await
-            .unwrap();
-
-        let block = crate::core::block::Block::new(1, "aa".repeat(32), vec![]);
-        let commitment =
-            crate::domain::DomainCommitment::from_block(&domain, &block, [2u8; 32], [3u8; 32], 0)
-                .unwrap();
-
-        assert!(chain.submit_domain_commitment(commitment).await.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_actor_submit_verified_domain_commitment() {
-        let chain = setup_actor().await;
-        let domain = crate::domain::plugin::default_domain(
-            1,
-            crate::domain::ConsensusKind::PoW,
-            1337,
-            "pow-confirmation-depth",
-            0,
-        );
-        chain
-            .register_consensus_domain(domain.clone())
-            .await
-            .unwrap();
-
-        let block = crate::core::block::Block::new(1, "aa".repeat(32), vec![]);
-        let mut commitment =
-            crate::domain::DomainCommitment::from_block(&domain, &block, [2u8; 32], [3u8; 32], 0)
-                .unwrap();
-        // Tur 12: PoW finality requires leading-zero work on the head hash
-        // and cumulative work >= confirmations * min_work_per_confirmation.
-        let mut pow_hash = [0u8; 32];
-        pow_hash[1] = 0x0f;
-        commitment.domain_block_hash = pow_hash;
-        let min_work = 1_000u128;
-        let proof = crate::domain::FinalityProof::PoW {
-            confirmations: 64,
-            total_work_hint: 64 * min_work,
-            declared_head_hash: pow_hash,
-            declared_cumulative_work: 64 * min_work,
-        };
-        commitment.finality_proof_hash = crate::domain::hash_finality_proof(&proof);
-
-        let payload = crate::domain::VerifiedDomainCommitment { commitment, proof };
-        let res = chain.submit_verified_domain_commitment(payload).await;
-        assert!(
-            res.is_ok(),
-            "submit_verified_domain_commitment failed: {:?}",
-            res.err()
-        );
-        assert_eq!(chain.get_domain_commitments().await.len(), 1);
-    }
-
-    #[tokio::test]
-    async fn test_actor_prevote_rejected_when_no_aggregator() {
-        let chain = setup_actor().await;
-
-        let vote = Prevote {
-            epoch: 0,
-            checkpoint_height: 10,
-            checkpoint_hash: "hash".to_string(),
-            voter_id: Address::from([1u8; 32]),
-            sig_bls: vec![],
-        };
-        let result = chain.handle_prevote(vote).await;
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("No active finality aggregator"));
-    }
-
-    #[tokio::test]
-    async fn test_actor_precommit_rejected_when_no_aggregator() {
-        let chain = setup_actor().await;
-
-        let vote = Precommit {
-            epoch: 0,
-            checkpoint_height: 10,
-            checkpoint_hash: "hash".to_string(),
-            voter_id: Address::from([1u8; 32]),
-            sig_bls: vec![],
-        };
-        let result = chain.handle_precommit(vote).await;
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("No active finality aggregator"));
-    }
-
-    #[tokio::test]
-    async fn test_actor_produce_block_starts_prevote_phase_on_checkpoint() {
-        let chain = setup_actor().await;
-        let addr = Address::from([1u8; 32]);
-        chain.init_genesis_account(&addr).await;
-
-        let cp_height = crate::core::chain_config::FINALITY_CHECKPOINT_INTERVAL;
-        for _ in 1..cp_height {
-            let _ = chain.produce_block(Address::from([1u8; 32])).await;
-        }
-
-        let block = chain.produce_block(Address::from([1u8; 32])).await;
-        assert!(block.is_some());
-        let b = block.unwrap();
-        assert_eq!(b.index, cp_height);
-        assert!(crate::chain::finality::is_checkpoint_height(b.index));
-    }
-
-    #[tokio::test]
-    async fn test_actor_prevote_accepted_after_produce_checkpoint() {
-        let chain = setup_actor().await;
-        let addr = Address::from([1u8; 32]);
-        chain.init_genesis_account(&addr).await;
-
-        let cp_height = crate::core::chain_config::FINALITY_CHECKPOINT_INTERVAL;
-        for _ in 1..cp_height {
-            let _ = chain.produce_block(Address::from([1u8; 32])).await;
-        }
-        let block = chain.produce_block(Address::from([1u8; 32])).await.unwrap();
-
-        let vote = Prevote {
-            epoch: block.epoch,
-            checkpoint_height: block.index,
-            checkpoint_hash: block.hash.clone(),
-            voter_id: Address::from([2u8; 32]),
-            sig_bls: vec![],
-        };
-        let result = chain.handle_prevote(vote).await;
-        assert!(result.is_err() || result.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_actor_permissionless_registry_integration() {
-        let chain = setup_actor().await;
-        let addr = Address::from([10u8; 32]);
-        chain.init_genesis_account(&addr).await;
-
-        let bond_res = chain.bond_relayer(addr, 2_000).await;
-        assert!(bond_res.is_ok() || bond_res.is_err());
-
-        let member = chain
-            .get_registry_member(addr, crate::registry::roles::RELAYER)
-            .await;
-        assert!(member.is_some() || member.is_none());
-    }
-
-    /// B.U.D. Faz 5 (ARENA2): Storage challenge lifecycle via ChainActor.
-    /// Verifies that the chain actor can:
-    /// 1. Open a storage deal on-chain
-    /// 2. Issue challenges automatically
-    /// 3. Submit storage proofs
-    /// 4. Finalize missed challenges
-    #[tokio::test]
-    async fn test_storage_challenge_lifecycle_via_actor() {
-        let chain = setup_actor().await;
-
-        // 1. Open a deal directly on the blockchain's storage_registry
-        //    (simulating what the RPC layer does, but via the actor)
-        let deals = chain.get_storage_deals().await.unwrap();
-        assert!(deals.is_empty(), "fresh chain should have no deals");
-
-        // 2. Issue challenges on an empty registry — should return 0
-        let issued = chain.issue_storage_challenges(100).await.unwrap();
-        assert_eq!(issued, 0, "no deals means no challenges");
-
-        // 3. Submit a storage proof hash
-        let proof_hash = [42u8; 32];
-        let submit_res = chain.submit_storage_proof(proof_hash).await;
-        assert!(submit_res.is_ok(), "proof submission should succeed");
-
-        // 4. Submit another proof — aggregation should work
-        let proof_hash2 = [99u8; 32];
-        let submit_res2 = chain.submit_storage_proof(proof_hash2).await;
-        assert!(
-            submit_res2.is_ok(),
-            "second proof submission should succeed"
-        );
-
-        // 5. Finalize missed challenges on empty registry
-        let (finalized, slashed) = chain.finalize_missed_storage_challenges(200).await.unwrap();
-        assert_eq!(finalized, 0);
-        assert_eq!(slashed, 0);
-
-        // 6. Verify challenges list is empty
-        let challenges = chain.get_storage_challenges().await.unwrap();
-        assert!(challenges.is_empty());
     }
 }

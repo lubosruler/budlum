@@ -1,4 +1,5 @@
 use crate::core::address::Address;
+use crate::storage::content_id::ContentId;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -16,7 +17,7 @@ pub struct NameRecord {
     /// Optional contract for complex resolution
     pub resolver: Option<Address>,
 
-    // Phase 6 full_impl (Q10) — storage binding
+    // Phase 6 full_impl (Q10) — storage/address binding
     /// Multi-consensus address (optional, defaults to owner)
     #[serde(default)]
     pub address: Option<Address>,
@@ -29,6 +30,11 @@ pub struct NameRecord {
     pub storage_domain_id: Option<u32>,
     #[serde(default)]
     pub storage_root_height: Option<u64>,
+
+    /// B.U.D. Content ID (CID) link for SocialFi/D-Web content.
+    pub content_id: Option<ContentId>,
+    /// Unlimited sub-domains (e.g. "photos.ayaz.bud" -> Address)
+    pub subdomains: std::collections::BTreeMap<String, Address>,
 }
 
 impl NameRecord {
@@ -43,6 +49,8 @@ impl NameRecord {
             storage_root: None,
             storage_domain_id: None,
             storage_root_height: None,
+            content_id: None,
+            subdomains: std::collections::BTreeMap::new(),
         }
     }
 
@@ -67,6 +75,7 @@ pub struct BnsResolved {
     pub address: Option<Address>,
     pub storage_root: Option<[u8; 32]>,
     pub storage_domain_id: Option<u32>,
+    pub content_id: Option<ContentId>,
     pub is_expired: bool,
 }
 
