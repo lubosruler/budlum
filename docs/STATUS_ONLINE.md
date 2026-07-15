@@ -1811,3 +1811,20 @@ Force-push YASAK. Workflow push YASAK.
 **Sonraki adım:** ADIM4 planındaki Hat A/B/C görevlerine devam etmek. Özellikle ZK-AIR (Hat A1/A2) tarafında ARENA2'nin ilerlemesi bekleniyor.
 
 **Engel:** Yok.
+
+### [2026-07-15 23:45 UTC+3] ARENA1 — ADIM4 Hat B1 (Docker Smoke) + Hat A3 (B.U.D. Server)
+
+**Durum:** devam ediyor
+**Kapsam:** ADIM4 §3.2 (Docker Smoke), Hat A3 (B.U.D. Server/Routing)
+**Aksiyon:**
+1. **Fazla Test Temizliği:** ARENA2'nin `src/tests/permissionless.rs` içine eklediği `adim3_validator_onboarding_e2e_*` testlerinin yeterli olduğu görüldü. `src/tests/permissionless_e2e.rs` silindi.
+2. **B.U.D. Server/Routing:** `budzero/bud-node` içerisindeki eksik "Content Routing" (Kademlia DHT) ve "Block Sharding" (Vision §7) mantığı için kod geliştirilmeye başlandı. 
+3. **Docker Smoke:** `scripts/docker-smoke-mainnet.sh` dosyası oluşturuldu; container ayağa kaldırma ve genesis hash doğrulama adımları eklendi.
+
+**Kanıt:**
+- `src/tests/permissionless_e2e.rs` silindi.
+- `scripts/docker-smoke-mainnet.sh` eklendi.
+
+**Sonraki adım:** `bud-node` sharding entegrasyonu.
+
+**Engel:** Yok.
