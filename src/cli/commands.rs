@@ -215,7 +215,7 @@ pub struct NodeConfig {
     #[arg(long)]
     pub pkcs11_token_pin_env: Option<String>,
 
-    #[arg(long, default_value = "./data/hsm/mock.sock")]
+    #[arg(long, default_value = "./data/hsm/socket.sock")]
     pub hsm_socket_path: String,
 
     #[arg(long)]
@@ -296,7 +296,7 @@ impl Default for NodeConfig {
             pkcs11_module_path: None,
             pkcs11_slot_id: None,
             pkcs11_token_pin_env: None,
-            hsm_socket_path: "./data/hsm/mock.sock".to_string(),
+            hsm_socket_path: "./data/hsm/socket.sock".to_string(),
             features_governance: false,
             features_zkvm_contracts: false,
             features_pruning: false,
@@ -395,7 +395,7 @@ pub struct ValidatorSection {
 #[derive(Debug, serde::Deserialize, Default, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct SignerSection {
-    pub backend: Option<String>, // local | softhsm | pkcs11 | hsm_mock
+    pub backend: Option<String>, // local | softhsm | pkcs11
     pub pkcs11: Option<Pkcs11Section>,
     pub hsm_socket_path: Option<String>,
 }

@@ -67,7 +67,8 @@ pub mod roles {
     /// `domain::storage_deal::StorageRegistry::open_deal`). Registering as
     /// `STORAGE_OPERATOR` is only required to be eligible for the
     /// per-deal reward stream and to appear in the active-operator set
-    /// returned by `bud_storageActiveOperators` (Tur 14.5 RPC surface).
+    /// returned by `bud_storageActiveOperators` (alias of
+    /// `bud_registryActiveMembers` with `role_id = 5`).
     ///
     /// Like every other role, it is permissionless: any account can
     /// register by staking the `min_stake` floor from

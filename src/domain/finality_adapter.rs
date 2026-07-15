@@ -900,21 +900,47 @@ impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
                     })
                 }
             }
-            FinalityProof::PoS { cert, .. } | FinalityProof::Bft { cert, .. } => {
+            // SECURITY (DENETLEYİCİ A3-T5): never Finalized on non-empty BLS
+            // bytes alone. Reuse the same cryptographic path as PoS/Bft
+            // domain adapters — height/hash bind + FinalityCert::verify
+            // (BLS aggregate + quorum bitmap against the validator snapshot).
+            FinalityProof::PoS {
+                cert,
+                validator_snapshot,
+            }
+            | FinalityProof::Bft {
+                cert,
+                validator_snapshot,
+                ..
+            } => {
+                if cert.checkpoint_height != commitment.domain_height {
+                    return Ok(FinalityStatus::Rejected(
+                        "Storage attestation cert height does not match commitment".into(),
+                    ));
+                }
+                let commitment_hash = hex::encode(commitment.domain_block_hash);
+                if cert.checkpoint_hash != commitment_hash {
+                    return Ok(FinalityStatus::Rejected(
+                        "Storage attestation cert hash does not match commitment".into(),
+                    ));
+                }
+                if validator_snapshot.set_hash != cert.set_hash {
+                    return Ok(FinalityStatus::Rejected(
+                        "Storage attestation cert set hash does not match validator snapshot"
+                            .into(),
+                    ));
+                }
                 if cert.agg_sig_bls.is_empty() {
                     return Ok(FinalityStatus::Rejected(
                         "Empty storage attestation certificate".into(),
                     ));
                 }
-                let commitment_hash = hex::encode(commitment.domain_block_hash);
-                if cert.checkpoint_height != commitment.domain_height
-                    || cert.checkpoint_hash != commitment_hash
-                {
-                    return Ok(FinalityStatus::Rejected(
-                        "Storage attestation certificate height/hash mismatch".into(),
-                    ));
+                match cert.verify(validator_snapshot) {
+                    Ok(()) => Ok(FinalityStatus::Finalized),
+                    Err(e) => Ok(FinalityStatus::Rejected(format!(
+                        "Storage attestation BLS certificate verification failed: {e}"
+                    ))),
                 }
-                Ok(FinalityStatus::Finalized)
             }
             _ => Ok(FinalityStatus::Rejected(
                 "Unsupported or unverified storage attestation proof format".into(),
@@ -1373,4 +1399,48 @@ mod tests {
             FinalityStatus::Finalized
         );
     }
+    #[test]
+    fn test_storage_attestation_pos_bft_rejects_nonempty_unverified_bls() {
+        // DENETLEYİCİ A3-T5: non-empty agg_sig_bls + matching height/hash must
+        // NOT finalize without cryptographic cert.verify (fail-closed).
+        let adapter = StorageAttestationFinalityAdapter;
+        let domain = default_domain(
+            5,
+            crate::domain::ConsensusKind::StorageAttestation(
+                crate::domain::StorageDomainParams::default(),
+            ),
+            1337,
+            crate::domain::types::STORAGE_ATTESTATION_ADAPTER,
+            0,
+        );
+        let mut commitment = commitment(crate::domain::ConsensusKind::StorageAttestation(
+            crate::domain::StorageDomainParams::default(),
+        ));
+        commitment.domain_id = 5;
+
+        let snapshot = ValidatorSetSnapshot::new(0, vec![]);
+        let junk_cert = FinalityCert {
+            epoch: 0,
+            checkpoint_height: commitment.domain_height,
+            checkpoint_hash: hex::encode(commitment.domain_block_hash),
+            // Non-empty garbage — old code would Finalized here.
+            agg_sig_bls: vec![0xABu8; 48],
+            bitmap: vec![0xff],
+            set_hash: snapshot.set_hash.clone(),
+        };
+        let proof = FinalityProof::PoS {
+            cert: junk_cert,
+            validator_snapshot: snapshot,
+        };
+        assert!(
+            matches!(
+                adapter
+                    .verify_finality(&domain, &commitment, &proof)
+                    .unwrap(),
+                FinalityStatus::Rejected(_)
+            ),
+            "storage attestation must reject unverified BLS aggregate (A3-T5)"
+        );
+    }
+
 }

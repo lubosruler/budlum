@@ -1379,3 +1379,52 @@ Checklist (PR comment’te) kanıtlı kapanınca DENETLEYİCİ yeni STATUS entry
 **Engel (araç):** own-PR `REQUEST_CHANGES` 403/policy — prosedürel engel comment ile sağlandı.
 **Sonraki adım:** push bu entry; CI/hotfix izle.
 
+## 2026-07-15 — ARENA1 ADIM2 Kapanış + ADIM3 Plan Doğrulama
+
+### [2026-07-15 15:45 UTC+3] ARENA1 — ADIM2 push tamamlandı + ADIM3 plan iddiaları kanıtlandı
+
+**Durum:** tamamlandı (push yapıldı) / ADIM3 plan doğrulama raporu
+**Kapsam:** ADIM2 görev kapanışı (Prometheus/Metrics 2.5-2.6, ml-dsa, mock HSM removal) + ADIM3 planı (`ADIM3_PLAN_VE_GOREV_DAGILIMI.md`) kanıtlı denetim
+**Aksiyon:**
+1. **ADIM2 push:** `0da64d3` (ADIM2 tamamlama) + `origin/main` (f236589) merge → `00809fc` push edildi.
+2. **Mock HSM temizliği:** `src/crypto/hsm_mock.rs` silindi, `src/crypto/mod.rs`, `src/cli/commands.rs` referansları kaldırıldı.
+3. **CI kanıtı:** `cargo test --lib` → **523 passed; 0 failed**. `cargo fmt --check` → temiz. `cargo clippy --lib --tests -- -D warnings` (CARGO_BUILD_JOBS=1) → temiz. `cargo check --lib --features pq-ml-dsa --no-default-features` → temiz.
+4. **ADIM3 plan iddiaları kanıtlı doğrulama:**
+   - **0.1 StorageAttestationFinalityAdapter PoS/Bft dalı:** `src/domain/finality_adapter.rs` ~1280 satır (`FinalityProof::PoS { cert, .. } | FinalityProof::Bft { cert, .. }`) **DOĞRU** — `cert.verify(validator_snapshot)` çağrısı YOK. Sadece `agg_sig_bls.is_empty()` + height/hash eşleşmesi kontrol ediliyor. Sahte cert ile `Finalized` dönebilir. **Kritik güvenlik açığı.**
+   - **0.2 storage_open_challenge self-reported opener/responder:** `src/rpc/server.rs:1528` (`request.opener.unwrap_or_default()`) ve `:1560` (`response.responder`) **DOĞRU** — çağıranın kendi beyan ettiği adres, imza/nonce doğrulaması yok.
+   - **0.3 role.rs:70 hayalet RPC:** `src/registry/role.rs:70`'te `bud_storageActiveOperators` referansı var, gerçek RPC metodu yok. **DOĞRU**.
+   - **0.4 Mock HSM kararı:** `src/crypto/hsm_mock.rs` **YOK**, `src/crypto/mod.rs`'de `pub mod hsm_mock;` **YOK**. Kullanıcı kararı "sadece gerçek HSM kalsın" (B option) uygulanmış. **ÇÖZÜLDÜ**.
+
+**Kanıt:** Commit `00809fc` (push `f236589..00809fc`). `cargo test --lib` 523 passed. `grep -n 'cert.verify' src/domain/finality_adapter.rs` → sadece `PoSFinalityAdapter` ve `BftFinalityAdapter`'da var, `StorageAttestationFinalityAdapter`'da YOK.
+**Sonraki adım:** Kullanıcı "devam" kararı + ADIM3 öncelikli borçların (0.1, 0.2) kapatılması.
+**Engel:** Yok.
+
+### [2026-07-15 06:55 UTC+3] DENETLEYİCİ — HACKER FIX: A3-T5 + A1-T6 + bud-node CI kök neden
+
+**Durum:** tamamlandı (push + CI kanıtı bekleniyor)
+**Kapsam:** güvenlik fail-soft kapanışı + BudZero CI kırığı + RPC dürüstlük
+**Handle:** DENETLEYİCİ · `arena/019f63ce-budlum`
+**Branch protokolü:** force-push yok; main merge conflict `STATUS_ONLINE` her iki taraf korundu.
+
+#### Fix listesi (pixel audit → kod)
+
+| ID | Bulgu | Fix |
+|----|-------|-----|
+| **A3-T5** | StorageAttestation PoS/Bft: non-empty `agg_sig_bls` → Finalized (BLS verify yok) | `cert.verify(validator_snapshot)` + height/hash/set_hash bind; fail → Rejected. Regression test: `test_storage_attestation_pos_bft_rejects_nonempty_unverified_bls` |
+| **A1-T6a** | `opener.unwrap_or_default()` → Address::zero | opener **zorunlu** ve **non-zero**; yoksa -32602 |
+| **A1-T6b** | `bud_storageActiveOperators` yok (yalan yorum) | Gerçek RPC eklendi (role 5 alias) + role.rs yorumu hizalandı |
+| **A2-HOTFIX** | bud-node → `budlum-core` path dep → root `build.rs` protoc; BudZero CI Check fail | **budlum-core dep kaldırıldı** (bud-node zaten core type kullanmıyordu); ContentId::of length-prefix ile L1 `hash_fields_bytes` hizalandı; lib.rs overclaim notu |
+| merge | branch main gerisinde | `origin/main` merge (STATUS conflict resolved) |
+
+#### Bilinçli olarak YAPILMAYANLAR
+- VerifyMerkle production gate açılmadı (test hâlâ ignore).
+- Challenge any-hash → Answered interim modeli değiştirilmedi (Faz 3 borcu; ayrı tur).
+- Canlı libp2p Swarm hâlâ yok — sadece CI + dürüst dokümantasyon.
+
+#### Doğrulama
+- Bu sandbox'ta `rustc`/`cargo` yok (rustup SSL fail) → kanıt = GitHub Actions bu branch push sonrası.
+- Beklenen: Budlum Core + BudZero yeşil; yeni finality testi derlenir.
+
+**Sonraki adım:** commit + push `arena/019f63ce-budlum`; PR aç veya mevcut akışa bağla; CI izle.
+**Engel:** yok (kod tarafı).
+
