@@ -110,7 +110,7 @@ pub trait BudlumApi {
     // kimlik doğrulamasız (imza/kanıt olmadan) bridge lock oluşturulamaz.
     // Bridge lock'lar artık yalnızca:
     //   1. Internal `Blockchain::lock_bridge_transfer` çağrıları (system
-    //      path) — bu yorum, kod tabanındaki tek kalıntıdır.
+    //      path) - bu yorum, kod tabanındaki tek kalıntıdır.
     //   2. (Tur 7+ planı) `lock_bridge_transfer_with_proof` API'si
     //      (`verify_domain_event_proof` benzeri kanıt zorunlu).
     //
@@ -253,16 +253,16 @@ pub trait BudlumApi {
     #[method(name = "bud_nodeInfo")]
     async fn node_info(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
 
-    // === TUR 14 — B.U.D. Storage RPC surface ============================
+    // === TUR 14 - B.U.D. Storage RPC surface ============================
     // The 7 RPCs below are the public, permissionless query/mutation surface
     // for the storage domain. Per the data-sovereignty rule (Tur 14.5 plan
     // §0.5) every endpoint is callable by any account on a standard node
-    // — no team-gated "official indexer" or admin-only RPC exists.
+    // - no team-gated "official indexer" or admin-only RPC exists.
     //
     // IMPORTANT: `bud_storageAnswerChallenge` accepts a `range_hash` only;
     // it does NOT carry shard bytes. The chain does not store the bytes
     // (only the ContentId/manifest commitments), and the retrieval
-    // challenge is *interim* (not full Proof-of-Storage — see Tur 14.5
+    // challenge is *interim* (not full Proof-of-Storage - see Tur 14.5
     // §2.5 / vision §9.1). Off-chain verifiers must recompute the
     // expected range hash from the public shard bytes.
 
@@ -343,7 +343,7 @@ pub trait BudlumApi {
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Active B.U.D. storage operators (`RoleId` = 5 / STORAGE_OPERATOR).
-    /// Thin alias over `bud_registryActiveMembers` for the storage role —
+    /// Thin alias over `bud_registryActiveMembers` for the storage role -
     /// permissionless, no admin gate (DENETLEYİCİ A1-T6).
     #[method(name = "bud_storageActiveOperators")]
     async fn storage_active_operators(&self) -> Result<serde_json::Value, ErrorObjectOwned>;

@@ -88,7 +88,7 @@ pub enum FinalityProof {
         confirmations: u64,
         total_work_hint: u128,
         /// The domain block hash this PoW finality claim refers to. Must equal
-        /// `commitment.domain_block_hash` — binds the proof to THIS commitment
+        /// `commitment.domain_block_hash` - binds the proof to THIS commitment
         /// (Tur 6 hardening; previously the proof was unbound).
         #[serde(default)]
         declared_head_hash: Hash32,
@@ -105,7 +105,7 @@ pub enum FinalityProof {
     },
     PoA {
         /// The KYC-approved authority set for this PoA domain (equal-weight, no
-        /// stake — PoA deliberately has no stake concept). Order-independent;
+        /// stake - PoA deliberately has no stake concept). Order-independent;
         /// duplicates are ignored during verification.
         #[serde(default)]
         authorities: Vec<crate::core::address::Address>,
@@ -120,14 +120,14 @@ pub enum FinalityProof {
         round: u64,
         commit_hash: Hash32,
         /// Real BFT commit certificate (BLS aggregate over the validator set),
-        /// verified cryptographically — replaces the former self-reported
+        /// verified cryptographically - replaces the former self-reported
         /// `signer_count`/`total_validators` (Tur 6 hardening).
         cert: FinalityCert,
         validator_snapshot: ValidatorSetSnapshot,
     },
     /// ZK finality (Tur 5, Option B): rather than carrying the raw STARK proof,
-    /// this references a proof already submitted to — and cryptographically
-    /// verified by — the `ProofClaimRegistry` (via `submit_zk_proof`). This keeps
+    /// this references a proof already submitted to - and cryptographically
+    /// verified by - the `ProofClaimRegistry` (via `submit_zk_proof`). This keeps
     /// a single source of truth for ZK verification and removes the two parallel
     /// verification paths that the Tur-4/5 audit flagged.
     ///
@@ -525,7 +525,7 @@ impl DomainFinalityAdapter for PoSFinalityAdapter {
 
 #[derive(Debug, Clone)]
 pub struct PoAFinalityAdapter {
-    /// Count-based quorum numerator (PoA is equal-weight, NOT stake-weighted —
+    /// Count-based quorum numerator (PoA is equal-weight, NOT stake-weighted -
     /// PoA deliberately has no stake concept, preserving Tur 1-2 isolation).
     pub quorum_numerator: u64,
     /// Count-based quorum denominator.
@@ -563,7 +563,7 @@ impl DomainFinalityAdapter for PoAFinalityAdapter {
         // Tur 7: PoA finality now verifies REAL ed25519 signatures from the
         // approved authority set (count-based quorum), instead of trusting a
         // self-reported signer_count. `domain` and `commitment` are genuinely
-        // used. This does NOT touch the permissionless stake registry — PoA
+        // used. This does NOT touch the permissionless stake registry - PoA
         // keeps its own separate, stake-free authority/signature model
         // (isolation from Tur 1-2 preserved).
         let FinalityProof::PoA {
@@ -740,13 +740,13 @@ impl ZkFinalityAdapter {
     /// Verify ZK finality against an already-accepted proof claim (Tur 5,
     /// Option B).
     ///
-    /// The raw STARK proof is NOT re-verified here — it was already
+    /// The raw STARK proof is NOT re-verified here - it was already
     /// cryptographically verified when it was submitted via `submit_zk_proof`
     /// and recorded in the `ProofClaimRegistry`. This method enforces the
     /// binding the audit found missing:
     ///
     /// - `accepted_claim_root` is the `final_state_root` of the claim the
-    ///   registry accepted for `(domain_id, target_height)` — `None` if no such
+    ///   registry accepted for `(domain_id, target_height)` - `None` if no such
     ///   claim exists.
     /// - It must match BOTH the proof's declared `final_state_root` AND the
     ///   `commitment.state_root`, so a finality request cannot borrow a proof
@@ -839,6 +839,42 @@ impl DomainFinalityAdapter for ZkFinalityAdapter {
 #[derive(Debug, Clone, Default)]
 pub struct StorageAttestationFinalityAdapter;
 
+impl StorageAttestationFinalityAdapter {
+    fn verify_storage_qc_cert(
+        commitment: &DomainCommitment,
+        cert: &FinalityCert,
+        validator_snapshot: &ValidatorSetSnapshot,
+    ) -> Result<FinalityStatus, FinalityError> {
+        if cert.checkpoint_height != commitment.domain_height {
+            return Ok(FinalityStatus::Rejected(
+                "Storage attestation cert height does not match commitment".into(),
+            ));
+        }
+        let commitment_hash = hex::encode(commitment.domain_block_hash);
+        if cert.checkpoint_hash != commitment_hash {
+            return Ok(FinalityStatus::Rejected(
+                "Storage attestation cert hash does not match commitment".into(),
+            ));
+        }
+        if validator_snapshot.set_hash != cert.set_hash {
+            return Ok(FinalityStatus::Rejected(
+                "Storage attestation cert set hash does not match validator snapshot".into(),
+            ));
+        }
+        if cert.agg_sig_bls.is_empty() {
+            return Ok(FinalityStatus::Rejected(
+                "Empty storage attestation certificate".into(),
+            ));
+        }
+        match cert.verify(validator_snapshot) {
+            Ok(()) => Ok(FinalityStatus::Finalized),
+            Err(e) => Ok(FinalityStatus::Rejected(format!(
+                "Storage attestation BLS certificate verification failed: {e}"
+            ))),
+        }
+    }
+}
+
 impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
     fn adapter_name(&self) -> &'static str {
         crate::domain::types::STORAGE_ATTESTATION_ADAPTER
@@ -902,46 +938,17 @@ impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
             }
             // SECURITY (DENETLEYİCİ A3-T5): never Finalized on non-empty BLS
             // bytes alone. Reuse the same cryptographic path as PoS/Bft
-            // domain adapters — height/hash bind + FinalityCert::verify
+            // domain adapters - height/hash bind + FinalityCert::verify
             // (BLS aggregate + quorum bitmap against the validator snapshot).
             FinalityProof::PoS {
                 cert,
                 validator_snapshot,
-            }
-            | FinalityProof::Bft {
+            } => Self::verify_storage_qc_cert(commitment, cert, validator_snapshot),
+            FinalityProof::Bft {
                 cert,
                 validator_snapshot,
                 ..
-            } => {
-                if cert.checkpoint_height != commitment.domain_height {
-                    return Ok(FinalityStatus::Rejected(
-                        "Storage attestation cert height does not match commitment".into(),
-                    ));
-                }
-                let commitment_hash = hex::encode(commitment.domain_block_hash);
-                if cert.checkpoint_hash != commitment_hash {
-                    return Ok(FinalityStatus::Rejected(
-                        "Storage attestation cert hash does not match commitment".into(),
-                    ));
-                }
-                if validator_snapshot.set_hash != cert.set_hash {
-                    return Ok(FinalityStatus::Rejected(
-                        "Storage attestation cert set hash does not match validator snapshot"
-                            .into(),
-                    ));
-                }
-                if cert.agg_sig_bls.is_empty() {
-                    return Ok(FinalityStatus::Rejected(
-                        "Empty storage attestation certificate".into(),
-                    ));
-                }
-                match cert.verify(validator_snapshot) {
-                    Ok(()) => Ok(FinalityStatus::Finalized),
-                    Err(e) => Ok(FinalityStatus::Rejected(format!(
-                        "Storage attestation BLS certificate verification failed: {e}"
-                    ))),
-                }
-            }
+            } => Self::verify_storage_qc_cert(commitment, cert, validator_snapshot),
             _ => Ok(FinalityStatus::Rejected(
                 "Unsupported or unverified storage attestation proof format".into(),
             )),
@@ -951,7 +958,7 @@ impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
 
 pub fn hash_finality_proof(proof: &FinalityProof) -> [u8; 32] {
     // SECURITY (Tur 11): must not silently hash empty bytes on serialize failure
-    // — two distinct proofs could collide. Fail-fast on the (deterministic,
+    // - two distinct proofs could collide. Fail-fast on the (deterministic,
     // non-attacker-triggerable) programming error instead.
     let encoded = bincode::serialize(proof)
         .expect("BUG: FinalityProof must serialize for finality proof hash");
@@ -1011,7 +1018,7 @@ mod tests {
         let adapter = PoWFinalityAdapter::default();
         let min_work = adapter.min_work_per_confirmation;
 
-        // Depth short + sufficient work + valid PoW hash → Pending.
+        // Depth short + sufficient work + valid PoW hash -> Pending.
         assert_eq!(
             adapter
                 .verify_finality(
@@ -1031,7 +1038,7 @@ mod tests {
             }
         );
 
-        // Depth met + work met + PoW hash → Finalized.
+        // Depth met + work met + PoW hash -> Finalized.
         assert_eq!(
             adapter
                 .verify_finality(
@@ -1048,7 +1055,7 @@ mod tests {
             FinalityStatus::Finalized
         );
 
-        // Self-declared depth with non-PoW hash → Rejected (Tur 12 / #9).
+        // Self-declared depth with non-PoW hash -> Rejected (Tur 12 / #9).
         let junk = [0xABu8; 32];
         let mut junk_commit = commitment.clone();
         junk_commit.domain_block_hash = junk;
@@ -1068,7 +1075,7 @@ mod tests {
             FinalityStatus::Rejected(_)
         ));
 
-        // Work inconsistent with depth → Rejected.
+        // Work inconsistent with depth -> Rejected.
         assert!(matches!(
             adapter
                 .verify_finality(
@@ -1399,6 +1406,7 @@ mod tests {
             FinalityStatus::Finalized
         );
     }
+
     #[test]
     fn test_storage_attestation_pos_bft_rejects_nonempty_unverified_bls() {
         // DENETLEYİCİ A3-T5: non-empty agg_sig_bls + matching height/hash must
@@ -1423,7 +1431,7 @@ mod tests {
             epoch: 0,
             checkpoint_height: commitment.domain_height,
             checkpoint_hash: hex::encode(commitment.domain_block_hash),
-            // Non-empty garbage — old code would Finalized here.
+            // Non-empty garbage - old code would Finalized here.
             agg_sig_bls: vec![0xABu8; 48],
             bitmap: vec![0xff],
             set_hash: snapshot.set_hash.clone(),

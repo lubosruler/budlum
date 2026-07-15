@@ -43,7 +43,7 @@ pub struct RpcSecurityConfig {
 
 impl Default for RpcSecurityConfig {
     fn default() -> Self {
-        // Tur 6 (security audit §5): secure default — auth ON, no API key
+        // Tur 6 (security audit §5): secure default - auth ON, no API key
         // (caller must configure `api_key` before serving). This is what
         // [`Self::operator_default`] used to be (auth OFF); the prior
         // behaviour is preserved under that explicit name for trusted
@@ -69,7 +69,7 @@ impl RpcSecurityConfig {
         // at every server start so an operator cannot accidentally ship
         // an unauthenticated RPC to the public internet.
         tracing::warn!(
-            "[GUVENLIK] Operator RPC auth_required=false — yalnizca localhost/ozel ag icindir."
+            "[GUVENLIK] Operator RPC auth_required=false - yalnizca localhost/ozel ag icindir."
         );
         tracing::warn!(
             "[GUVENLIK] Yonetim metodlari public listener'da reddedilir; operator listener yine hassastir."
@@ -404,7 +404,7 @@ impl RpcServer {
             "replayNonceRoot": Self::bytes32_to_0x(h.replay_nonce_root),
             "proposer": h.proposer.map(|p| p.to_string()),
             "settlementFinalityRoot": Self::bytes32_to_0x(h.settlement_finality_root),
-            // B.U.D. Faz 4 (ARENA2): storage_root anchoring — null when no
+            // B.U.D. Faz 4 (ARENA2): storage_root anchoring - null when no
             // storage proofs in this block, 0x-prefixed hex when present.
             "storageRoot": h.storage_root.map(Self::bytes32_to_0x),
         })
@@ -530,7 +530,7 @@ fn extract_client_ip<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> Opt
         }
     }
 
-    // No identifiable IP — reject (callers should rely on ConnectInfo /
+    // No identifiable IP - reject (callers should rely on ConnectInfo /
     // network policy when headers are absent).
     None
 }
@@ -1053,7 +1053,7 @@ impl BudlumApiServer for RpcServer {
         tx: Transaction,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         // Registration is just a Stake transaction: staking == being registered.
-        // Reuse the same permissionless path as a normal tx — no whitelist, no
+        // Reuse the same permissionless path as a normal tx - no whitelist, no
         // approval, only signature + stake validation done downstream.
         if !matches!(tx.tx_type, crate::core::transaction::TransactionType::Stake) {
             return Err(ErrorObjectOwned::owned(
@@ -1223,7 +1223,7 @@ impl BudlumApiServer for RpcServer {
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         // Security: never trust caller-supplied provenance. An external
         // submitter cannot self-certify a report as ConsensusVerified to force a
-        // slash — the RPC path is always Unverified. Only the node's own
+        // slash - the RPC path is always Unverified. Only the node's own
         // consensus layer emits ConsensusVerified reports internally.
         report.provenance = crate::registry::ProofProvenance::Unverified;
         // A reporter is required so the anti-spam fee can be charged.
@@ -1262,7 +1262,7 @@ impl BudlumApiServer for RpcServer {
         // The proof's correctness is enforced by
         // `handle_qc_fault_proof` (merkle inclusion +
         // cryptographic dilithium verification), which is the
-        // only acceptable gate — it costs ~millions of dollars
+        // only acceptable gate - it costs ~millions of dollars
         // of compute to forge a valid proof, so a fee gate is
         // not required. On a successful proof the underlying
         // QC blob's finality is invalidated from the proof's
@@ -1317,12 +1317,12 @@ impl BudlumApiServer for RpcServer {
         }))
     }
 
-    // === TUR 14 — B.U.D. Storage RPC implementations ====================
+    // === TUR 14 - B.U.D. Storage RPC implementations ====================
     // The chain layer does not yet own a storage registry; we hold one on
     // the RPC server (`Arc<Mutex<StorageRegistry>>`) and snapshot it for
     // the chain-side accounting at block-application time (Faz 5 follow-up
     // in Tur 15). For Tur 14 the registry is RPC-driven and survives only
-    // for the life of the process — that is the documented scope of this
+    // for the life of the process - that is the documented scope of this
     // iskeleton's RPC surface (vision §8.1 "accounting only").
 
     async fn storage_register_manifest(
@@ -1527,23 +1527,20 @@ impl BudlumApiServer for RpcServer {
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         // DENETLEYİCİ A1-T6: never silently default to Address::zero().
         // Anonymous openers would break bond attribution and anti-spam accounting.
-        let opener = match request.opener {
-            Some(addr) if addr != crate::core::address::Address::zero() => addr,
-            Some(_) => {
-                return Err(ErrorObjectOwned::owned(
-                    -32602,
-                    "Invalid challenge: opener must be a non-zero address".to_string(),
-                    None::<()>,
-                ));
-            }
-            None => {
-                return Err(ErrorObjectOwned::owned(
-                    -32602,
-                    "Invalid challenge: opener address is required".to_string(),
-                    None::<()>,
-                ));
-            }
+        let Some(opener) = request.opener else {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "Invalid challenge: opener address is required".to_string(),
+                None::<()>,
+            ));
         };
+        if opener == crate::core::address::Address::zero() {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "Invalid challenge: opener must be a non-zero address".to_string(),
+                None::<()>,
+            ));
+        }
         let mut reg = self.storage.lock().map_err(|e| {
             ErrorObjectOwned::owned(
                 -32602,
@@ -1626,7 +1623,7 @@ impl BudlumApiServer for RpcServer {
     }
 
     async fn storage_active_operators(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
-        // DENETLEYİCİ A1-T6: real RPC matching role.rs docs — not a fake name.
+        // DENETLEYİCİ A1-T6: real RPC matching role.rs docs - not a fake name.
         let role = crate::registry::role::roles::STORAGE_OPERATOR;
         let members = self.chain.get_registry_active_members(role).await;
         let list: Vec<serde_json::Value> = members
