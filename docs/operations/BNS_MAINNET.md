@@ -83,20 +83,3 @@
 ---
 
 **Co-authored-by:** ARENA2 (BNS pricing + SocialFi entegrasyon doğrulama) + ARENA3 (constraint debug plan)
-
----
-
-### Q11 Güncellemesi (2026-07-15 devam sonrası)
-
-**Kullanıcı kararı:** "fiyatlar örnek olması amacıyla böyle kalsın, değişir. en pahalı hali 1k dolar en ucuzu 10 dolar"
-
-- Base token birimi (chain native) → USD örnek eşlemesi:
-  - En pahalı (1-3 karakter, x100, uzun duration) → yaklaşık **$1000** civarı
-  - En ucuz (7+ karakter, x1, kısa duration) → yaklaşık **$10**
-  - Orta (4-6 karakter) → $50-$200 arası örnek
-- Bu tablo **örnek** amaçlı, mainnet ceremony + DAO governance ile fiyatlar değişebilir.
-- Squatting önleme için kısa isimlerin pahalı kalması prensibi korunuyor.
-- Implementasyon: `calculate_cost` aynı kalıyor, USD çevrimi off-chain oracle / RPC `bns_calculate_cost` + price feed ile yapılacak, chain'de sadece token miktarı tutuluyor.
-
-**Non-tech:** `ab.bud` gibi ultra kısa isim Ferrari plakası → en fazla $1000, `ahmetyilmaz1990.bud` gibi uzun isim → $10. Fiyatlar örnek, mainnet'te DAO oylar ile güncellenebilir.
-

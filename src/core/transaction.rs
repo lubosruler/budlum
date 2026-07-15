@@ -52,61 +52,12 @@ impl crate::core::chain_config::Network {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
-pub enum ExternalChain {
-    Ethereum,
-    Solana,
-    Bitcoin,
-    Avalanche,
-    Polygon,
-    Arbitrum,
-    Optimism,
-    Custom(u32),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ExternalTransaction {
-    pub chain: ExternalChain,
-    /// Targeted chain native address (hex)
-    pub target_address: String,
-    /// Raw payload to be executed on the external chain
-    pub payload: Vec<u8>,
-    /// Nonce/Sequence for the external chain if applicable
-    pub external_nonce: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum TransactionType {
     Transfer,
     Stake,
     Unstake,
     Vote,
     ContractCall,
-    BnsRegister,
-    BnsSetContent,
-    BnsRegisterSubdomain,
-    BnsSetStorage,
-    NftMint,
-    NftTransfer,
-    NftBurn,
-    NftBoost { nft_id: u64, amount: u64 },
-    UniversalRelay(ExternalTransaction),
-    /// ADIM 5 §5.5: AI Data Marketplace - Offer data (CID) for sale
-    AiOfferData {
-        cid: crate::storage::content_id::ContentId,
-        price: u64,
-    },
-    /// ADIM 5 §5.5: AI Data Marketplace - Purchase access to data
-    AiPurchaseData {
-        offer_id: u64,
-    },
-    /// ADIM 5 §4: Budlum Hub - Register a dApp to the ecosystem
-    HubRegisterApp {
-        name: String,
-        category: crate::hub::types::AppCategory,
-        website_url: String,
-        manifest_id: Option<crate::storage::content_id::ContentId>,
-    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -296,13 +247,6 @@ impl Transaction {
             TransactionType::Unstake => 2,
             TransactionType::Vote => 3,
             TransactionType::ContractCall => 4,
-            TransactionType::BnsRegister => 5,
-            TransactionType::BnsSetContent => 6,
-            TransactionType::BnsRegisterSubdomain => 7,
-            TransactionType::BnsSetStorage => 8,
-            TransactionType::NftMint => 9,
-            TransactionType::NftTransfer => 10,
-            TransactionType::NftBurn => 11,
         };
         hasher.update([type_byte]);
 
@@ -417,27 +361,6 @@ impl Transaction {
                     return false;
                 }
             }
-            TransactionType::BnsRegister
-            | TransactionType::BnsSetContent
-            | TransactionType::BnsRegisterSubdomain
-            | TransactionType::BnsSetStorage => {
-                if self.fee == 0 {
-                    println!("BNS fee cannot be 0 (cost-floor)");
-                    return false;
-                }
-                if self.data.is_empty() {
-                    println!("BNS TX data must be non-empty");
-                    return false;
-                }
-            }
-            TransactionType::NftMint
-            | TransactionType::NftTransfer
-            | TransactionType::NftBurn => {
-                if self.data.is_empty() {
-                    println!("NFT TX data must be non-empty");
-                    return false;
-                }
-            }
         }
         true
     }
@@ -457,13 +380,6 @@ impl Transaction {
             TransactionType::Stake | TransactionType::Unstake => schedule.stake_gas,
             TransactionType::Vote => schedule.vote_gas,
             TransactionType::ContractCall => schedule.contract_call_gas,
-            TransactionType::BnsRegister
-            | TransactionType::BnsSetContent
-            | TransactionType::BnsRegisterSubdomain
-            | TransactionType::BnsSetStorage => schedule.contract_call_gas,
-            TransactionType::NftMint | TransactionType::NftTransfer | TransactionType::NftBurn => {
-                schedule.contract_call_gas
-            }
         };
         let signature_gas = if self.signature.is_some() {
             schedule.gas_per_signature

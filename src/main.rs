@@ -409,28 +409,11 @@ async fn main() {
             );
             std::process::exit(1);
         }
-        // Vendor-specific mechanisms (optional, for BLS/PQ native HSM sign)
-        let bls_mech = config
-            .pkcs11_bls_mechanism
-            .as_deref()
-            .and_then(budlum_core::crypto::pkcs11::Pkcs11Signer::parse_mechanism);
-        let pq_mech = config
-            .pkcs11_pq_mechanism
-            .as_deref()
-            .and_then(budlum_core::crypto::pkcs11::Pkcs11Signer::parse_mechanism);
-        if bls_mech.is_some() || pq_mech.is_some() {
-            println!(
-                "INFO: PKCS#11 vendor mechanisms: BLS={:?} PQ={:?}",
-                bls_mech, pq_mech
-            );
-        }
         match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
             module_path.to_string(),
             slot_id,
             pin_env.to_string(),
-        )
-        .map(|s| s.with_vendor_mechanisms(bls_mech, pq_mech))
-        {
+        ) {
             Ok(signer) => {
                 if config.network == budlum_core::core::chain_config::Network::Mainnet
                     && config.role == "validator"
@@ -693,16 +676,11 @@ async fn main() {
     let (storage_node, sharding_config) = if config.storage_enabled {
         let store = Arc::new(bud_node::MemoryContentStore::with_default_capacity());
         let bitswap = Arc::new(bud_node::BudBitswap::new(store));
-        
-        let mut s_config = if config.mobile_mode {
-            bud_node::ShardingConfig::mobile_default()
-        } else {
-            bud_node::ShardingConfig::default()
+        let s_config = bud_node::ShardingConfig {
+            replication_factor: config.storage_replication_factor,
+            max_xor_distance: u128::MAX / 1000,
+            mandatory: config.storage_mandatory_sharding,
         };
-        
-        s_config.replication_factor = config.storage_replication_factor;
-        s_config.mandatory = config.storage_mandatory_sharding;
-        
         (Some(bitswap), Some(s_config))
     } else {
         (None, None)

@@ -23,8 +23,6 @@ pub struct ShardingConfig {
     /// Whether sharding responsibility is strictly enforced.
     /// (User Decision 5: mandatory_sharding).
     pub mandatory: bool,
-    /// Mobile mode (ADIM 5 §5.2): Lighter sharding, battery-aware.
-    pub mobile_mode: bool,
 }
 
 impl Default for ShardingConfig {
@@ -33,18 +31,6 @@ impl Default for ShardingConfig {
             replication_factor: 3,
             max_xor_distance: u128::MAX / 1000, // 0.1% of the keyspace
             mandatory: true,
-            mobile_mode: false,
-        }
-    }
-}
-
-impl ShardingConfig {
-    pub fn mobile_default() -> Self {
-        Self {
-            replication_factor: 1, // Only host self-data or very close peers
-            max_xor_distance: u128::MAX / 100_000, // 0.001% of the keyspace
-            mandatory: true,
-            mobile_mode: true,
         }
     }
 }
@@ -65,20 +51,13 @@ impl ShardManager {
     }
 
     /// Check if this node should proactively fetch and store a CID.
+    ///
+    /// This is used for "Active Sharding" (Vision §7.2): nodes don't
+    /// just wait for deals; they help maintain the network's health by
+    /// caching CIDs that are "close" to them in the XOR keyspace.
     pub fn should_cache(&self, cid: &ContentId) -> bool {
-        if self.config.mobile_mode && !self.is_resource_buffer_sufficient() {
-            return false; // Skip caching on mobile if low on battery/budget
-        }
         let distance = self.xor_distance(cid);
         distance <= self.config.max_xor_distance
-    }
-
-    /// Resource budget check for mobile devices (Mock/Placeholder).
-    /// In a real mobile app, this would check battery level and Wi-Fi status.
-    pub fn is_resource_buffer_sufficient(&self) -> bool {
-        // Placeholder: Always true in simulation, 
-        // would be linked to OS-level battery/metered connection API.
-        true
     }
 
     /// Calculate the XOR distance between the local PeerId and a CID.
@@ -135,15 +114,5 @@ mod tests {
 
         // Very unlikely to be 0
         assert!(!manager.should_cache(&cid));
-    }
-
-    #[test]
-    fn test_mobile_mode_lightweight_defaults() {
-        let peer = random_peer_id();
-        let config = ShardingConfig::mobile_default();
-        let manager = ShardManager::new(peer, config);
-        
-        assert!(manager.config.mobile_mode);
-        assert!(manager.config.max_xor_distance < ShardingConfig::default().max_xor_distance);
     }
 }

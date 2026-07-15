@@ -215,12 +215,6 @@ pub struct NodeConfig {
     #[arg(long)]
     pub pkcs11_token_pin_env: Option<String>,
 
-    #[arg(long)]
-    pub pkcs11_bls_mechanism: Option<String>,
-
-    #[arg(long)]
-    pub pkcs11_pq_mechanism: Option<String>,
-
     #[arg(long, default_value = "./data/hsm/socket.sock")]
     pub hsm_socket_path: String,
 
@@ -242,14 +236,6 @@ pub struct NodeConfig {
 
     #[arg(long, default_value = "true")]
     pub storage_mandatory_sharding: bool,
-
-    /// Mobile Device Mode (Lighter weight, high-priority self-hosting)
-    #[arg(long, default_value = "false")]
-    pub mobile_mode: bool,
-
-    /// Physical Hardware ID (Optional, for pre-configured nodes)
-    #[arg(long)]
-    pub hardware_id: Option<String>,
 }
 
 impl Default for NodeConfig {
@@ -320,8 +306,6 @@ impl Default for NodeConfig {
             pkcs11_module_path: None,
             pkcs11_slot_id: None,
             pkcs11_token_pin_env: None,
-            pkcs11_bls_mechanism: None,
-            pkcs11_pq_mechanism: None,
             hsm_socket_path: "./data/hsm/socket.sock".to_string(),
             features_governance: false,
             features_zkvm_contracts: false,
@@ -329,8 +313,6 @@ impl Default for NodeConfig {
             storage_enabled: true,
             storage_replication_factor: 3,
             storage_mandatory_sharding: true,
-            mobile_mode: false,
-            hardware_id: None,
         }
     }
 }
@@ -437,11 +419,6 @@ pub struct Pkcs11Section {
     pub module_path: Option<String>,
     pub slot_id: Option<u64>,
     pub token_pin_env: Option<String>,
-    /// Vendor-specific BLS mechanism ID (hex or decimal string, e.g. "0x80000001" or "2147483649")
-    /// For vendor-native HSMs that provide CKM_VENDOR_BLS_SIGN
-    pub bls_mechanism: Option<String>,
-    /// Vendor-specific PQ/Dilithium mechanism ID
-    pub pq_mechanism: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize, Default, Clone)]
@@ -691,12 +668,6 @@ impl NodeConfig {
                     }
                     if self.pkcs11_token_pin_env.is_none() {
                         self.pkcs11_token_pin_env = pkcs11.token_pin_env;
-                    }
-                    if self.pkcs11_bls_mechanism.is_none() {
-                        self.pkcs11_bls_mechanism = pkcs11.bls_mechanism;
-                    }
-                    if self.pkcs11_pq_mechanism.is_none() {
-                        self.pkcs11_pq_mechanism = pkcs11.pq_mechanism;
                     }
                 }
                 if let Some(socket) = signer.hsm_socket_path {

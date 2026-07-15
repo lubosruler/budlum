@@ -16,12 +16,6 @@ pub struct Pkcs11Signer {
     bls_key: Mutex<Option<BlsKeypair>>,
     pq_key: Mutex<Option<PqKeyPair>>,
     inner: Mutex<Option<Pkcs11Inner>>,
-    /// Vendor-specific BLS mechanism ID (e.g. 0x80000001) — if Some, HSM native sign attempted
-    #[allow(dead_code)]
-    bls_mechanism: Option<u32>,
-    /// Vendor-specific PQ mechanism ID
-    #[allow(dead_code)]
-    pq_mechanism: Option<u32>,
 }
 
 struct Pkcs11Inner {
@@ -133,29 +127,7 @@ impl Pkcs11Signer {
                 pkcs11_client,
                 session,
             })),
-            bls_mechanism: None,
-            pq_mechanism: None,
         })
-    }
-
-    /// Set vendor-specific mechanism IDs (after construction, from config)
-    pub fn with_vendor_mechanisms(mut self, bls: Option<u32>, pq: Option<u32>) -> Self {
-        self.bls_mechanism = bls;
-        self.pq_mechanism = pq;
-        self
-    }
-
-    /// Parse mechanism string (hex "0x..." or decimal) to u32
-    pub fn parse_mechanism(s: &str) -> Option<u32> {
-        let s = s.trim();
-        if s.is_empty() {
-            return None;
-        }
-        if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
-            u32::from_str_radix(hex, 16).ok()
-        } else {
-            s.parse::<u32>().ok()
-        }
     }
 
     /// Store a BLS keypair into the HSM as a data object.
@@ -303,30 +275,6 @@ impl ConsensusSigner for Pkcs11Signer {
     }
 
     fn bls_sign(&self, msg: &[u8]) -> Result<Vec<u8>, CryptoError> {
-        // Vendor-native path: if bls_mechanism is set, try HSM sign with that mechanism
-        if let Some(mech_id) = self.bls_mechanism {
-            if let Ok(guard) = self.inner.lock() {
-                if let Some(inner) = guard.as_ref() {
-                    // Find BLS private key object by label BUD_BLS_KEY
-                    let template = &[
-                        cryptoki::object::Attribute::Class(cryptoki::object::ObjectClass::PRIVATE_KEY),
-                        cryptoki::object::Attribute::Label(BLS_DATA_LABEL.to_string().into()),
-                    ];
-                    if let Ok(objects) = inner.session.find_objects(template) {
-                        if !objects.is_empty() {
-                            // Use vendor mechanism ID via from_u32 (cryptoki 0.6 supports from mechanism type)
-                            // Fallback to software if mechanism not supported by HSM
-                            let mechanism = cryptoki::mechanism::Mechanism::Other(mech_id as u64);
-                            if let Ok(sig) = inner.session.sign(&mechanism, objects[0], msg) {
-                                return Ok(sig);
-                            }
-                        }
-                    }
-                }
-            }
-            // Fall through to software sign if vendor sign failed
-        }
-
         let guard = self
             .bls_key
             .lock()
@@ -338,26 +286,6 @@ impl ConsensusSigner for Pkcs11Signer {
     }
 
     fn pq_sign(&self, msg: &[u8]) -> Result<Vec<u8>, CryptoError> {
-        // Vendor-native path for PQ
-        if let Some(mech_id) = self.pq_mechanism {
-            if let Ok(guard) = self.inner.lock() {
-                if let Some(inner) = guard.as_ref() {
-                    let template = &[
-                        cryptoki::object::Attribute::Class(cryptoki::object::ObjectClass::PRIVATE_KEY),
-                        cryptoki::object::Attribute::Label(PQ_DATA_LABEL.to_string().into()),
-                    ];
-                    if let Ok(objects) = inner.session.find_objects(template) {
-                        if !objects.is_empty() {
-                            let mechanism = cryptoki::mechanism::Mechanism::Other(mech_id as u64);
-                            if let Ok(sig) = inner.session.sign(&mechanism, objects[0], msg) {
-                                return Ok(sig);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         let guard = self
             .pq_key
             .lock()
