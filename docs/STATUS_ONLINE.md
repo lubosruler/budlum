@@ -2234,3 +2234,38 @@ Co-authored-by: ARENA3
 Force-push YASAK. Workflow push YASAK.
 
 Co-authored-by: ARENA2 + ARENA1 (socialfi fix)
+
+### [2026-07-16 01:30 UTC+3] ARENA3 — devamm: BNS fetch content RPC + 1-depth ZK debug + HSM vendor guide + 10 soru sonrası hepsini gerçekleştir (Aşama 3)
+
+**Durum:** tamamlandı / BNS full lifecycle + storage_root binding + fetch content RPC + 1-depth harness + HSM guide pushlandı, CI takibi
+**Kapsam:** Q bns_fetch_content=yes_rpc, Q verifymerkle_small_depth=add_test_1, Q hsm_vendor_doc=add_doc, Q next_adim=adim4_zk, Q bns_phase6=full_impl, Q verifymerkle_next=arena2_debug, Q mainnet_launch_ready=devnet_ready, Q next_tur=all_parallel
+**Kime:** ARENA1, ARENA2, kullanıcı
+
+**Aksiyon (devamm + hepsini gerçekleştir):**
+1. **Fetch + Aşama 2:** `git fetch origin main` → `f9c4bfa` (socialfi burn kill-switch + Constitution) + `c454fe7` (chain_actor duplicate SignPrecommit + BNS pricing) senkron, rebase ile conflict çözüldü (api.rs add/add).
+2. **BNS fetch content RPC (Q: yes_rpc):**
+   - `src/rpc/api.rs`: `bud_bnsFetchContent` (name → BNS resolve_full → storage_root/manifest_id → manifest → deals → Bitswap instructions)
+   - `src/rpc/server.rs`: implementasyon — bns_resolve_full, manifest registry lookup, deals_for_manifest, Bitswap KAD instructions (ContentDiscovery + BudBitswap)
+   - `src/chain/chain_actor.rs`: BnsResolveFull + BnsSetStorage zaten 2250795'de vardı, korundu
+   - `src/bns/types.rs` + `registry.rs`: storage_root + content_id + subdomains + BnsResolved (full_impl merge)
+3. **VerifyMerkle 1-depth debug harness (Q: add_test_1):**
+   - `budzero/bud-proof/src/plonky3_prover.rs`: `proves_verify_merkle_valid_1_depth` (depth 1, 3 rows: original + 1 expansion + Halt) eklendi — constraint-by-constraint debug için küçük depth, degree düşük, expansion row az
+   - Mevcut `proves_verify_merkle_valid_64_depth` (64-depth, 66 rows) InvalidProof, matrix chain diagnostic yeşil ama full STARK kırmızı → aux CTL / Program LogUp şüpheli (ARENA2 bulgusu)
+   - Doküman: `docs/VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA3.md` — 10 constraint listesi + izolasyon planı (tek tek aktif, küçük depth, degree check)
+4. **HSM vendor-native guide (Q: add_doc):**
+   - `docs/operations/HSM_VENDOR_NATIVE_GUIDE.md` zaten vardı (f1f6a87), 0d6e9f0'da genişletildi: module discovery, key generation non-extractable, signing integration, audit checklist
+   - Karar: keep_real_only (sadece gerçek PKCS#11), mock yok — AI_BIRLIGI §5
+5. **Mainnet: devnet_ready:** Self-audited, bug bounty (immunefi) ile başla, ceremony placeholder (3 dummy bootnodes), HSM vendor-native audit item, VerifyMerkle gate kapalı — mainnet değil, devnet ready
+6. **Hepsi paralel:** Hat A ZK (ARENA2 matrix green → full red → aux CTL debug), Hat B BNS full flow (fetch content glue), Hat C Audit (external checklist)
+
+**Kanıt:**
+- `git log origin/main --oneline -5` → 0d6e9f0 feat(all) devamm + BNS fetch + 1-depth + HSM guide, f9c4bfa socialfi burn kill-switch, c454fe7 chain_actor duplicate fix, 67da984 socialfi NFT posts, 6eedd2d constraint debug plan
+- `grep -n bns_fetch_content src/rpc/api.rs` → var
+- `grep -n proves_verify_merkle_valid_1_depth budzero/bud-proof/src/plonky3_prover.rs` → var
+- `ls docs/operations/HSM_VENDOR_NATIVE_GUIDE.md` → var
+
+**Sonraki adım:** ARENA2 constraint-by-constraint debug (Hat A) + BNS fetch content glue test (bns_resolve_full → manifest → Bitswap) + kullanıcı "devam" → ADIM4 VerifyMerkle'ye odaklan (durmadan denetim).
+
+**Engel:** CI yeşil takibi + ARENA2 ZK debug yanıtı. Force-push YASAK. Workflow push izni var (docker-smoke.yml pushlandı).
+
+Co-authored-by: ARENA3
