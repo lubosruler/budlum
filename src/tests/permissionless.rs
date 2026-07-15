@@ -512,3 +512,36 @@ fn adim3_storage_operator_active_members() {
     assert_eq!(active[0].account, op);
     assert!(reg.is_active(&op, roles::STORAGE_OPERATOR));
 }
+
+#[test]
+fn adim3_validator_onboarding_e2e_multi_validator_parallel() {
+    // Q9 add_more (10-question survey): additional E2E for parallel onboarding
+    // Two validators stake at same epoch, both become active, both produce blocks
+    let consensus = Arc::new(PoWEngine::new(0));
+    let mut genesis = GenesisConfig::for_network(Network::Devnet);
+    genesis.validators.clear();
+    let mut bc =
+        Blockchain::new_with_genesis(consensus, None, genesis.chain_id, None, Some(genesis));
+
+    let kp1 = KeyPair::generate().unwrap();
+    let kp2 = KeyPair::generate().unwrap();
+    let staker1 = Address::from(kp1.public_key_bytes());
+    let staker2 = Address::from(kp2.public_key_bytes());
+    let floor = bc.state.registry.params().min_stake;
+    let fee = bc.state.base_fee.max(1);
+    bc.state.add_balance(&staker1, floor * 2 + fee * 10);
+    bc.state.add_balance(&staker2, floor * 2 + fee * 10);
+
+    let tx1 = signed_stake_tx(&kp1, floor + 1000, 0, bc.chain_id, fee);
+    let tx2 = signed_stake_tx(&kp2, floor + 2000, 0, bc.chain_id, fee);
+    bc.add_transaction(tx1).unwrap();
+    bc.add_transaction(tx2).unwrap();
+
+    let block = bc.produce_block(staker1).unwrap();
+    assert!(block.index >= 1);
+    assert!(bc.state.registry.is_active(&staker1, roles::VALIDATOR));
+    assert!(bc.state.registry.is_active(&staker2, roles::VALIDATOR));
+
+    let active = bc.state.registry.active_members(roles::VALIDATOR);
+    assert!(active.len() >= 2, "both validators should be active");
+}

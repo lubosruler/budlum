@@ -36,11 +36,16 @@ pub enum Opcode {
 
 impl Opcode {
     /// Opcodes that must not run under the Production ISA profile.
-    /// Tur 13: VerifyMerkle stays experimental until Z-B Commit 3.5
+    /// ADIM4 Q2 enable_prod (2026-07-16, user decision): VerifyMerkle production gate opened.
+    /// Original Tur 13 note: stayed experimental until Z-B Commit 3.5
     /// (`proves_verify_merkle_valid_64_depth` green). Partial path fixes landed
-    /// (pre-round currents, single-round hash, original-only root check).
+    /// (pre-round currents, single-round hash, original-only root check, wrapping_add→u128).
+    /// User decision per 10-question survey Q2: enable production gate.
+    /// Test gate (proves_verify_merkle_valid_64_depth) still decided by ARENA2 (Q1 ask_arena2).
     pub fn is_experimental(&self) -> bool {
-        matches!(self, Opcode::VerifyMerkle)
+        // Q2 enable_prod: production gate opened per user 10-question decision
+        // TODO: if test gate still InvalidProof, this may need revert — track CI
+        false
     }
 }
 
@@ -185,6 +190,8 @@ mod tests {
 
     #[test]
     fn tur119_verify_merkle_disabled_in_production() {
+        // ADIM4 Q2 enable_prod: per user 10-question decision, production gate opened
+        // Previously this test expected ExperimentalOpcodeDisabled, now it expects success
         let raw = Instruction {
             opcode: Opcode::VerifyMerkle,
             rd: 1,
@@ -193,19 +200,16 @@ mod tests {
             imm: 0,
         }
         .encode();
-        let err = Instruction::decode_for_profile(raw, IsaProfile::Production)
-            .expect_err("VerifyMerkle must be disabled in Production");
-        match err {
-            DecodeError::ExperimentalOpcodeDisabled(
-                Opcode::VerifyMerkle,
-                IsaProfile::Production,
-            ) => {}
-            other => panic!("unexpected error: {other:?}"),
-        }
-        // decode_any still parses the opcode for experimental/test tooling.
-        let inst = Instruction::decode_any(raw).unwrap();
+        // After Q2 enable_prod, Production should decode VerifyMerkle successfully
+        let inst = Instruction::decode_for_profile(raw, IsaProfile::Production)
+            .expect("VerifyMerkle must be enabled in Production after Q2 enable_prod");
         assert_eq!(inst.opcode, Opcode::VerifyMerkle);
-        assert!(inst.opcode.is_experimental());
+        // is_experimental now false per Q2 decision
+        assert!(!inst.opcode.is_experimental());
+
+        // decode_any still parses the opcode
+        let inst_any = Instruction::decode_any(raw).unwrap();
+        assert_eq!(inst_any.opcode, Opcode::VerifyMerkle);
     }
 
     #[test]

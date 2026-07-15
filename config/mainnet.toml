@@ -18,14 +18,18 @@ backup_retention_count = 24
 
 [p2p]
 identity_file = "./secrets/mainnet-node-id.key"
-# Populate during the signed Mainnet release ceremony.
-# Ceremony placeholders (ADIM3 queue item 4). NOT real production peers.
-# Replace during MAINNET_GENESIS_CEREMONY with signed multiaddrs.
-# Format examples (invalid until ceremony):
-#   bootnodes = ["/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWCeremonyPlaceholder0000000000000000001"]
-#   dns_seeds = ["_dnsaddr.mainnet.seed.budlum.example"]
-bootnodes = []
-dns_seeds = []
+# Q7 dummy bootnodes (per user decision add_dummy, 2026-07-16)
+# These are NOT real production peers — replace during MAINNET_GENESIS_CEREMONY
+# with signed multiaddrs. Valid until ceremony, then MUST be replaced.
+bootnodes = [
+  "/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWDummyBootstrap1Placeholder000000000001",
+  "/ip4/203.0.113.11/tcp/4001/p2p/12D3KooWDummyBootstrap2Placeholder000000000002",
+  "/ip4/203.0.113.12/tcp/4001/p2p/12D3KooWDummyBootstrap3Placeholder000000000003"
+]
+dns_seeds = [
+  "_dnsaddr.dummy-seed-1.mainnet.budlum.example",
+  "_dnsaddr.dummy-seed-2.mainnet.budlum.example"
+]
 # ceremony_status = "pending"  # flip to "frozen" after N-of-M minutes
 max_peers = 100
 banned_peer_db = "./data/mainnet/banned-peers.json"

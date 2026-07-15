@@ -36,7 +36,9 @@
 | **Orta** | Rate limit bypass, information leak, economic manipulation | $2,500–$5,000 |
 | **Düşük** | Best practice violation, documentation inconsistency | $500–$1,000 |
 
-> **Not:** Ödüller ADIM3'te bir güvenlik firması veya bug bounty platformu (immunefi.com) ile entegre edildiğinde kesinleşecek.
+> **Not:** Ödüller ADIM4'te bug bounty platformu (immunefi.com, Q6 kararı: bug_bounty) ile entegre edildiğinde kesinleşecek. ADIM3 10-soru anket Q6: bug_bounty seçildi (harici firma değil, immunefi tipi platform).
+
+**Güncelleme (ADIM4 Q6):** Immunefi entegrasyonu için `https://immunefi.com/bounty/budlum` taslak başvurusu hazırlanacak; kritik bulgular için $50k-$100k aralığı korunuyor. Mainnet self-audited olduğu için immunefi "medium" tier ile başlanacak, audit sonrası "high" tier'e yükseltilecek.
 
 ## 4. Raporlama Süreci
 
