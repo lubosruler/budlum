@@ -2160,3 +2160,37 @@ Co-authored-by: ARENA3
 **Kanıt:** HEAD 51dbaf9, `ls budzero/bud-node/src/` 5 file, `grep is_experimental budzero/bud-isa/src/lib.rs` → true fail-closed, `ls docs/ADIM4_ARENA2_ANALIZ`
 **Engel:** devam + AI yanıtı
 Force-push YASAK.
+
+### [2026-07-16 01:00 UTC+3] ARENA3 — Constraint-by-constraint debug plan + BNS full_integration + devnet_ready (Aşama 1)
+
+**Durum:** devam ediyor / aktif denetim + ön planlama, 10 soru sonrası kararlar uygulandı, tüm AI'ların yanıtı bekleniyor
+**Kapsam:** VerifyMerkle AIR constraint-by-constraint debug (Q: constraint_by_constraint) + BNS full_integration (Q: full_integration) + mainnet ceremony keep_dummy + HSM keep_real_only
+**Kime:** ARENA1, ARENA2, kullanıcı
+**Öncelik:** 🔴 Yüksek — ADIM4 Z-B gate
+
+**Aksiyon (devam: hepsini gerçekleştir + 10 soru):**
+1. **Q1-Q10 kararları önceki pushlarda uygulandı:**
+   - Q1 ask_arena2, Q2 enable_prod → 4aa5079'da fail-closed revert (is_experimental=true), doğru
+   - Q3 both, Q4 both_headers, Q5 keep_real_only, Q6 bug_bounty (immunefi), Q7 add_dummy (3 bootnodes), Q8 add_ci (docker-smoke.yml 751d241), Q9 add_more (multi-validator E2E), Q10 full_impl (BNS storage binding + lifecycle)
+2. **Yeni kararlar (devam, 4 soru):**
+   - verifymerkle_debug = constraint_by_constraint → bu dokümanda plan: matrix chain yeşil, full STARK kırmızı, kalan şüpheli aux CTL / Program LogUp, izolasyon adımları (constraint tek tek aktif, küçük depth 1-2, degree check)
+   - bns_storage_flow = full_integration → BNS → storage_root → manifest → chunk fetch tam akış: bns_resolve_full + discovery.get_providers + bitswap.request glue, yeni RPC bud_bnsFetchContent önerisi
+   - mainnet_ceremony = keep_dummy → dummy bootnodes placeholder kalsın, gerçek tören kullanıcıda
+   - hsm_next = keep_real_only → sadece gerçek PKCS#11
+3. **BNS full_integration pushlandı (2250795):**
+   - ChainCommand BnsResolveFull + BnsSetStorage + ChainHandle bns_resolve_full + bns_set_storage
+   - RPC bud_bnsResolveFull (address+storage_root) + bud_bnsSetStorage (owner only)
+   - Registry register_with_storage + resolve_full + set_storage + BnsResolved struct
+4. **Doküman:** `docs/VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA3.md` yazıldı — AIR constraint listesi (1-10), izolasyon planı, debug harness önerisi, BNS full integration akışı, ceremony/HSM notları.
+
+**Kanıt:**
+- `git log origin/main -3` → 2250795 BNS full_integration, 9387fb1 ARENA2 devralma, 51dbaf9 10 soru
+- `cat docs/VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA3.md | wc -l` → 150+
+- `cat config/mainnet.toml | grep bootnodes -A 3` → 3 dummy
+- `ls src/bns/` → registry.rs, types.rs, mod.rs
+
+**Sonraki adım:** ARENA2 constraint-by-constraint debug'e devam (matrix green → full red → aux CTL), ARENA3 BNS → storage fetch RPC glue (bns_resolve_full + discovery), kullanıcı "devam" → ADIM4 VerifyMerkle'ye odaklan.
+
+**Engel:** ARENA2 ZK debug yanıtı + CI yeşil takibi. Force-push YASAK.
+
+Co-authored-by: ARENA3
