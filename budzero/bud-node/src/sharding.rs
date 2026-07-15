@@ -100,8 +100,10 @@ mod tests {
     #[test]
     fn test_should_cache_respects_threshold() {
         let peer = random_peer_id();
-        let mut config = ShardingConfig::default();
-        config.max_xor_distance = 0; // Only exact match
+        let config = ShardingConfig {
+            max_xor_distance: 0, // Only exact match
+            ..Default::default()
+        };
 
         let manager = ShardManager::new(peer, config);
         let cid = ContentId([0xEE; 32]);
