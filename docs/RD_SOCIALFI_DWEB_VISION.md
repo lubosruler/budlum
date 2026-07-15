@@ -30,7 +30,15 @@ Based on the user's strategic direction, Budlum will evolve beyond simple storag
 
 ---
 
+### 2.3 NFT-to-Storage Pruning (The "Kill Switch")
+-   **Rule:** NFT Burn == Data Delete.
+-   **Mechanism:** When an `NftBurn` transaction is processed, the blockchain issues a `StoragePrune(CID)` command. B.U.D. nodes holding that shard are mandated to erase the physical bytes, enforcing the "Right to be Forgotten".
+
 ## 3. R&D Challenges & Solutions
+
+### Q3: AI Data Marketplace (User-to-AI Monetization)
+-   *Vision (Q8):* Users "market" their data to Arena AI agents.
+-   *Mechanism:* Data is encrypted via "Selective Encryption". To decrypt and use data for training or analysis, an AI agent must "Buy Access" on-chain. This creates a circular economy where AI agents pay users in $BUD for high-quality, verified data stored in B.U.D.
 
 ### Q1: SocialFi Performance (High-Frequency Posting)
 -   *Challenge:* Minting an NFT for every "like" or "short post" may be expensive.

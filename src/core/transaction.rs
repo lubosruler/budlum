@@ -63,6 +63,7 @@ pub enum TransactionType {
     BnsRegisterSubdomain,
     NftMint,
     NftTransfer,
+    NftBurn,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -1999,4 +1999,41 @@ impl BudlumApiServer for RpcServer {
             "tx_template": tx,
         }))
     }
+
+    async fn social_prepare_burn(
+        &self,
+        owner: String,
+        nft_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_owner = owner.strip_prefix("0x").unwrap_or(&owner);
+        let owner_addr = Address::from_hex(clean_owner).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid owner address: {}", e), None::<()>)
+        })?;
+
+        let data = bincode::serialize(&nft_id)
+            .map_err(|e| ErrorObjectOwned::owned(-32000, e.to_string(), None::<()>))?;
+
+        let tx = crate::core::transaction::Transaction {
+            from: owner_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 500,
+            nonce: self.chain.get_nonce(&owner_addr).await,
+            data,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::NftBurn,
+        };
+
+        Ok(serde_json::json!({
+            "owner": owner,
+            "nft_id": nft_id,
+            "tx_template": tx,
+        }))
+    }
 }

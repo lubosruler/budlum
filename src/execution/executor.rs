@@ -343,6 +343,24 @@ impl Executor {
                 sender.balance = sender.balance.saturating_sub(tx.fee);
                 sender.nonce = sender.nonce.saturating_add(1);
             }
+            TransactionType::NftBurn => {
+                // data: bincode({ nft_id: u64 })
+                let id: u64 = bincode::deserialize(&tx.data)
+                    .map_err(|e| BudlumError::validation("nft_invalid_data", e.to_string()))?;
+
+                let cid = state.nft_registry.burn(id, &tx.from)
+                    .map_err(|e| BudlumError::validation("nft_burn_failed", e.to_string()))?;
+
+                // B.U.D. Phase 3 (R&D Decision 3): Hard Pruning. 
+                // We emit a tracing signal for the Storage Node to clean up.
+                // In a production environment, this would be caught by the 
+                // Storage Sharding maintenance loop.
+                tracing::info!(%cid, "B.U.D. Hard Prune Triggered by NftBurn");
+
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_sub(tx.fee);
+                sender.nonce = sender.nonce.saturating_add(1);
+            }
         }
 
         Ok(())

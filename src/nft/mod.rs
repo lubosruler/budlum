@@ -49,6 +49,23 @@ impl NftRegistry {
         Ok(())
     }
 
+    pub fn burn(&mut self, id: u64, owner: &Address) -> Result<ContentId, NftError> {
+        let nft = self.nfts.get(&id).ok_or(NftError::NotFound)?;
+        if &nft.owner != owner {
+            return Err(NftError::NotOwner);
+        }
+        
+        let cid = nft.content_id;
+        
+        // Remove from everywhere
+        self.nfts.remove(&id);
+        if let Some(list) = self.ownership.get_mut(owner) {
+            list.retain(|&x| x != id);
+        }
+        
+        Ok(cid)
+    }
+
     pub fn get_nft(&self, id: u64) -> Option<&Nft> {
         self.nfts.get(&id)
     }

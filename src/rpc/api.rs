@@ -429,4 +429,12 @@ pub trait BudlumApi {
         cid: String,
         author_name: Option<String>,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Prepare an NFT burn transaction (Deletes data from B.U.D.).
+    #[method(name = "bud_socialPrepareBurn")]
+    async fn social_prepare_burn(
+        &self,
+        owner: String,
+        nft_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
 }
