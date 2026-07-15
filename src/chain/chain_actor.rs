@@ -228,7 +228,6 @@ pub enum ChainCommand {
         response: oneshot::Sender<Result<Prevote, String>>,
     },
     SignPrecommit {
-    SignPrecommit {
         epoch: u64,
         checkpoint_height: u64,
         checkpoint_hash: String,
@@ -272,7 +271,6 @@ pub enum ChainCommand {
         owner: Address,
         response: oneshot::Sender<Vec<crate::nft::types::Nft>>,
     },
-}
 }
 
 #[derive(Clone)]
