@@ -166,11 +166,7 @@ impl ContentDiscovery {
     /// Get all known providers for a CID.
     pub fn get_providers(&self, cid: &ContentId) -> Vec<PeerId> {
         let cache = self.cache.read().unwrap();
-        cache
-            .providers
-            .get(cid)
-            .cloned()
-            .unwrap_or_default()
+        cache.providers.get(cid).cloned().unwrap_or_default()
     }
 
     /// Get all CIDs that need re-announcement.
@@ -192,13 +188,7 @@ impl ContentDiscovery {
 
     /// Total number of cached provider records.
     pub fn cached_provider_count(&self) -> usize {
-        self.cache
-            .read()
-            .unwrap()
-            .providers
-            .values()
-            .map(Vec::len)
-            .sum()
+        self.cache.read().unwrap().providers.values().map(Vec::len).sum()
     }
 }
 
