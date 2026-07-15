@@ -22,7 +22,7 @@
 use crate::store::ContentId;
 use libp2p::kad::RecordKey;
 use libp2p::PeerId;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
@@ -67,7 +67,7 @@ pub struct Provider {
 /// updated when peers respond to Bitswap requests.
 struct DiscoveryCache {
     /// CID → set of known providers.
-    providers: BTreeMap<ContentId, BTreeSet<PeerId>>,
+    providers: BTreeMap<ContentId, Vec<PeerId>>,
     /// CID → last announcement time (for re-announcement scheduling).
     last_announced: BTreeMap<ContentId, Instant>,
     /// Configuration.
@@ -111,12 +111,12 @@ impl ContentDiscovery {
     /// Convert a Kademlia `RecordKey` back to a `ContentId`.
     /// Returns `None` if the key is not 32 bytes.
     pub fn key_to_cid(key: &RecordKey) -> Option<ContentId> {
-        let bytes = key.as_ref();
+        let bytes = key.to_vec();
         if bytes.len() != 32 {
             return None;
         }
         let mut id = [0u8; 32];
-        id.copy_from_slice(bytes);
+        id.copy_from_slice(&bytes);
         Some(ContentId(id))
     }
 
@@ -158,8 +158,8 @@ impl ContentDiscovery {
         let mut cache = self.cache.write().unwrap();
         let max = cache.config.max_providers_per_cid;
         let providers = cache.providers.entry(*cid).or_default();
-        if providers.len() < max {
-            providers.insert(peer_id);
+        if providers.len() < max && !providers.contains(&peer_id) {
+            providers.push(peer_id);
         }
     }
 
@@ -169,7 +169,7 @@ impl ContentDiscovery {
         cache
             .providers
             .get(cid)
-            .map(|set| set.iter().copied().collect())
+            .cloned()
             .unwrap_or_default()
     }
 
@@ -197,7 +197,7 @@ impl ContentDiscovery {
             .unwrap()
             .providers
             .values()
-            .map(|set| set.len())
+            .map(Vec::len)
             .sum()
     }
 }
