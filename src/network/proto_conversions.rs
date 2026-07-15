@@ -828,6 +828,7 @@ mod tests {
             replay_nonce_root: [6u8; 32],
             proposer: None,
             settlement_finality_root: [7u8; 32],
+            storage_root: None,
         };
         let msg = NetworkMessage::GlobalHeader(header.clone());
         let proto_msg = pb::ProtoNetworkMessage::from(&msg);

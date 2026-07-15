@@ -89,11 +89,7 @@ impl HsmMockServer {
     ) -> Result<(), String> {
         let mut reader = BufReader::new(stream.try_clone().map_err(|e| e.to_string())?);
         let mut line = String::new();
-        while reader
-            .read_line(&mut line)
-            .map_err(|e| e.to_string())?
-            > 0
-        {
+        while reader.read_line(&mut line).map_err(|e| e.to_string())? > 0 {
             if line.trim().is_empty() {
                 continue;
             }
@@ -173,7 +169,8 @@ impl HsmMockServer {
                     if let Ok(guard) = bls_key.lock() {
                         if let Some(ref bls) = *guard {
                             if let Ok(msg_bytes) = hex::decode(req.payload.trim()) {
-                                let sig = crate::chain::finality::sign_bls(&bls.secret_key, &msg_bytes);
+                                let sig =
+                                    crate::chain::finality::sign_bls(&bls.secret_key, &msg_bytes);
                                 HsmResponse {
                                     status: "ok".into(),
                                     result: hex::encode(sig),
@@ -248,7 +245,9 @@ impl HsmMockServer {
 
             let mut out = serde_json::to_string(&resp).map_err(|e| e.to_string())?;
             out.push('\n');
-            stream.write_all(out.as_bytes()).map_err(|e| e.to_string())?;
+            stream
+                .write_all(out.as_bytes())
+                .map_err(|e| e.to_string())?;
             stream.flush().map_err(|e| e.to_string())?;
             line.clear();
         }
@@ -280,10 +279,12 @@ impl HsmMockSigner {
                 resp.error
             )));
         }
-        let pk_bytes = hex::decode(resp.result.trim())
-            .map_err(|e| CryptoError::InvalidKey(e.to_string()))?;
+        let pk_bytes =
+            hex::decode(resp.result.trim()).map_err(|e| CryptoError::InvalidKey(e.to_string()))?;
         if pk_bytes.len() != 32 {
-            return Err(CryptoError::InvalidKey("HSM pubkey must be 32 bytes".into()));
+            return Err(CryptoError::InvalidKey(
+                "HSM pubkey must be 32 bytes".into(),
+            ));
         }
         let mut pubkey = [0u8; 32];
         pubkey.copy_from_slice(&pk_bytes);
@@ -301,15 +302,12 @@ impl HsmMockSigner {
             op: op.to_string(),
             payload: payload.to_string(),
         };
-        let mut out = serde_json::to_string(&req)
-            .map_err(|e| CryptoError::Io(e.to_string()))?;
+        let mut out = serde_json::to_string(&req).map_err(|e| CryptoError::Io(e.to_string()))?;
         out.push('\n');
         stream
             .write_all(out.as_bytes())
             .map_err(|e| CryptoError::Io(e.to_string()))?;
-        stream
-            .flush()
-            .map_err(|e| CryptoError::Io(e.to_string()))?;
+        stream.flush().map_err(|e| CryptoError::Io(e.to_string()))?;
 
         let mut reader = BufReader::new(stream);
         let mut line = String::new();
@@ -372,7 +370,13 @@ mod tests {
         let bls = BlsKeypair::generate().unwrap();
         let pq = PqKeyPair::generate();
 
-        let _server = HsmMockServer::spawn_inprocess(&sock, Some(kp.clone()), Some(bls.clone()), Some(pq.clone())).unwrap();
+        let _server = HsmMockServer::spawn_inprocess(
+            &sock,
+            Some(kp.clone()),
+            Some(bls.clone()),
+            Some(pq.clone()),
+        )
+        .unwrap();
 
         // Give the background thread 50ms to bind socket
         std::thread::sleep(std::time::Duration::from_millis(50));

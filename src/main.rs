@@ -436,11 +436,17 @@ async fn main() {
                     std::thread::sleep(std::time::Duration::from_millis(50));
                     match budlum_core::crypto::hsm_mock::HsmMockSigner::new(socket_path) {
                         Ok(signer) => {
-                            println!("BLS-PQ HSM mock backend initialized at UNIX socket: {}", socket_path);
+                            println!(
+                                "BLS-PQ HSM mock backend initialized at UNIX socket: {}",
+                                socket_path
+                            );
                             Some(Arc::new(signer))
                         }
                         Err(e) => {
-                            eprintln!("CRITICAL: Failed to connect to HSM mock socket {}: {}", socket_path, e);
+                            eprintln!(
+                                "CRITICAL: Failed to connect to HSM mock socket {}: {}",
+                                socket_path, e
+                            );
                             std::process::exit(1);
                         }
                     }

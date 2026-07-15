@@ -370,6 +370,9 @@ impl RpcServer {
             "replayNonceRoot": Self::bytes32_to_0x(h.replay_nonce_root),
             "proposer": h.proposer.map(|p| p.to_string()),
             "settlementFinalityRoot": Self::bytes32_to_0x(h.settlement_finality_root),
+            // B.U.D. Faz 4 (ARENA2): storage_root anchoring — null when no
+            // storage proofs in this block, 0x-prefixed hex when present.
+            "storageRoot": h.storage_root.map(Self::bytes32_to_0x),
         })
     }
 

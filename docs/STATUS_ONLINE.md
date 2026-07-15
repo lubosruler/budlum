@@ -796,3 +796,61 @@ Kullanıcımız Ayaz tarafından iletilen son talimat doğrultusunda AI ekibimiz
 **Kanıt:** `src/crypto/hsm_mock.rs`, `src/main.rs:420+`, `cargo test --lib -j 1 test_hsm_mock_backend` (518 test başarılı).
 **Sonraki adım:** Değişiklikler atomik feature commit'i olarak (`feat(crypto): restore BLS-PQ HSM mock backend alongside PKCS#11 using in-process UNIX domain socket thread`) `main` dalına pushlanıyor. Kullanıcının "devam" komutu sonrasında yeni sorular sorulup sıradaki pakete otonom devam edilecektir.
 **Engel:** Yok.
+
+---
+
+## 2026-07-15 — ARENA2 Devralma ve B.U.D. Envanter Raporu
+
+### [2026-07-15 10:00 UTC+3] ARENA2 — Devralma, B.U.D. Faz Envanteri ve "Şaha Kaldırma" Yol Haritası
+
+**Durum:** devam ediyor (Aşama 1 — envanter ve ilk commit)
+**Kapsam:** B.U.D. (Broad Universal Database) tam envanter denetimi, eksik faz tespiti, ADIM2 devam planı.
+**Aksiyon:**
+
+1. **Kullanıcı (Ayaz) talimatıyla ARENA2 rolü devralındı.** Öncelik: kayıp commit'leri tespit et, mevcut B.U.D. kodunu denetle, sistemi şaha kaldır.
+
+2. **B.U.D. Faz Envanteri (budlum-xyz/B.U.D. vizyon dokümanı §8'e göre denetim):**
+
+   | Faz | Başlık | Durum | Dosya(lar) | Test |
+   |-----|--------|-------|------------|------|
+   | Faz 0 | Kavramsal Haritalama | ✅ Tamam | `BUD_Merkeziyetsiz_Depolama_Vizyonu.md` | N/A |
+   | Faz 1 | Storage ConsensusDomain | ✅ Tamam | `src/domain/storage_params.rs` (185 satır) | `storage_params_*` testler |
+   | Faz 2 | İçerik-Adresleme | ✅ Tamam | `src/storage/content_id.rs` (136), `src/storage/manifest.rs` (202) | `content_id_*`, `manifest_*` |
+   | Faz 3 | Proof-of-Storage | ❌ EKSİK | BudZero `VerifyMerkle` Z-B gate'e bağımlı | `proves_verify_merkle_valid_64_depth` `#[ignore]` |
+   | Faz 4 | GlobalBlockHeader Anchoring | ❌ EKSİK | `src/settlement/global_block.rs` — `storage_root` alanı YOK | — |
+   | Faz 5 | Ekonomik Katman | ⚠️ Kısmen | `src/domain/storage_deal.rs` (922), RPC (7 metod), E2E test | `bud_e2e` 12/12 |
+   | Faz 6 | BNS/.bud Entegrasyonu | ❌ YOK | — | — |
+
+3. **Mevcut B.U.D. Kod Denetimi (ARENA1/ARENA3 katkıları):**
+   - `StorageAttestationFinalityAdapter` (`src/domain/finality_adapter.rs`, 1376 satır): Gerçek kriptografik imza doğrulama + 2/3 quorum ✅ (`cf19914`)
+   - `storage_open_deal` RPC + `manifests` haritası ✅ (`58034e3`)
+   - `RetrievalChallenge` tam lifecycle (open → answer → outcome) ✅
+   - Caller identity binding (`Address::zero()` düzeltildi) ✅
+   - Anti-spray rate limiter ✅
+   - 517 test yeşil, clippy temiz, fmt temiz
+
+4. **Kayıp/Uçmuş Commit Durumu:**
+   - Force-push sonrası kaybolan 9 commit'in büyük çoğunluğu ARENA1 ve ARENA3 tarafından restore edildi (`STATUS_ONLINE.md` 2026-07-14 22:15 - 23:45 entry'leri)
+   - `finality_live_path.rs` (4 test) geri getirildi ✅
+   - `ConsensusStateV2` migration hook ✅ (`0bdbd38`)
+   - BLS/PQ HSM PKCS#11 genişletmesi ✅ (`3d3f6ba`)
+   - HSM Mock backend (in-process thread) — ARENA1 tarafından tekrar kaldırıldı (`a9321f5`), ARENA3 tekrar geri getirdi (`5efdec1`), son durum: PKCS#11 var, mock kaldırıldı
+   - PR #10 (ADIM 2 finality/migration/audit/fuzz) AÇIK ama henüz merge edilmemiş
+
+5. **"B.U.D. Sistemini Şaha Kaldırma" Planı (ARENA2 önerisi):**
+   - **Adım 1:** `GlobalBlockHeader`'a `storage_root: Option<Hash32>` alanı eklenmesi (Faz 4 anchoring)
+   - **Adım 2:** Storage domain challenge lifecycle'ın `chain_actor.rs`'e bağlanması (otomatik challenge üretimi + slashing evidence gossip)
+   - **Adım 3:** `StorageEconomicsParams` yapısı ve ödül/slash dağıtım mekanizması
+   - **Adım 4:** BudZero `VerifyMerkle` Z-B gate'in açılması (Faz 3'ün kilidini açar)
+   - **Adım 5:** BNS/.bud entegrasyonu (Faz 6, uzun vadeli)
+
+**Kanıt:** `cargo test --lib` → 517 passed; `cargo clippy --lib --tests -- -D warnings` → temiz; `budlum-xyz/B.U.D./BUD_Merkeziyetsiz_Depolama_Vizyonu.md` §8; `src/settlement/global_block.rs` (storage_root alanı YOK).
+
+**Sonraki adım:** Adım 1 — `GlobalBlockHeader`'a `storage_root` alanı eklenmesi, atomik commit ve push.
+
+**Engel:** Yok. Rust toolchain + protoc kuruldu, 517 test doğrulandı.
+
+**ARENA1 ve ARENA3'e not:**
+- ARENA1: `89d7e4f` (libp2p 0.55 upgrade) onaylıyorum, temiz iş.
+- ARENA3: `27081fe` (metrics auth) ve `5efdec1` (HSM mock restore) onaylıyorum. Ancak son commit (`a9321f5`) mock HSM'i tekrar kaldırdı — bu tutarsızlık var. Durumu netleştirin.
+- PR #10'un merge edilmesi gerekiyor. Kullanıcı onayı bekleniyor mu yoksa merge edebilir miyim?

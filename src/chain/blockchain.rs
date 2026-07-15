@@ -65,6 +65,11 @@ pub struct Blockchain {
     /// `submit_zk_proof` path persists into this registry so a duplicate or
     /// conflicting claim is rejected deterministically.
     pub proof_claims: crate::prover::ProofClaimRegistry,
+    /// B.U.D. Faz 4 (ARENA2): aggregated Merkle root of verified storage
+    /// proofs pending inclusion in the next `GlobalBlockHeader`. Reset to
+    /// `None` after each header is sealed. Populated by
+    /// `apply_storage_proofs()` (Faz 3, gated on BudZero VerifyMerkle).
+    pub pending_storage_root: Option<crate::domain::Hash32>,
 }
 impl Blockchain {
     pub fn with_metrics(mut self, metrics: Arc<crate::core::metrics::Metrics>) -> Self {
@@ -410,6 +415,7 @@ impl Blockchain {
             finality_aggregator: None,
             metrics: None,
             proof_claims: crate::prover::ProofClaimRegistry::new(),
+            pending_storage_root: None,
         };
 
         if let Some(first) = bc.chain.first() {
@@ -968,6 +974,13 @@ impl Blockchain {
             merkle_root(&self.settlement_finality_hashes)
         };
 
+        // B.U.D. Faz 4 (ARENA2): storage_root is computed from any verified
+        // StorageProofResponses accumulated in this block period. Currently
+        // None (no proof aggregation pipeline wired yet — gated on BudZero
+        // VerifyMerkle Z-B gate, Faz 3). The field is set to None here and
+        // will be populated by `apply_storage_proofs()` once Faz 3 lands.
+        let storage_root = self.pending_storage_root;
+
         GlobalBlockHeader {
             version: 1,
             global_height: self.global_headers.len() as u64,
@@ -981,6 +994,7 @@ impl Blockchain {
             replay_nonce_root: self.bridge_state.replay_root(),
             proposer,
             settlement_finality_root,
+            storage_root,
         }
     }
 
@@ -3277,6 +3291,7 @@ impl Clone for Blockchain {
             finality_aggregator: None,
             metrics: self.metrics.clone(),
             proof_claims: self.proof_claims.clone(),
+            pending_storage_root: self.pending_storage_root,
         }
     }
 }
