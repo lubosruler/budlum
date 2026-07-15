@@ -406,7 +406,8 @@ mod settlement_prod_tests {
         // Below-depth (pending) proof, correctly bound to its commitment.
         let base = commitment_for(&pow, 10, 0, 1);
         let pending_proof = pow_proof_for(&base, 3);
-        let pending_commitment = commitment_with_proof(&pow, 10, 0, 1, &pending_proof, Address::zero());
+        let pending_commitment =
+            commitment_with_proof(&pow, 10, 0, 1, &pending_proof, Address::zero());
         let err = blockchain
             .submit_verified_domain_commitment(pending_commitment, pending_proof)
             .unwrap_err();
@@ -415,14 +416,16 @@ mod settlement_prod_tests {
 
         // Finalized-depth proof, bound to the same commitment.
         let finalized_proof = pow_proof_for(&base, 64);
-        let mut bad_hash_commitment = commitment_with_proof(&pow, 10, 0, 1, &finalized_proof, Address::zero());
+        let mut bad_hash_commitment =
+            commitment_with_proof(&pow, 10, 0, 1, &finalized_proof, Address::zero());
         bad_hash_commitment.finality_proof_hash = [9u8; 32];
         let err = blockchain
             .submit_verified_domain_commitment(bad_hash_commitment, finalized_proof.clone())
             .unwrap_err();
         assert!(err.contains("proof hash mismatch"));
 
-        let finalized_commitment = commitment_with_proof(&pow, 10, 0, 1, &finalized_proof, Address::zero());
+        let finalized_commitment =
+            commitment_with_proof(&pow, 10, 0, 1, &finalized_proof, Address::zero());
         blockchain
             .submit_verified_domain_commitment(finalized_commitment, finalized_proof)
             .unwrap();
@@ -498,7 +501,8 @@ mod settlement_prod_tests {
 
         // At quorum: 3 of 4 real signatures.
         let quorum_proof = poa_proof_for(&base, poa.id, 4, 3);
-        let quorum_commitment = commitment_with_proof(&poa, 3, 0, 3, &quorum_proof, Address::zero());
+        let quorum_commitment =
+            commitment_with_proof(&poa, 3, 0, 3, &quorum_proof, Address::zero());
         blockchain
             .submit_verified_domain_commitment(quorum_commitment, quorum_proof)
             .unwrap();
@@ -674,12 +678,22 @@ mod settlement_prod_tests {
                 0,
                 Some(expected_block_hash),
                 event.clone(),
-                &proof, Address::zero())
+                &proof,
+                Address::zero(),
+            )
             .unwrap();
         assert_eq!(verified.event.event_index, 1);
 
         assert!(blockchain
-            .verify_domain_event_proof(pow.id, 44, 0, Some([0u8; 32]), event.clone(), &proof, Address::zero())
+            .verify_domain_event_proof(
+                pow.id,
+                44,
+                0,
+                Some([0u8; 32]),
+                event.clone(),
+                &proof,
+                Address::zero()
+            )
             .is_err());
 
         let mut wrong_index = proof.clone();
@@ -698,7 +712,15 @@ mod settlement_prod_tests {
         let missing_event = event_tree.events()[0].clone();
         let missing_proof = event_tree.proof(0).unwrap();
         assert!(blockchain
-            .verify_domain_event_proof(pow.id, 999, 0, None, missing_event, &missing_proof, Address::zero())
+            .verify_domain_event_proof(
+                pow.id,
+                999,
+                0,
+                None,
+                missing_event,
+                &missing_proof,
+                Address::zero()
+            )
             .is_err());
     }
 
@@ -742,7 +764,9 @@ mod settlement_prod_tests {
                 0,
                 Some(commitment_block_hash),
                 lock_event.clone(),
-                &proof, Address::zero())
+                &proof,
+                Address::zero(),
+            )
             .unwrap();
         assert!(
             blockchain
@@ -752,7 +776,9 @@ mod settlement_prod_tests {
                     0,
                     Some(commitment_block_hash),
                     lock_event,
-                    &proof, Address::zero())
+                    &proof,
+                    Address::zero()
+                )
                 .is_err(),
             "verified messages still replay-protect at bridge state"
         );
@@ -820,7 +846,15 @@ mod settlement_prod_tests {
 
         let proof = tree.proof(0).unwrap();
         let err = blockchain
-            .mint_bridge_transfer_from_verified_event(pow.id, 88, 0, None, event, &proof, Address::zero()))
+            .mint_bridge_transfer_from_verified_event(
+                pow.id,
+                88,
+                0,
+                None,
+                event,
+                &proof,
+                Address::zero(),
+            )
             .unwrap_err();
         assert!(err.contains("not a bridge lock event"));
     }
@@ -852,7 +886,15 @@ mod settlement_prod_tests {
 
         let proof = tree.proof(0).unwrap();
         let err = blockchain
-            .mint_bridge_transfer_from_verified_event(pow.id, 77, 0, None, mutated_event, &proof, Address::zero()))
+            .mint_bridge_transfer_from_verified_event(
+                pow.id,
+                77,
+                0,
+                None,
+                mutated_event,
+                &proof,
+                Address::zero(),
+            )
             .unwrap_err();
         assert!(
             err.contains("payload hash mismatch") || err.contains("source event hash mismatch")
@@ -1391,7 +1433,9 @@ mod settlement_prod_tests {
             0,
             Some(commitment_block_hash),
             event.clone(),
-            &proof, Address::zero())
+            &proof,
+            Address::zero(),
+        )
         .unwrap();
         let err = bc
             .mint_bridge_transfer_from_verified_event(
@@ -1400,7 +1444,9 @@ mod settlement_prod_tests {
                 0,
                 Some(commitment_block_hash),
                 event,
-                &proof, Address::zero())
+                &proof,
+                Address::zero(),
+            )
             .unwrap_err();
         assert!(err.contains("already processed") || err.contains("replay"));
     }
@@ -1670,7 +1716,9 @@ mod settlement_prod_tests {
             0,
             Some(commitment_block_hash),
             lock_event,
-            &proof, Address::zero())
+            &proof,
+            Address::zero(),
+        )
         .unwrap();
 
         let burn_event = bc
@@ -1691,7 +1739,9 @@ mod settlement_prod_tests {
             0,
             Some(burn_commitment_block_hash),
             burn_event,
-            &burn_proof, Address::zero())
+            &burn_proof,
+            Address::zero(),
+        )
         .unwrap();
 
         let final_header = bc.seal_global_header(None).unwrap();
@@ -1728,7 +1778,9 @@ mod settlement_prod_tests {
             0,
             Some(lock_commitment_block_hash),
             lock_event,
-            &lock_proof, Address::zero())
+            &lock_proof,
+            Address::zero(),
+        )
         .unwrap();
 
         assert!(
@@ -1756,7 +1808,9 @@ mod settlement_prod_tests {
                 0,
                 None,
                 wrong_kind,
-                &burn_proof, Address::zero())
+                &burn_proof,
+                Address::zero()
+            )
             .is_err());
 
         let mut wrong_message = burn_event.clone();
@@ -1768,7 +1822,9 @@ mod settlement_prod_tests {
                 0,
                 None,
                 wrong_message,
-                &burn_proof, Address::zero())
+                &burn_proof,
+                Address::zero()
+            )
             .is_err());
 
         bc.unlock_bridge_transfer_from_verified_event(
@@ -1777,7 +1833,9 @@ mod settlement_prod_tests {
             0,
             None,
             burn_event,
-            &burn_proof, Address::zero())
+            &burn_proof,
+            Address::zero(),
+        )
         .unwrap();
     }
 
