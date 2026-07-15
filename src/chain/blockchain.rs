@@ -3355,7 +3355,10 @@ impl Blockchain {
                 continue;
             }
 
-            self.state.add_balance(&operator, amount);
+            // FAZ 5 FAIL-CLOSED: Payer escrow / debit eklenene kadar gerçek bakiye basımı durduruldu.
+            // self.state.add_balance(&operator, amount);
+            tracing::warn!("Fail-closed: Skipping real add_balance for reward. Payer escrow needed.");
+
             let reward_entry = self.storage_operator_rewards.entry(operator).or_default();
             *reward_entry = reward_entry.saturating_add(amount);
             self.storage_last_reward_epoch.insert(deal_id, reward_until);
@@ -3455,7 +3458,12 @@ impl Blockchain {
                     self.storage_slashed_bond_total = self
                         .storage_slashed_bond_total
                         .saturating_add(result.slashed_bond);
-                    let burned = self.state.burn_from(&operator, result.slashed_bond);
+
+                    // FAZ 5 FAIL-CLOSED: Gerçek kilitli bond modeli eklenene kadar likit bakiyeden yakma durduruldu.
+                    // let burned = self.state.burn_from(&operator, result.slashed_bond);
+                    let burned = 0;
+                    tracing::warn!("Fail-closed: Skipping real burn_from for slashed bond. Escrow needed.");
+
                     self.storage_burned_bond_total =
                         self.storage_burned_bond_total.saturating_add(burned);
                     self.storage_economics_events.push(StorageEconomicsEvent {

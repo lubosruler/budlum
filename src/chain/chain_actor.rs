@@ -1044,37 +1044,38 @@ impl ChainActor {
     }
 
     fn run_storage_maintenance(&mut self, block_height: u64) {
+        let current_epoch = block_height / crate::core::chain_config::EPOCH_LEN;
         let (rewarded, reward_total) = self
             .blockchain
-            .accrue_storage_operator_rewards(block_height);
+            .accrue_storage_operator_rewards(current_epoch);
         if rewarded > 0 {
             tracing::info!(
-                "B.U.D. storage maintenance accrued rewards for {} deals at height {} (amount={})",
+                "B.U.D. storage maintenance accrued rewards for {} deals at epoch {} (amount={})",
                 rewarded,
-                block_height,
+                current_epoch,
                 reward_total
             );
         }
 
-        match self.blockchain.issue_storage_challenges(block_height) {
+        match self.blockchain.issue_storage_challenges(current_epoch) {
             Ok(issued) if issued > 0 => tracing::info!(
-                "B.U.D. storage maintenance issued {} retrieval challenges at height {}",
+                "B.U.D. storage maintenance issued {} retrieval challenges at epoch {}",
                 issued,
-                block_height
+                current_epoch
             ),
             Ok(_) => {}
             Err(error) => tracing::warn!(
-                "B.U.D. storage challenge issuance failed at height {}: {}",
-                block_height,
+                "B.U.D. storage challenge issuance failed at epoch {}: {}",
+                current_epoch,
                 error
             ),
         }
 
-        match self.blockchain.finalize_missed_storage_challenges(block_height) {
+        match self.blockchain.finalize_missed_storage_challenges(current_epoch) {
             Ok((finalized, slashed)) if finalized > 0 => tracing::info!(
-                "B.U.D. storage maintenance finalized {} missed challenges at height {} (slashed_bond={})",
+                "B.U.D. storage maintenance finalized {} missed challenges at epoch {} (slashed_bond={})",
                 finalized,
-                block_height,
+                current_epoch,
                 slashed
             ),
             Ok(_) => {}
