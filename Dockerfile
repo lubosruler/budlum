@@ -45,4 +45,4 @@ EXPOSE 4001 8545 8546 9090
 ENV RUST_LOG=info
 
 ENTRYPOINT ["budlum-core"]
-CMD ["--network", "devnet", "--port", "4001"]
+CMD ["--network", "mainnet", "--port", "4001"]
