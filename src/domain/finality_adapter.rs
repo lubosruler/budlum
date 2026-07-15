@@ -858,7 +858,8 @@ impl StorageAttestationFinalityAdapter {
         }
         if validator_snapshot.set_hash != cert.set_hash {
             return Ok(FinalityStatus::Rejected(
-                "Storage attestation cert set hash does not match validator snapshot".into(),
+                "Storage attestation cert set hash does not match validator snapshot"
+                    .into(),
             ));
         }
         if cert.agg_sig_bls.is_empty() {
@@ -936,7 +937,6 @@ impl DomainFinalityAdapter for StorageAttestationFinalityAdapter {
                     })
                 }
             }
-            // SECURITY (DENETLEYICI A3-T5): require FinalityCert::verify for PoS/Bft.
             FinalityProof::PoS {
                 cert,
                 validator_snapshot,
@@ -1406,8 +1406,6 @@ mod tests {
 
     #[test]
     fn test_storage_attestation_pos_bft_rejects_nonempty_unverified_bls() {
-        // DENETLEYİCİ A3-T5: non-empty agg_sig_bls + matching height/hash must
-        // NOT finalize without cryptographic cert.verify (fail-closed).
         let adapter = StorageAttestationFinalityAdapter;
         let domain = default_domain(
             5,
@@ -1428,7 +1426,6 @@ mod tests {
             epoch: 0,
             checkpoint_height: commitment.domain_height,
             checkpoint_hash: hex::encode(commitment.domain_block_hash),
-            // Non-empty garbage — old code would Finalized here.
             agg_sig_bls: vec![0xABu8; 48],
             bitmap: vec![0xff],
             set_hash: snapshot.set_hash.clone(),
@@ -1437,15 +1434,11 @@ mod tests {
             cert: junk_cert,
             validator_snapshot: snapshot,
         };
-        assert!(
-            matches!(
-                adapter
-                    .verify_finality(&domain, &commitment, &proof)
-                    .unwrap(),
-                FinalityStatus::Rejected(_)
-            ),
-            "storage attestation must reject unverified BLS aggregate (A3-T5)"
-        );
+        assert!(matches!(
+            adapter
+                .verify_finality(&domain, &commitment, &proof)
+                .unwrap(),
+            FinalityStatus::Rejected(_)
+        ));
     }
-
 }

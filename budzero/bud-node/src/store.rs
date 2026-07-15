@@ -25,13 +25,11 @@ pub struct ContentId(pub [u8; 32]);
 
 impl ContentId {
     /// Compute the `ContentId` of a chunk using the same domain-separated
-    /// length-prefixed SHA-256 as `budlum-core::core::hash::hash_fields_bytes`
-    /// with the `BDLM_CONTENT_V1` tag. (Plain `Sha256(tag||chunk)` would
-    /// diverge from L1 and break cross-crate integrity checks.)
+    /// SHA-256 as `budlum-core` (`BDLM_CONTENT_V1` tag).
     pub fn of(chunk: &[u8]) -> Self {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
-        // Mirror hash_fields_bytes(&[tag, chunk]): u64-le length prefix per field.
+        // Match budlum-core hash_fields_bytes(&[tag, chunk]).
         let tag: &[u8] = b"BDLM_CONTENT_V1";
         hasher.update((tag.len() as u64).to_le_bytes());
         hasher.update(tag);

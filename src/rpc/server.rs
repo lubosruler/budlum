@@ -1525,7 +1525,6 @@ impl BudlumApiServer for RpcServer {
         &self,
         request: RetrievalChallengeRequest,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
-        // DENETLEYICI A1-T6: never silently default to Address::zero().
         let Some(opener) = request.opener else {
             return Err(ErrorObjectOwned::owned(
                 -32602,
@@ -1622,7 +1621,6 @@ impl BudlumApiServer for RpcServer {
     }
 
     async fn storage_active_operators(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
-        // DENETLEYICI A1-T6: real RPC matching role.rs docs - not a fake name.
         let role = crate::registry::role::roles::STORAGE_OPERATOR;
         let members = self.chain.get_registry_active_members(role).await;
         let list: Vec<serde_json::Value> = members

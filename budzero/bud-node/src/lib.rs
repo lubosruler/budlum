@@ -1,13 +1,8 @@
 //! B.U.D. (Broad Universal Database) — P2P Storage Node
 //!
 //! This crate implements the P2P storage backend for the B.U.D. network,
-//! providing content-addressed storage helpers, discovery key mapping, and
-//! a Bitswap-like request/response codec.
-//!
-//! **Honesty note (DENETLEYİCİ):** this crate currently ships **unit-level**
-//! store/codec/discovery helpers. Full libp2p `Swarm` + `kad::Behaviour`
-//! wiring is not yet in this package — do not claim live DHT/Bitswap network
-//! integration until a NetworkBehaviour is connected.
+//! providing content-addressed storage, discovery via Kademlia DHT, and
+//! a Bitswap-like block exchange protocol.
 //!
 //! # Architecture
 //!

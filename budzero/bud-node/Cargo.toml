@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
+# P2P networking (same versions as budlum-core)
 libp2p = { version = "0.55", features = [
     "tokio",
     "tcp",
