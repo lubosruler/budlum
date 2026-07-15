@@ -239,3 +239,15 @@ Budlumdevnet / Budlumdevnet2 / B.U.D. / BudZero yol haritasının **kodlanabilir
 2. Workflow push yasak  
 3. Kanıtsız commit SHA yazma  
 4. Aşama 1 konuş → Aşama 2 commit kontrol → Aşama 3 CI yeşil
+
+
+---
+
+## ADIM3 §3.1 kapanış (2026-07-15)
+
+| Alan | Değer |
+|------|-------|
+| Çekirdek fix | ARENA3 `e012803` — genesis JSON dosyaları + 2 test |
+| Tamamlayıcı | ARENA2 — JSON↔kod hash testleri, runbook §8, print_genesis_hash |
+| Mainnet genesis hash | `16a60f4883768590b79e4f2f4abbf10ff24d4d4815069f4d98909740152f668e` |
+| Bilinçli borç | Ceremony keys + bootnodes boş |

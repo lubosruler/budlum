@@ -324,4 +324,100 @@ mod tests {
         assert_ne!(mainnet.hash, devnet.hash);
         assert_ne!(testnet.hash, devnet.hash);
     }
+
+    /// Load a checked-in network genesis JSON (ADIM3 §3.1).
+    fn load_genesis_json(relative: &str) -> GenesisConfig {
+        let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative);
+        let data = std::fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("failed to read {}: {e}", path.display()));
+        serde_json::from_str(&data)
+            .unwrap_or_else(|e| panic!("failed to parse {}: {e}", path.display()))
+    }
+
+    #[test]
+    fn test_mainnet_genesis_params() {
+        let config = mainnet_genesis();
+        assert_eq!(config.chain_id, 1);
+        assert_eq!(config.block_reward, 25);
+        assert_eq!(config.base_fee, Network::Mainnet.gas_schedule().base_fee);
+        assert_eq!(config.gas_schedule, Network::Mainnet.gas_schedule());
+        assert_eq!(config.allocations.len(), 2);
+        assert_eq!(config.validators.len(), 4);
+        assert!(config.bud_tokenomics.is_none());
+
+        let total: u64 = config.allocations.iter().map(|(_, a)| *a).sum();
+        assert_eq!(total, 1_000_000_000);
+
+        let state = config.build_state();
+        for (addr, amount) in &config.allocations {
+            assert_eq!(state.get_balance(addr), *amount);
+        }
+        for validator in &config.validators {
+            assert_eq!(
+                state.get_validator(validator).map(|v| v.stake),
+                Some(Network::Mainnet.min_stake())
+            );
+        }
+    }
+
+    #[test]
+    fn test_mainnet_genesis_json_matches_code() {
+        // Critical: config/mainnet-genesis.json must equal mainnet_genesis() hash.
+        let from_code = mainnet_genesis();
+        let from_json = load_genesis_json("config/mainnet-genesis.json");
+
+        assert_eq!(from_json.chain_id, from_code.chain_id);
+        assert_eq!(from_json.allocations, from_code.allocations);
+        assert_eq!(from_json.validators, from_code.validators);
+        assert_eq!(from_json.block_reward, from_code.block_reward);
+        assert_eq!(from_json.base_fee, from_code.base_fee);
+        assert_eq!(from_json.gas_schedule, from_code.gas_schedule);
+        assert_eq!(from_json.timestamp, from_code.timestamp);
+        assert!(from_json.bud_tokenomics.is_none());
+
+        let code_block = from_code.build_genesis_block();
+        let json_block = from_json.build_genesis_block();
+        assert_eq!(
+            code_block.hash, json_block.hash,
+            "config/mainnet-genesis.json must produce the same genesis hash as mainnet_genesis()"
+        );
+        assert_eq!(code_block.state_root, json_block.state_root);
+        assert_eq!(code_block.validator_set_hash, json_block.validator_set_hash);
+    }
+
+    #[test]
+    fn test_testnet_and_devnet_genesis_json_match_code() {
+        for (network, path) in [
+            (Network::Testnet, "config/testnet-genesis.json"),
+            (Network::Devnet, "config/devnet-genesis.json"),
+        ] {
+            let from_code = GenesisConfig::for_network(network);
+            let from_json = load_genesis_json(path);
+            assert_eq!(from_json.chain_id, from_code.chain_id, "{path}");
+            assert_eq!(from_json.allocations, from_code.allocations, "{path}");
+            assert_eq!(from_json.validators, from_code.validators, "{path}");
+            assert_eq!(from_json.block_reward, from_code.block_reward, "{path}");
+            assert_eq!(from_json.gas_schedule, from_code.gas_schedule, "{path}");
+            assert_eq!(from_json.timestamp, from_code.timestamp, "{path}");
+            assert_eq!(
+                from_code.build_genesis_block().hash,
+                from_json.build_genesis_block().hash,
+                "{path} genesis hash mismatch"
+            );
+        }
+    }
+
+    #[test]
+    fn test_mainnet_genesis_json_roundtrip() {
+        let original = mainnet_genesis();
+        let encoded = serde_json::to_string_pretty(&original).expect("serialize");
+        let decoded: GenesisConfig = serde_json::from_str(&encoded).expect("deserialize");
+        assert_eq!(original.chain_id, decoded.chain_id);
+        assert_eq!(original.allocations, decoded.allocations);
+        assert_eq!(original.validators, decoded.validators);
+        assert_eq!(
+            original.build_genesis_block().hash,
+            decoded.build_genesis_block().hash
+        );
+    }
 }

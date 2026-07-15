@@ -89,3 +89,67 @@ For a suspected bridge/finality incident: disable the affected domain's bridge,
 preserve DB/log evidence, stop operator mutations, identify the last finalized
 global header, and restore only from a tested backup. Do not manually edit sled
 keys.
+
+---
+
+## 8. Mainnet genesis and seed inventory (ADIM3 section 3.1 / 3.3)
+
+> **Status:** pre-ceremony placeholders. Repeated-byte addresses (`0x10..` /
+> `0x20..`) are deterministic test vectors, **not** production treasury or
+> validator keys. Replace them in a signed Mainnet release ceremony before
+> real-value launch. This section does **not** claim audited mainnet readiness.
+
+### 8.1 Canonical files
+
+| Network | Config | Genesis JSON | Code constructor |
+|---------|--------|--------------|------------------|
+| Mainnet | `config/mainnet.toml` | `config/mainnet-genesis.json` | `mainnet_genesis()` |
+| Testnet | `config/testnet.toml` | `config/testnet-genesis.json` | `testnet_genesis()` |
+| Devnet | `config/devnet.toml` | `config/devnet-genesis.json` | `devnet_genesis()` |
+
+Node startup loads `network.genesis_file` from the TOML profile. Missing or
+mismatched files fail closed (`exit 1`). JSON must match the in-code constructor
+hash (enforced by `test_mainnet_genesis_json_matches_code` and siblings).
+
+### 8.2 Mainnet genesis hash (computed from HEAD builders)
+
+| Field | Value |
+|-------|-------|
+| `chain_id` | `1` |
+| `timestamp` (ms) | `1735689600000` (2025-01-01 00:00:00 UTC) |
+| `block_reward` | `25` |
+| Genesis block hash | `16a60f4883768590b79e4f2f4abbf10ff24d4d4815069f4d98909740152f668e` |
+| `state_root` | `1f3a13db304714ad4227cf8b0de3e65d78c6827d001edd52d29afab98fc8bcb6` |
+| `validator_set_hash` | `4f10d0174df8204c55a18075672cb78566b5e5c03b3dc8b20c54b8bb09c9a7f0` |
+
+Recompute after any genesis field change:
+
+```bash
+cargo run --example print_genesis_hash
+cargo test --lib chain::genesis::tests::test_mainnet_genesis_json_matches_code
+```
+
+| Network | Genesis block hash |
+|---------|-------------------|
+| Mainnet | `16a60f4883768590b79e4f2f4abbf10ff24d4d4815069f4d98909740152f668e` |
+| Testnet | `b2e2135d77f963d5d58b58b86059a6299fd5c76ec8fef2a0de7385cc39a1b8c4` |
+| Devnet | `841deadf6bf3f5b41cdc973fd8c8f0d012af9ecff752b3e394a1d04addd0bf6c` |
+
+### 8.3 Seed / bootnode list
+
+`config/mainnet.toml` ships with empty `bootnodes` and `dns_seeds`. Populate
+only during the signed Mainnet release ceremony. Until then use local overrides
+or explicit bootstrap flags. Solo validators may start with empty discovery.
+
+| Role | multiaddr / DNS | Notes |
+|------|-----------------|-------|
+| _(empty until ceremony)_ | — | — |
+
+### 8.4 Operator checklist (mainnet profile)
+
+1. Verify `config/mainnet-genesis.json` and genesis block hash match section 8.2.
+2. Set PKCS#11 signer (`validator.signer.backend = "pkcs11"`); disk BLS/PQ keys fail closed.
+3. Point storage data_dir / secrets paths at durable volumes.
+4. Fill p2p bootnodes / dns_seeds from the ceremony table.
+5. Keep public RPC auth + per-IP quota on; operator RPC on localhost only.
+6. Record release Git commit, Rust version, genesis hash, BudZero proof format.

@@ -1283,3 +1283,23 @@ Kullanıcı kararları + ARENA1/ARENA3 koordinasyonu:
 - §3.5 validator onboarding E2E: ARENA1.
 
 **Engel:** CI yeşil takibi. Force-push YASAK.
+
+### [2026-07-15 15:35 UTC+3] ARENA2 — ADIM3 §3.1 tamamlayıcı: JSON↔kod hash testleri + runbook + hash aracı
+
+**Durum:** tamamlandı (push + CI takibi)
+**Kapsam:** ADIM3 §3.1 hardening (ARENA3 `e012803` üzerine) + §3.3 hash kaydı
+**Kime:** ARENA1, ARENA3, kullanıcı
+
+**Aksiyon:**
+1. Aşama 2: ARENA3 `e012803` + `2e5a0fa` fetch edildi (genesis JSON + 2 test, CI yeşil). Paralel çalışma çakışması: aynı dosyalar; ARENA3 çekirdeği korundu, ARENA2 tamamlayıcı ekledi.
+2. JSON ↔ `mainnet_genesis()` hash eşitlik testleri eklendi (`test_mainnet_genesis_json_matches_code`, testnet/devnet siblings, params, serde roundtrip).
+3. `examples/print_genesis_hash.rs` operatör yardımcısı.
+4. `docs/operations/PRODUCTION_RUNBOOK.md` §8: mainnet genesis hash + seed envanteri + checklist.
+5. `config/mainnet.toml` hash yorumu.
+
+**Mainnet genesis hash:** `16a60f4883768590b79e4f2f4abbf10ff24d4d4815069f4d98909740152f668e`
+
+**Doğrulama:** lokal `cargo test --lib chain::genesis` + clippy -D warnings (push öncesi).
+**Sonraki:** §3.2 docker mainnet defaults veya §3.4/3.5 (kullanıcı "devam").
+**Engel:** Yok. Force-push yok.
+
