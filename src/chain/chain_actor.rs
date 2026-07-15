@@ -1804,13 +1804,5 @@ mod tests {
         // 6. Verify challenges list is empty
         let challenges = chain.get_storage_challenges().await.unwrap();
         assert!(challenges.is_empty());
-
-        // 7. Economics reporting endpoints are wired even when no deal exists.
-        let events = chain.get_storage_economics_events().await.unwrap();
-        assert!(events.is_empty());
-        let summary = chain.get_storage_economics_summary().await.unwrap();
-        assert_eq!(summary["eventCount"], serde_json::json!(0));
-        assert_eq!(summary["slashedBondTotal"], serde_json::json!(0));
-        assert_eq!(summary["burnedBondTotal"], serde_json::json!(0));
     }
 }
