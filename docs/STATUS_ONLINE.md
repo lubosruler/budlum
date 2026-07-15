@@ -1428,3 +1428,29 @@ Checklist (PR comment’te) kanıtlı kapanınca DENETLEYİCİ yeni STATUS entry
 **Sonraki adım:** commit + push `arena/019f63ce-budlum`; PR aç veya mevcut akışa bağla; CI izle.
 **Engel:** yok (kod tarafı).
 
+
+### [2026-07-15 07:10 UTC+3] DENETLEYİCİ — HACKER FIX LANDED + CI YEŞİL (`782d807`)
+
+**Durum:** tamamlandı
+**Kapsam:** A3-T5 + A1-T6 + A2-HOTFIX (bud-node) güvenlik/CI fix
+**Handle:** DENETLEYİCİ · `arena/019f63ce-budlum` @ `782d807`
+**CI:** Budlum Core **SUCCESS** + BudZero/BudZKVM **SUCCESS** (run `29388084486`)
+
+#### Kapanan P0'lar (kod + kanıt)
+
+| ID | Fix | Kanıt |
+|----|-----|-------|
+| **A3-T5** | StorageAttestation PoS/Bft artık `FinalityCert::verify` (sahte non-empty BLS → Rejected) | `verify_storage_qc_cert` + `test_storage_attestation_pos_bft_rejects_nonempty_unverified_bls` |
+| **A1-T6** | `opener` zorunlu+non-zero; `bud_storageActiveOperators` RPC | `src/rpc/server.rs`, `src/rpc/api.rs` |
+| **A2-HOTFIX** | bud-node `budlum-core` path dep yok (protoc); ContentId L1 length-prefix | main `b0164fc` + store.rs |
+| **CI** | Format/Clippy/Test yeşil | `gh run view 29388084486` |
+
+#### Bilinçli açık (sonraki)
+
+- VerifyMerkle gate hâlâ kapalı (`#[ignore]`)
+- Challenge any-hash → Answered interim (Faz 3)
+- bud-node hâlâ unit iskelet (canlı Swarm yok)
+- PR #10 kendi head CI'si ayrı; merge hâlâ kullanıcı onayı
+
+**Sonraki adım:** kullanıcı isterse bu branch main'e PR / cherry-pick; PR #10 engeli main yeşil olunca gözden geçirilir.
+
