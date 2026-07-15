@@ -2110,6 +2110,110 @@ mod tests {
         println!("matrix chain OK for 64-depth path (n_rows={n_rows})");
     }
 
+    /// ADIM4 Q15 depth_1_test — constraint-by-constraint debug harness, 1-round path (3 rows)
+    #[test]
+    fn proves_verify_merkle_valid_1_depth() {
+        let program = vec![
+            inst(Opcode::VerifyMerkle, 1, 2, 3, 264),
+            inst(Opcode::Halt, 0, 0, 0, 0),
+        ];
+        let mut vm = Vm::new(1024);
+        let key: u64 = 0;
+        let sibling: u64 = 1;
+        let leaf: u64 = 0xBEEF;
+        let root = bud_vm::merkle_poseidon_round(leaf, sibling);
+        vm.memory[264..272].copy_from_slice(&key.to_le_bytes());
+        vm.memory[272..280].copy_from_slice(&sibling.to_le_bytes());
+        vm.registers[2] = root;
+        vm.registers[3] = leaf;
+        let receipt = vm.run_receipt(&program);
+        assert!(receipt.success);
+        assert_eq!(vm.trace.len(), 3);
+        let program_bytes: Vec<u8> = program
+            .iter()
+            .flat_map(|&inst| inst.to_le_bytes().to_vec())
+            .collect();
+        let mut hasher = Keccak::v256();
+        hasher.update(&program_bytes);
+        let mut program_hash = [0u8; 32];
+        hasher.finalize(&mut program_hash);
+        let pi = ExecutionPublicInputs {
+            chain_id: 1,
+            program_hash,
+            initial_state_root: [0u8; 32],
+            final_state_root: [0u8; 32],
+            sender: 0,
+            nonce: 0,
+            block_height: 0,
+            gas_limit: vm.gas_limit,
+            gas_used: vm.gas_used,
+            exit_code: 0,
+            trace_len: vm.trace.len() as u64,
+            event_digest: [0u8; 32],
+        };
+        let envelope = Plonky3Adapter::prove(&vm.trace, &pi, &program).unwrap();
+        let res = Plonky3Adapter::verify(&envelope, &pi, &program);
+        assert!(res.is_ok(), "1-depth should succeed: {:?}", res);
+    }
+
+    /// ADIM4 Q15 depth_2_test — 2-round path (4 rows), next step after 1-depth green
+    #[test]
+    fn proves_verify_merkle_valid_2_depth() {
+        let program = vec![
+            inst(Opcode::VerifyMerkle, 1, 2, 3, 264),
+            inst(Opcode::Halt, 0, 0, 0, 0),
+        ];
+        let mut vm = Vm::new(1024);
+        let key: u64 = 2; // binary 10 → bit0=0, bit1=1
+        let siblings: [u64; 2] = [10, 20];
+        let leaf: u64 = 0xBEEF;
+        let mut cur = leaf;
+        for (i, &sib) in siblings.iter().enumerate() {
+            let bit = (key >> i) & 1;
+            cur = if bit == 0 {
+                bud_vm::merkle_poseidon_round(cur, sib)
+            } else {
+                bud_vm::merkle_poseidon_round(sib, cur)
+            };
+        }
+        let root = cur;
+        vm.memory[264..272].copy_from_slice(&key.to_le_bytes());
+        for (i, &sib) in siblings.iter().enumerate() {
+            let off = 272 + i * 8;
+            vm.memory[off..off + 8].copy_from_slice(&sib.to_le_bytes());
+        }
+        vm.registers[2] = root;
+        vm.registers[3] = leaf;
+        let receipt = vm.run_receipt(&program);
+        assert!(receipt.success);
+        assert_eq!(vm.trace.len(), 4); // 1 original + 2 expansion + Halt
+        let program_bytes: Vec<u8> = program
+            .iter()
+            .flat_map(|&inst| inst.to_le_bytes().to_vec())
+            .collect();
+        let mut hasher = Keccak::v256();
+        hasher.update(&program_bytes);
+        let mut program_hash = [0u8; 32];
+        hasher.finalize(&mut program_hash);
+        let pi = ExecutionPublicInputs {
+            chain_id: 1,
+            program_hash,
+            initial_state_root: [0u8; 32],
+            final_state_root: [0u8; 32],
+            sender: 0,
+            nonce: 0,
+            block_height: 0,
+            gas_limit: vm.gas_limit,
+            gas_used: vm.gas_used,
+            exit_code: 0,
+            trace_len: vm.trace.len() as u64,
+            event_digest: [0u8; 32],
+        };
+        let envelope = Plonky3Adapter::prove(&vm.trace, &pi, &program).unwrap();
+        let res = Plonky3Adapter::verify(&envelope, &pi, &program);
+        assert!(res.is_ok(), "2-depth should succeed: {:?}", res);
+    }
+
     #[test]
     #[ignore = "ADIM4 ARENA2: matrix chain+leaf+gas+pc+logup fixes landed; full STARK still InvalidProof — next: aux CTL / constraint degree"]
     fn proves_verify_merkle_valid_64_depth() {
