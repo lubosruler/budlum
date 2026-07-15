@@ -646,7 +646,7 @@ mod tests {
 
         assert_eq!(
             snapshot_v2.schema_version,
-            CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION
+            CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION,
         ); // Tur 9: bumped 2->3
         assert_eq!(snapshot_v2.height, 105);
         assert!(snapshot_v2.verify());
@@ -656,7 +656,7 @@ mod tests {
         assert_eq!(deserialized.height, 105);
         assert_eq!(
             deserialized.schema_version,
-            CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION
+            CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION,
         ); // Tur 9: bumped 2->3
         assert!(deserialized.verify());
 
@@ -722,7 +722,7 @@ mod tests {
         assert_eq!(report.original_schema_version, 2);
         assert_eq!(
             report.target_schema_version,
-            CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION
+            CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION,
         );
         assert!(report.migrated);
         assert!(report.requires_backup);
