@@ -247,7 +247,7 @@ mod tests {
         let mut tx = Transaction::new(from, Address::zero(), 100, vec![]);
         tx.nonce = nonce;
         tx.fee = fee;
-        tx.hash = format!("tx_{}_{}", from_hex, nonce);
+        tx.hash = format!("tx_from_hex_nonce");
         tx
     }
 

@@ -579,7 +579,7 @@ mod chaos_tests {
 
         for i in 1..=num_blocks {
             let mut block_pow = Block::new(i, "pow".repeat(32), vec![]);
-            block_pow.state_root = format!("pow_state_{}", i).repeat(32)[0..64].to_string();
+            block_pow.state_root = format!("pow_state_i").repeat(32)[0..64].to_string();
             block_pow.tx_root = block_pow.calculate_tx_root();
             block_pow.hash = block_pow.calculate_hash();
             let mut pow_com =
@@ -595,7 +595,7 @@ mod chaos_tests {
             commitments_to_submit.push((pow_com, pow_proof));
 
             let mut block_pos = Block::new(i, "pos".repeat(32), vec![]);
-            block_pos.state_root = format!("pos_state_{}", i).repeat(32)[0..64].to_string();
+            block_pos.state_root = format!("pos_state_i").repeat(32)[0..64].to_string();
             block_pos.tx_root = block_pos.calculate_tx_root();
             block_pos.hash = block_pos.calculate_hash();
             let mut pos_com =
@@ -606,7 +606,7 @@ mod chaos_tests {
                 cert: FinalityCert {
                     epoch: i,
                     checkpoint_height: i,
-                    checkpoint_hash: format!("pos_hash_{}", i),
+                    checkpoint_hash: format!("pos_hash_i"),
                     agg_sig_bls: vec![0u8; 48],
                     bitmap: vec![255],
                     set_hash: "snap_hash".to_string(),
@@ -622,7 +622,7 @@ mod chaos_tests {
             commitments_to_submit.push((pos_com, pos_proof));
 
             let mut block_poa = Block::new(i, "poa".repeat(32), vec![]);
-            block_poa.state_root = format!("poa_state_{}", i).repeat(32)[0..64].to_string();
+            block_poa.state_root = format!("poa_state_i").repeat(32)[0..64].to_string();
             block_poa.tx_root = block_poa.calculate_tx_root();
             block_poa.hash = block_poa.calculate_hash();
             let mut poa_com =

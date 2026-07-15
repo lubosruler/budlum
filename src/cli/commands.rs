@@ -605,7 +605,7 @@ impl NodeConfig {
             }
             if let Some(public_listener) = rpc.public_listener.or_else(|| {
                 if let (Some(h), Some(p)) = (&rpc.host, rpc.port) {
-                    Some(format!("{}:{}", h, p))
+                    Some(format!("h:p"))
                 } else {
                     None
                 }
@@ -645,7 +645,7 @@ impl NodeConfig {
         if let Some(metrics) = fc.metrics {
             if let Some(listener) = metrics
                 .listener
-                .or_else(|| metrics.port.map(|p| format!("0.0.0.0:{}", p)))
+                .or_else(|| metrics.port.map(|p| format!("0.0.0.0:p")))
             {
                 self.metrics_listener = Some(listener.clone());
                 if let Some((_, port)) = parse_listener(&listener) {

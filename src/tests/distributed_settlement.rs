@@ -91,7 +91,7 @@ mod distributed_settlement_tests {
         let mut commitments = Vec::new();
         for i in 1..=20 {
             let mut b = Block::new(i, "hash".into(), vec![]);
-            b.hash = format!("hash_{}", i).repeat(16)[0..64].to_string();
+            b.hash = format!("hash_i").repeat(16)[0..64].to_string();
             let mut com = DomainCommitment::from_block(
                 &default_domain(1, ConsensusKind::PoW, 1337, "pow-confirmation-depth", 0),
                 &b,

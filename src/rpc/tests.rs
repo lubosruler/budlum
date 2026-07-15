@@ -51,7 +51,7 @@ mod rpc_tests {
         let hex_genesis_hash = if genesis_hash.starts_with("0x") {
             genesis_hash
         } else {
-            format!("0x{}", genesis_hash)
+            format!("0xgenesis_hash")
         };
 
         let block_by_hash = server

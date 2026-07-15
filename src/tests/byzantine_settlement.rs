@@ -40,7 +40,7 @@ mod byzantine_settlement_tests {
 
         for i in 1..=100 {
             let mut b_pow = Block::new(i, "pow".repeat(32), vec![]);
-            b_pow.state_root = format!("pow_state_{}", i).repeat(32)[0..64].to_string();
+            b_pow.state_root = format!("pow_state_i").repeat(32)[0..64].to_string();
             b_pow.tx_root = b_pow.calculate_tx_root();
             b_pow.hash = b_pow.calculate_hash();
             let mut com_pow =
@@ -56,7 +56,7 @@ mod byzantine_settlement_tests {
             pow_commitments.push((com_pow, proof_pow));
 
             let mut b_pos = Block::new(i, "pos".repeat(32), vec![]);
-            b_pos.state_root = format!("pos_state_{}", i).repeat(32)[0..64].to_string();
+            b_pos.state_root = format!("pos_state_i").repeat(32)[0..64].to_string();
             b_pos.tx_root = b_pos.calculate_tx_root();
             b_pos.hash = b_pos.calculate_hash();
             let mut com_pos =
@@ -82,7 +82,7 @@ mod byzantine_settlement_tests {
             pos_commitments.push((com_pos, proof_pos));
 
             let mut b_poa = Block::new(i, "poa".repeat(32), vec![]);
-            b_poa.state_root = format!("poa_state_{}", i).repeat(32)[0..64].to_string();
+            b_poa.state_root = format!("poa_state_i").repeat(32)[0..64].to_string();
             b_poa.tx_root = b_poa.calculate_tx_root();
             b_poa.hash = b_poa.calculate_hash();
             let mut com_poa =
@@ -340,8 +340,8 @@ mod byzantine_settlement_tests {
             let addr_idx = i % 100;
             let nonce = (i / 100) + 1;
 
-            let mut block = Block::new(i as u64, format!("hash_{}", i), vec![]);
-            block.state_root = format!("state_{}", i);
+            let mut block = Block::new(i as u64, format!("hash_i"), vec![]);
+            block.state_root = format!("state_i");
             block.tx_root = block.calculate_tx_root();
             block.hash = block.calculate_hash();
 
@@ -856,7 +856,7 @@ mod byzantine_settlement_tests {
         let height = nonce;
         let mut block = linked_test_block(domain_id, height);
 
-        block.state_root = format!("state_{}_{}", domain_id, height).repeat(8)[0..64].to_string();
+        block.state_root = format!("state_domain_id_height").repeat(8)[0..64].to_string();
 
         block.tx_root = block.calculate_tx_root();
         block.hash = block.calculate_hash();
@@ -916,7 +916,7 @@ mod byzantine_settlement_tests {
         };
         let mut block = Block::new(height, previous_hash, vec![]);
         block.timestamp = 0;
-        block.state_root = format!("state_{}_{}", domain_id, height).repeat(8)[0..64].to_string();
+        block.state_root = format!("state_domain_id_height").repeat(8)[0..64].to_string();
         block.tx_root = block.calculate_tx_root();
         block.hash = block.calculate_hash();
         block

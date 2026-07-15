@@ -822,14 +822,13 @@ async fn main() {
         use hyper::{body::Bytes, Request, Response};
         use hyper_util::rt::TokioIo;
 
-        let listener =
-            match tokio::net::TcpListener::bind(format!("0.0.0.0:{}", metrics_port)).await {
-                Ok(l) => l,
-                Err(e) => {
-                    eprintln!("Metrics server bind error: {}", e);
-                    return;
-                }
-            };
+        let listener = match tokio::net::TcpListener::bind(format!("0.0.0.0:metrics_port")).await {
+            Ok(l) => l,
+            Err(e) => {
+                eprintln!("Metrics server bind error: {}", e);
+                return;
+            }
+        };
         println!("Prometheus metrics on :{}/metrics", metrics_port);
         loop {
             if let Ok((stream, _)) = listener.accept().await {

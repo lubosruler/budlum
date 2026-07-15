@@ -411,7 +411,7 @@ impl Node {
         }
     }
     pub fn listen(&mut self, port: u16) -> Result<(), Box<dyn Error>> {
-        let addr: Multiaddr = format!("/ip4/0.0.0.0/tcp/{}", port).parse()?;
+        let addr: Multiaddr = format!("/ip4/0.0.0.0/tcp/port").parse()?;
         self.swarm.listen_on(addr)?;
         info!("Listening on port {}", port);
         Ok(())

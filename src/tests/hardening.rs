@@ -133,7 +133,7 @@ mod hardening_tests {
         assert!(storage.get_block_by_height(1).unwrap().is_some());
 
         // Corrupt the height index by removing it
-        let height_key = format!("HEIGHT:{}", 1);
+        let height_key = format!("HEIGHT:1");
         storage.db().remove(height_key.as_bytes()).unwrap();
         storage.db().flush().unwrap();
 

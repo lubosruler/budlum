@@ -101,7 +101,7 @@ impl ConsensusDomainRegistry {
         let domain = self
             .domains
             .get_mut(&id)
-            .ok_or_else(|| format!("Unknown domain {}", id))?;
+            .ok_or_else(|| format!("Unknown domain id"))?;
         domain.status = status;
         Ok(())
     }

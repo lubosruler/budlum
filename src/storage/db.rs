@@ -331,16 +331,16 @@ impl Storage {
             }
 
             // 2. Remove block indexes at height H
-            let height_key = format!("HEIGHT:{}", height);
+            let height_key = format!("HEIGHT:height");
             batch.remove(height_key.as_bytes());
-            batch.remove(format!("STATE_ROOT:{}", height).as_bytes());
-            batch.remove(format!("FINALITY_CERT:{}", height).as_bytes());
-            batch.remove(format!("QC_BLOB:{}", height).as_bytes());
+            batch.remove(format!("STATE_ROOT:height").as_bytes());
+            batch.remove(format!("FINALITY_CERT:height").as_bytes());
+            batch.remove(format!("QC_BLOB:height").as_bytes());
 
             // 3. Revert CANONICAL_HEIGHT and LAST hash to H-1
             if height > 0 {
                 let prev_height = height - 1;
-                let prev_height_key = format!("HEIGHT:{}", prev_height);
+                let prev_height_key = format!("HEIGHT:prev_height");
                 if let Some(prev_hash_bytes) = self.db.get(prev_height_key.as_bytes())? {
                     batch.insert(b"LAST", &prev_hash_bytes);
                 } else {
@@ -434,7 +434,7 @@ impl Storage {
 
         // 10. Accounts
         for (pubkey, account) in &batch.accounts {
-            let key = format!("ACCT:{}", pubkey);
+            let key = format!("ACCT:pubkey");
             let val = encode(account)?;
             b.insert(key.as_bytes(), val.as_slice());
         }
@@ -458,7 +458,7 @@ impl Storage {
         }
     }
     pub fn get_block_by_height(&self, height: u64) -> std::io::Result<Option<Block>> {
-        let height_key = format!("HEIGHT:{}", height);
+        let height_key = format!("HEIGHT:height");
         if let Some(hash_bytes) = self.db.get(height_key.as_bytes())? {
             let hash = from_utf8(&hash_bytes)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?
@@ -479,14 +479,14 @@ impl Storage {
     }
 
     pub fn delete_block(&self, height: u64) -> std::io::Result<()> {
-        let key = format!("HEIGHT:{}", height);
+        let key = format!("HEIGHT:height");
         if let Some(hash_val) = self.db.get(key.as_bytes())? {
             let mut batch = sled::Batch::default();
             batch.remove(&hash_val);
             batch.remove(key.as_bytes());
-            batch.remove(format!("STATE_ROOT:{}", height).as_bytes());
-            batch.remove(format!("FINALITY_CERT:{}", height).as_bytes());
-            batch.remove(format!("QC_BLOB:{}", height).as_bytes());
+            batch.remove(format!("STATE_ROOT:height").as_bytes());
+            batch.remove(format!("FINALITY_CERT:height").as_bytes());
+            batch.remove(format!("QC_BLOB:height").as_bytes());
             self.db.apply_batch(batch)?;
             self.db.flush()?;
         }
@@ -497,7 +497,7 @@ impl Storage {
         height: u64,
         blob: &crate::consensus::qc::QcBlob,
     ) -> std::io::Result<()> {
-        let key = format!("QC_BLOB:{}", height);
+        let key = format!("QC_BLOB:height");
         let val = encode(blob)?;
         self.db.insert(key.as_bytes(), val)?;
         self.db.flush()?;
@@ -507,7 +507,7 @@ impl Storage {
         &self,
         height: u64,
     ) -> std::io::Result<Option<crate::consensus::qc::QcBlob>> {
-        let key = format!("QC_BLOB:{}", height);
+        let key = format!("QC_BLOB:height");
         if let Some(val) = self.db.get(key.as_bytes())? {
             let blob = decode(&val)?;
             Ok(Some(blob))
@@ -516,7 +516,7 @@ impl Storage {
         }
     }
     pub fn delete_qc_blob(&self, height: u64) -> std::io::Result<()> {
-        let key = format!("QC_BLOB:{}", height);
+        let key = format!("QC_BLOB:height");
         self.db.remove(key.as_bytes())?;
         self.db.flush()?;
         Ok(())
@@ -526,7 +526,7 @@ impl Storage {
         height: u64,
         cert: &crate::chain::finality::FinalityCert,
     ) -> std::io::Result<()> {
-        let key = format!("FINALITY_CERT:{}", height);
+        let key = format!("FINALITY_CERT:height");
         let val = encode(cert)?;
         self.db.insert(key.as_bytes(), val)?;
         self.db.flush()?;
@@ -536,7 +536,7 @@ impl Storage {
         &self,
         height: u64,
     ) -> std::io::Result<Option<crate::chain::finality::FinalityCert>> {
-        let key = format!("FINALITY_CERT:{}", height);
+        let key = format!("FINALITY_CERT:height");
         if let Some(val) = self.db.get(key.as_bytes())? {
             let cert = decode(&val)?;
             Ok(Some(cert))
@@ -545,7 +545,7 @@ impl Storage {
         }
     }
     pub fn delete_finality_cert(&self, height: u64) -> std::io::Result<()> {
-        let key = format!("FINALITY_CERT:{}", height);
+        let key = format!("FINALITY_CERT:height");
         self.db.remove(key.as_bytes())?;
         self.db.flush()?;
         Ok(())
@@ -557,7 +557,7 @@ impl Storage {
         Ok(())
     }
     pub fn save_state_root(&self, height: u64, state_root: &str) -> std::io::Result<()> {
-        let key = format!("STATE_ROOT:{}", height);
+        let key = format!("STATE_ROOT:height");
         self.db.insert(key.as_bytes(), state_root.as_bytes())?;
         self.db.flush()?;
         Ok(())
@@ -660,7 +660,7 @@ impl Storage {
     }
 
     pub fn get_global_header(&self, height: u64) -> std::io::Result<Option<GlobalBlockHeader>> {
-        let key = format!("GLOBAL_HEADER:{}", height);
+        let key = format!("GLOBAL_HEADER:height");
         if let Some(val) = self.db.get(key.as_bytes())? {
             Ok(Some(decode(&val)?))
         } else {
@@ -712,7 +712,7 @@ impl Storage {
     }
 
     pub fn get_state_root(&self, height: u64) -> std::io::Result<Option<String>> {
-        let key = format!("STATE_ROOT:{}", height);
+        let key = format!("STATE_ROOT:height");
         if let Some(val) = self.db.get(key.as_bytes())? {
             let root = from_utf8(&val)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?
@@ -755,13 +755,13 @@ impl Storage {
         &self.db
     }
     pub fn save_tx_index(&self, tx_hash: &str, block_height: u64) -> std::io::Result<()> {
-        let key = format!("TX_IDX:{}", tx_hash);
+        let key = format!("TX_IDX:tx_hash");
         self.db
             .insert(key.as_bytes(), block_height.to_string().as_bytes())?;
         Ok(())
     }
     pub fn get_tx_block_height(&self, tx_hash: &str) -> std::io::Result<Option<u64>> {
-        let key = format!("TX_IDX:{}", tx_hash);
+        let key = format!("TX_IDX:tx_hash");
         if let Some(val) = self.db.get(key.as_bytes())? {
             let s = from_utf8(&val)
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
@@ -771,12 +771,12 @@ impl Storage {
         }
     }
     pub fn delete_tx_index(&self, tx_hash: &str) -> std::io::Result<()> {
-        let key = format!("TX_IDX:{}", tx_hash);
+        let key = format!("TX_IDX:tx_hash");
         self.db.remove(key.as_bytes())?;
         Ok(())
     }
     pub fn save_account(&self, pubkey: &Address, account: &Account) -> std::io::Result<()> {
-        let key = format!("ACCT:{}", pubkey);
+        let key = format!("ACCT:pubkey");
         let val = encode(account)?;
         self.db.insert(key.as_bytes(), val)?;
         Ok(())
@@ -804,7 +804,7 @@ impl Storage {
         Ok(())
     }
     pub fn remove_mempool_tx(&self, tx_hash: &str) -> std::io::Result<()> {
-        let key = format!("MEMPOOL:{}", tx_hash);
+        let key = format!("MEMPOOL:tx_hash");
         self.db.remove(key.as_bytes())?;
         Ok(())
     }
@@ -906,7 +906,7 @@ impl Storage {
                     errors.push(format!("Block {}: missing in index", i));
                 }
                 Err(e) => {
-                    errors.push(format!("Block {}: read error: {}", i, e));
+                    errors.push(format!("Block i: read error: e"));
                 }
             }
         }

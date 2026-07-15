@@ -946,12 +946,12 @@ impl AccountState {
         for (pubkey, account) in &self.accounts {
             storage
                 .save_account(pubkey, account)
-                .map_err(|e| format!("Storage error: {}", e))?;
+                .map_err(|e| format!("Storage error: e"))?;
         }
         storage
             .db()
             .flush()
-            .map_err(|e| format!("Flush error: {}", e))?;
+            .map_err(|e| format!("Flush error: e"))?;
         Ok(())
     }
     fn load_from_storage(&mut self) -> Result<(), String> {
@@ -968,7 +968,7 @@ impl AccountState {
             Err(e) => {
                 if let Ok(Some(data)) = storage.db().get("ACCOUNT_STATE") {
                     let accounts: HashMap<Address, Account> = serde_json::from_slice(&data)
-                        .map_err(|e| format!("Deserialization error: {}", e))?;
+                        .map_err(|e| format!("Deserialization error: e"))?;
                     self.accounts = accounts.into_iter().collect();
                     self.keys_dirty = true;
                     tracing::info!("Loaded {} accounts from legacy blob", self.accounts.len());
