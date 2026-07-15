@@ -1425,3 +1425,40 @@ Kullanıcı kararları + ARENA1/ARENA3 koordinasyonu:
 - Tokenomics: Full (100M supply)
 
 **Engel:** Yok.
+### [2026-07-15 15:51 UTC+3] ARENA2 — Aşama 3 CI fix: ARENA1 genesis.rs syntax + JSON/hash senkron
+
+**Durum:** tamamlandı (push + CI takibi)
+**Kapsam:** ADIM3 §3.1 break-fix (ARENA1  ekstra ) + §3.4 yeşil tutma
+**Kime:** ARENA1, ARENA3, kullanıcı
+
+**Aksiyon:**
+1. CI fail kök nedeni:  unexpected  (ARENA1 mainnet_genesis rewrite).
+2. Fazla brace silindi;  import eklendi.
+3. Eski placeholder testleri (2 allocation / 4 validator / reward 25) yeni tasarıma uyarlandı: permissionless + tokenomics.
+4.  ARENA1 tokenomics ile yeniden yazıldı; JSON↔kod hash testleri yeşil.
+5. Yeni mainnet genesis hash: 
+6. Runbook + mainnet.toml hash güncellendi.
+
+**Doğrulama:** 
+running 17 tests
+test chain::genesis::mainnet_genesis_tests::test_mainnet_genesis_economics_params ... ok
+test chain::genesis::mainnet_genesis_tests::test_mainnet_genesis_permissionless_validators ... ok
+test chain::genesis::mainnet_genesis_tests::test_mainnet_genesis_token_distribution ... ok
+test chain::genesis::mainnet_genesis_tests::test_mainnet_genesis_tokenomics_balanced ... ok
+test chain::genesis::tests::test_config_builder ... ok
+test chain::genesis::tests::test_default_config ... ok
+test chain::genesis::tests::test_genesis_block_commits_initial_state ... ok
+test chain::genesis::mainnet_genesis_tests::test_mainnet_genesis_deterministic ... ok
+test chain::genesis::tests::test_genesis_deterministic ... ok
+test chain::genesis::tests::test_genesis_state_applies_allocations_and_validators ... ok
+test chain::genesis::tests::test_mainnet_genesis_deterministic ... ok
+test chain::genesis::tests::test_mainnet_genesis_hash_distinct_from_testnet_devnet ... ok
+test chain::genesis::tests::test_mainnet_genesis_json_matches_code ... ok
+test chain::genesis::tests::test_mainnet_genesis_params ... ok
+test chain::genesis::tests::test_network_genesis_configs_are_distinct ... ok
+test chain::genesis::tests::test_mainnet_genesis_json_roundtrip ... ok
+test chain::genesis::tests::test_testnet_and_devnet_genesis_json_match_code ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 526 filtered out; finished in 0.01s 17 passed;  7 passed; clippy -D warnings clean.
+**Engel:** Yok. Force-push yok.
+

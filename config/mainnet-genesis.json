@@ -1,22 +1,8 @@
 {
   "chain_id": 1,
-  "allocations": [
-    [
-      "1010101010101010101010101010101010101010101010101010101010101010",
-      500000000
-    ],
-    [
-      "1111111111111111111111111111111111111111111111111111111111111111",
-      500000000
-    ]
-  ],
-  "validators": [
-    "2020202020202020202020202020202020202020202020202020202020202020",
-    "2121212121212121212121212121212121212121212121212121212121212121",
-    "2222222222222222222222222222222222222222222222222222222222222222",
-    "2323232323232323232323232323232323232323232323232323232323232323"
-  ],
-  "block_reward": 25,
+  "allocations": [],
+  "validators": [],
+  "block_reward": 50,
   "base_fee": 10,
   "gas_schedule": {
     "base_fee": 10,
@@ -27,6 +13,21 @@
     "vote_gas": 35000,
     "contract_call_gas": 50000
   },
-  "timestamp": 1735689600000,
-  "bud_tokenomics": null
+  "timestamp": 0,
+  "bud_tokenomics": {
+    "community": 10000000000000,
+    "liquidity": 10000000000000,
+    "ecosystem": 20000000000000,
+    "team": 20000000000000,
+    "burn_reserve": 40000000000000,
+    "epochs_per_year": 52560,
+    "annual_burn_ratio_fixed": 100000,
+    "team_cliff_epochs": 52560,
+    "team_vesting_epochs": 210240,
+    "tx_fee_burn_ratio_fixed": 10000,
+    "block_reward": 50,
+    "validator_annual_yield_ratio_fixed": 50000,
+    "slot_duration_secs": 10,
+    "epoch_length_slots": 32
+  }
 }

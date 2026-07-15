@@ -189,76 +189,76 @@ fn address(byte: u8) -> Address {
 // === MAINNET GENESIS — ADIM3 §3.1 ===
 
 /// Mainnet genesis configuration.
-/// 
+///
 /// Key characteristics:
 /// - **Timestamp: TBD** — set to 0, actual launch timestamp configured separately
 /// - **Permissionless validators** — validator set starts empty, registered via §3.5 permissionless.rs
 /// - **Full $BUD tokenomics** — 100M fixed supply, 6 decimals, 2 burn mechanisms
-/// 
+///
 /// Token distribution (100M total, 6 decimals = 10^14 base units):
 /// - 10M Community (dev + users)
 /// - 10M Liquidity (DEX provisioning)
 /// - 20M Ecosystem (grants, incentives)
 /// - 20M Team (1-year cliff, 4-year linear vesting)
 /// - 40M Burn Reserve (10% annual burn)
-/// 
+///
 /// Economics:
 /// - Block reward: 50 BUD
 /// - Validator APY: 5%
 /// - Metabolic burn: 1% of tx fees
 pub fn mainnet_genesis() -> GenesisConfig {
     use crate::core::chain_config::FIXED_POINT_SCALE;
-    
+    use crate::tokenomics::bud;
+
     // Full tokenomics params — 100M fixed supply
     let tokenomics = crate::tokenomics::TokenomicsParams {
-        community: bud(10_000_000),      // 10M - community/dev
-        liquidity: bud(10_000_000),     // 10M - liquidity provisioning  
-        ecosystem: bud(20_000_000),     // 20M - ecosystem growth
-        team: bud(20_000_000),           // 20M - team (vesting)
-        burn_reserve: bud(40_000_000),  // 40M - burn reserve
-        
+        community: bud(10_000_000),    // 10M - community/dev
+        liquidity: bud(10_000_000),    // 10M - liquidity provisioning
+        ecosystem: bud(20_000_000),    // 20M - ecosystem growth
+        team: bud(20_000_000),         // 20M - team (vesting)
+        burn_reserve: bud(40_000_000), // 40M - burn reserve
+
         // 10% annual burn of reserve (~10 years to burn 40M)
-        epochs_per_year: 52560,  // 1 year in epochs (10s slot, 32 slots/epoch)
+        epochs_per_year: 52560, // 1 year in epochs (10s slot, 32 slots/epoch)
         annual_burn_ratio_fixed: FIXED_POINT_SCALE / 10,
-        
+
         // Team vesting: 1-year cliff + 4-year linear
-        team_cliff_epochs: 52560,      // 1 year cliff
-        team_vesting_epochs: 210240,   // 4 years linear
-        
+        team_cliff_epochs: 52560,    // 1 year cliff
+        team_vesting_epochs: 210240, // 4 years linear
+
         // 1% metabolic burn (symbolic, tunable)
         tx_fee_burn_ratio_fixed: FIXED_POINT_SCALE / 100,
-        
+
         // Block emission: 50 BUD per block
         block_reward: 50,
-        
+
         // Stake yield: 5% APY
         validator_annual_yield_ratio_fixed: (FIXED_POINT_SCALE * 5) / 100,
         slot_duration_secs: 10,
         epoch_length_slots: 32,
     };
-    
+
     GenesisConfig {
         chain_id: Network::Mainnet.chain_id().value(),
-        
+
         // TBD: Actual launch timestamp configured at deployment time
         // Set to 0 until launch date is determined
         timestamp: 0,
-        
+
         // Permissionless: validator set starts empty
         // Validators register via §3.5 permissionless.rs onboarding flow
         validators: vec![],
-        
+
         // Token allocations handled by tokenomics (bud_tokenomics field)
         allocations: vec![],
-        
+
         block_reward: 50,
         base_fee: Network::Mainnet.gas_schedule().base_fee,
         gas_schedule: Network::Mainnet.gas_schedule(),
-        
+
         // Full tokenomics active
         bud_tokenomics: Some(tokenomics),
     }
-}
 }
 
 pub fn testnet_genesis() -> GenesisConfig {
@@ -320,9 +320,17 @@ mod tests {
         let devnet = GenesisConfig::for_network(Network::Devnet);
 
         assert_ne!(mainnet.chain_id, testnet.chain_id);
-        assert_ne!(mainnet.block_reward, devnet.block_reward);
-        assert_ne!(mainnet.validators, testnet.validators);
+        assert_ne!(mainnet.chain_id, devnet.chain_id);
+        // Mainnet uses full tokenomics; testnet/devnet do not.
+        assert!(mainnet.bud_tokenomics.is_some());
+        assert!(testnet.bud_tokenomics.is_none());
+        assert!(devnet.bud_tokenomics.is_none());
+        // Mainnet is permissionless (empty validators); testnet/devnet seed validators.
+        assert!(mainnet.validators.is_empty());
+        assert!(!testnet.validators.is_empty());
+        assert!(!devnet.validators.is_empty());
         assert_ne!(mainnet.gas_schedule, testnet.gas_schedule);
+        assert_ne!(mainnet.gas_schedule, devnet.gas_schedule);
     }
 
     #[test]
@@ -398,28 +406,17 @@ mod tests {
 
     #[test]
     fn test_mainnet_genesis_params() {
+        // ARENA1 e20397c design: permissionless validators + full $BUD tokenomics.
         let config = mainnet_genesis();
         assert_eq!(config.chain_id, 1);
-        assert_eq!(config.block_reward, 25);
+        assert_eq!(config.block_reward, 50);
         assert_eq!(config.base_fee, Network::Mainnet.gas_schedule().base_fee);
         assert_eq!(config.gas_schedule, Network::Mainnet.gas_schedule());
-        assert_eq!(config.allocations.len(), 2);
-        assert_eq!(config.validators.len(), 4);
-        assert!(config.bud_tokenomics.is_none());
-
-        let total: u64 = config.allocations.iter().map(|(_, a)| *a).sum();
-        assert_eq!(total, 1_000_000_000);
-
-        let state = config.build_state();
-        for (addr, amount) in &config.allocations {
-            assert_eq!(state.get_balance(addr), *amount);
-        }
-        for validator in &config.validators {
-            assert_eq!(
-                state.get_validator(validator).map(|v| v.stake),
-                Some(Network::Mainnet.min_stake())
-            );
-        }
+        assert!(config.allocations.is_empty());
+        assert!(config.validators.is_empty());
+        assert!(config.bud_tokenomics.is_some());
+        assert!(config.bud_tokenomics.unwrap().is_balanced());
+        assert_eq!(config.timestamp, 0);
     }
 
     #[test]
@@ -435,7 +432,7 @@ mod tests {
         assert_eq!(from_json.base_fee, from_code.base_fee);
         assert_eq!(from_json.gas_schedule, from_code.gas_schedule);
         assert_eq!(from_json.timestamp, from_code.timestamp);
-        assert!(from_json.bud_tokenomics.is_none());
+        assert_eq!(from_json.bud_tokenomics, from_code.bud_tokenomics);
 
         let code_block = from_code.build_genesis_block();
         let json_block = from_json.build_genesis_block();
@@ -494,7 +491,10 @@ mod mainnet_genesis_tests {
     fn test_mainnet_genesis_tokenomics_balanced() {
         // Mainnet must have tokenomics and it must sum to 100M
         let config = mainnet_genesis();
-        assert!(config.bud_tokenomics.is_some(), "Mainnet must have tokenomics");
+        assert!(
+            config.bud_tokenomics.is_some(),
+            "Mainnet must have tokenomics"
+        );
         let params = config.bud_tokenomics.unwrap();
         assert!(params.is_balanced(), "Tokenomics must sum to 100M BUD");
     }
@@ -503,7 +503,10 @@ mod mainnet_genesis_tests {
     fn test_mainnet_genesis_permissionless_validators() {
         // Mainnet starts with empty validator set (permissionless)
         let config = mainnet_genesis();
-        assert!(config.validators.is_empty(), "Mainnet starts with permissionless validators");
+        assert!(
+            config.validators.is_empty(),
+            "Mainnet starts with permissionless validators"
+        );
     }
 
     #[test]
@@ -512,52 +515,73 @@ mod mainnet_genesis_tests {
         let config = mainnet_genesis();
         let genesis1 = config.build_genesis_block();
         let genesis2 = config.build_genesis_block();
-        
-        assert_eq!(genesis1.hash, genesis2.hash, "Genesis hash must be deterministic");
-        assert_eq!(genesis1.state_root, genesis2.state_root, "State root must be deterministic");
+
+        assert_eq!(
+            genesis1.hash, genesis2.hash,
+            "Genesis hash must be deterministic"
+        );
+        assert_eq!(
+            genesis1.state_root, genesis2.state_root,
+            "State root must be deterministic"
+        );
     }
 
     #[test]
     fn test_mainnet_genesis_token_distribution() {
-        use crate::tokenomics::{BUD_TOTAL_SUPPLY, Allocation};
-        
+        use crate::tokenomics::{Allocation, BUD_TOTAL_SUPPLY};
+
         let config = mainnet_genesis();
         let params = config.bud_tokenomics.unwrap();
-        
+
         // Verify distribution sums to 100M
         assert_eq!(
             params.total(),
             BUD_TOTAL_SUPPLY,
             "Tokenomics must total 100M (100_000_000 * 10^6)"
         );
-        
+
         // Verify individual allocations
-        assert_eq!(params.amount_of(Allocation::Community), bud(10_000_000));
-        assert_eq!(params.amount_of(Allocation::Liquidity), bud(10_000_000));
-        assert_eq!(params.amount_of(Allocation::Ecosystem), bud(20_000_000));
-        assert_eq!(params.amount_of(Allocation::Team), bud(20_000_000));
-        assert_eq!(params.amount_of(Allocation::BurnReserve), bud(40_000_000));
+        assert_eq!(
+            params.amount_of(Allocation::Community),
+            crate::tokenomics::bud(10_000_000)
+        );
+        assert_eq!(
+            params.amount_of(Allocation::Liquidity),
+            crate::tokenomics::bud(10_000_000)
+        );
+        assert_eq!(
+            params.amount_of(Allocation::Ecosystem),
+            crate::tokenomics::bud(20_000_000)
+        );
+        assert_eq!(
+            params.amount_of(Allocation::Team),
+            crate::tokenomics::bud(20_000_000)
+        );
+        assert_eq!(
+            params.amount_of(Allocation::BurnReserve),
+            crate::tokenomics::bud(40_000_000)
+        );
     }
 
     #[test]
     fn test_mainnet_genesis_economics_params() {
         use crate::core::chain_config::FIXED_POINT_SCALE;
-        
+
         let config = mainnet_genesis();
         let params = config.bud_tokenomics.unwrap();
-        
+
         // Block reward: 50 BUD
         assert_eq!(params.block_reward, 50);
-        
+
         // Annual burn: 10%
         assert_eq!(params.annual_burn_ratio_fixed, FIXED_POINT_SCALE / 10);
-        
+
         // Validator APY: 5%
         assert_eq!(
             params.validator_annual_yield_ratio_fixed,
             (FIXED_POINT_SCALE * 5) / 100
         );
-        
+
         // Metabolic burn: 1%
         assert_eq!(params.tx_fee_burn_ratio_fixed, FIXED_POINT_SCALE / 100);
     }
