@@ -1113,3 +1113,44 @@ Kullanıcı kararları + ARENA1/ARENA3 koordinasyonu:
 **Engel:** Kullanıcı "devam" + görev önceliği kararı. Force-push **YASAK**. Workflow push **YASAK**.
 **Kanıt:** HEAD `44fe0f0`, CI run 29390549071 success, `git cat-file -t` tüm listelenen SHA'lar.
 
+
+### [2026-07-15 19:45 UTC+3] ARENA3 — ADIM3 devralma + B.U.D. server doğrulaması + org roadmap teyiti (Aşama 1)
+
+**Durum:** devam ediyor / Aşama 1 konuşma tamamlandı, Aşama 2 commit öncesi kontrol yapıldı
+**Kapsam:** ADIM3 0.3, 3.1-3.5 + B.U.D. P2P backend (budzero/bud-node) + org roadmap (budlumdevnet/devnet2) + token güvenliği
+**Kime:** ARENA1, ARENA2, kullanıcı (Ayaz)
+
+**Aksiyon:**
+1. **Token güvenliği uyarısı:** Kullanıcının mesajında açık GitHub token (`ghp_...`) var. Bu token derhal revoke edilmeli; yeni fine-grained token ile devam edilmeli. Bu oturumda token sadece read/clone için kullanıldı, log'a yazılmadı.
+2. **Fetch + Aşama 2 kontrolü:** `git fetch origin` yapıldı — yeni commit `b43a502` (ARENA2) tespit edildi ve local main `b43a502`'ye fast-forward edildi. Başka AI commit atmış → Aşama 2 kuralına uygun.
+3. **ADIM3 plan dosyası doğrulandı:** `docs/ADIM3_PLAN_VE_GOREV_DAGILIMI.md` ARENA2 tarafından force-push kaybı sonrası yeniden derlenmiş (MAINNET_READINESS §ADIM3 + commit kanıtları). Dosya mevcut, 4 bölüm.
+4. **B.U.D. server sistemi (forge push kaybı iddiası) denetlendi:**
+   - `budzero/bud-node/` (store.rs 8635, bitswap.rs 10291, discovery.rs 9966, lib.rs 2073) main HEAD `b43a502`'de **MEVCUT** — commit `f236589` + `b0164fc` ile CI fixlenmiş.
+   - L1 tarafı: `src/domain/storage_deal.rs` + `src/domain/storage_params.rs` + `src/storage/` + 9 RPC + escrow (`f2b8075`+`44fe0f0`) → Faz 1-2-4-5 hayatta.
+   - `GlobalBlockHeader.storage_root` (Faz 4) + `ChainActor.run_storage_maintenance()` + `StorageRegistry.manifests` → tamam.
+   - Eksik olduğu iddia edilen B.U.D. server **silinmemiş**, hayatta. Forge push kaybı `ADIM3_PLAN_VE_GOREV_DAGILIMI.md`'nin kendisi içindi, ARENA2 tarafından kurtarıldı.
+5. **Org roadmap audit (budlumdevnet / devnet2):**
+   - `budlumdevnet/docs/` (2 dosya) ve `budlumdevnet2/docs/` (ORG_ROADMAP_AUDIT dahil) clone edilip `OR` karşılaştırması yapıldı.
+   - Sonuç: `budlumdevnet` 332-test baseline'ı, tüm maddeleri (multi-consensus settlement, settlement matrix) `budlum` main'de 525-test olarak fazlasıyla karşılanıyor. `budlumdevnet2` aynı.
+   - `budlum-xyz/Budlum` Research Roadmap, `BudZero` Phase 0-9, `B.U.D.` Faz 1-2-4-5 kodlanabilir gövde main'de kapalı. Açık kalanlar (harici audit, TLA+, Privacy, AI layer, VerifyMerkle gate, BNS/.bud) dürüstçe ADIM4/5'e bırakılmış — `STATUS.md` ve `ADIM3_PLAN` §4'te belgelendi.
+6. **ADIM3 kalan işler (ARENA3 perspektifi):**
+   - 0.3 `bud_storageActiveOperators` — docs only, RPC OPEN (implement now?).
+   - 3.1 genesis: `mainnet_genesis()` var ama `config/mainnet.toml` seed node listesi + genesis hash runbook'ta eksik.
+   - 3.2 docker: `Dockerfile` mainnet ENV eksik / default devnet.
+   - 3.3 runbook: `PRODUCTION_RUNBOOK.md` genesis hash + seed eksik.
+   - 3.4 network hardening: per-IP rate limit var, ama stress test kanıtı ve p2p 10k connection test eksik.
+   - 3.5 validator onboarding E2E: dedicated test yok.
+   - ARENA3'e atanan: 3.4 + 0.3 + 3.2 kısmen.
+
+**Kanıt:**
+- `git log origin/main -2` → `b43a502` ADIM3 plan yeniden derleme, `44fe0f0` escrow fix.
+- `ls budzero/bud-node/src/` → 4 dosya, `grep -n storage deal` → escrow metotları var.
+- `cat docs/ADIM3_PLAN_VE_GOREV_DAGILIMI.md` → 0.1-0.4 done, 3.1-3.5 open.
+- `cargo` yerel yok → CI zorunlu kanıt (son run success).
+
+**Sonraki adım (Aşama 1→2):**
+- ARENA1/ARENA2'ye soru: 0.3 RPC şimdi implement edilsin mi (ARENA3 alabilir)?
+- Kullanıcıya soru (yeni gidişat): ADIM3 3.1-3.5 öncelik sırası + B.U.D. server için ek kayıp parça var mı?
+- Sonra atomik commit: `feat(rpc): implement bud_storageActiveOperators + budget lock fix` + `docs: update PRODUCTION_RUNBOOK mainnet hash?` → ayrı commitler.
+
+**Engel:** Kullanıcı "devam" kararı + token revoke + ADIM3 önceliği. Force-push YASAK, workflow push YASAK.
