@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::chain::blockchain::Blockchain;
     use crate::consensus::pow::PoWEngine;
     use std::sync::Arc;
