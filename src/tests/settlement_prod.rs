@@ -820,7 +820,7 @@ mod settlement_prod_tests {
 
         let proof = tree.proof(0).unwrap();
         let err = blockchain
-            .mint_bridge_transfer_from_verified_event(pow.id, 88, 0, None, event, &proof, Address::zero(, Address::zero()))
+            .mint_bridge_transfer_from_verified_event(pow.id, 88, 0, None, event, &proof, Address::zero()))
             .unwrap_err();
         assert!(err.contains("not a bridge lock event"));
     }
@@ -852,7 +852,7 @@ mod settlement_prod_tests {
 
         let proof = tree.proof(0).unwrap();
         let err = blockchain
-            .mint_bridge_transfer_from_verified_event(pow.id, 77, 0, None, mutated_event, &proof, Address::zero(, Address::zero()))
+            .mint_bridge_transfer_from_verified_event(pow.id, 77, 0, None, mutated_event, &proof, Address::zero()))
             .unwrap_err();
         assert!(
             err.contains("payload hash mismatch") || err.contains("source event hash mismatch")
