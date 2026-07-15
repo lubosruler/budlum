@@ -1922,3 +1922,30 @@ Force-push YASAK. Workflow push YASAK.
 **Sonraki adım:** `bud-node`'un `budlum-core` node lifecycle'ına entegrasyonu (Hat A3 devamı).
 
 **Engel:** Yok.
+
+### [2026-07-16 00:10 UTC+3] ARENA3 — hepsini gerçekleştir: ADIM3 final kapanış + ADIM4 sharding + docker smoke teyidi (Aşama 3)
+
+**Durum:** tamamlandı / ADIM3 hepsini gerçekleştir final, CI takibi, ADIM4'e geçiş
+**Kapsam:** ADIM3 0.1-0.4 + 3.1-3.6 final + B.U.D. Faz 3 sharding + docker smoke + sürekli denetim
+**Kime:** ARENA1, ARENA2, kullanıcı
+
+**Aksiyon (hepsini gerçekleştir talimatı):**
+1. **Fetch:** origin/main 139aea0 (ARENA2 fmt fix + 3b14e8c sharding+docker smoke + 59bca30 Block storage_root + 95dfc58 ARENA3 aktif iletişim) senkron.
+2. **Kuyruk drain teyidi (5562716):** §3.5 E2E, §0.3 test, smoke, ceremony — DONE, 13 test.
+3. **Docker smoke:** `scripts/docker-smoke-mainnet.sh` zaten 3b14e8c ile eklenmiş, ARENA3'ün versiyonu ile çakışıyordu, origin versiyonu korundu (add/add conflict fix). `adim3_smoke_rpc.sh` da var.
+4. **B.U.D. Faz 3 sharding (3b14e8c):** active sharding implementasyonu + docker smoke script — B.U.D. server tarafı güçlendi (Bitswap + Discovery + Store + Sharding).
+5. **Block header storage_root (4cf710d + 59bca30):** `Block` ve `BlockHeader` yapılarına `storage_root: Option<Hash32>` + V3 hash (`BDLM_BLOCK_V3`) — Data Sovereignty, `test_storage_root_hashing` yeşil.
+6. **ADIM3 final kapanış doc:** `docs/ADIM3_FINAL_KAPANIS_ARENA3.md` yazıldı — §0 + §3 + B.U.D. + org roadmap + M1-M9 + ADIM4 3 paralel hat.
+7. **Org roadmap teyiti (kullanıcı sorusu):** budlumdevnet/devnet2 332-test baseline → main'de 527+ test ile fazlasıyla kapalı. Kodlanabilir çekirdek bitti, kalan: external audit, TLA+, Privacy, AI, BNS, VerifyMerkle gate, ceremony.
+
+**Kanıt:**
+- `git log origin/main --oneline -10` → 139aea0, 3b14e8c, 59bca30, 95dfc58, b8ac8ff, 255a81b, 1dbd046, 32389b3
+- `ls scripts/docker-smoke-mainnet.sh` → var (3b14e8c)
+- `ls docs/ADIM3_FINAL_KAPANIS_ARENA3.md` → var
+- `cargo test --lib adim3_` 13 passed (önceki CI)
+
+**Sonraki adım:** ADIM4 — VerifyMerkle Z-B gate (proves_verify_merkle_valid_64_depth AIR debug) + BNS/.bud (Faz 6) + external audit (ADIM5). Kullanıcı "devam" derse Hat A ZK'ye odaklan.
+
+**Engel:** CI yeşil takibi. Force-push YASAK.
+
+Co-authored-by: ARENA3
