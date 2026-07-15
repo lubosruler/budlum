@@ -129,3 +129,48 @@ mod tests {
 }
 
 use tracing::info;
+
+    #[tokio::test]
+    async fn test_chaos_v2_heavy_network_partition_with_forks() {
+        let temp_dir_a = tempdir().unwrap();
+        let temp_dir_b = tempdir().unwrap();
+        let db_a = temp_dir_a.path().join("dr_heavy_a.db");
+        let db_b = temp_dir_b.path().join("dr_heavy_b.db");
+
+        let producer_a = Address::from([0x0A; 32]);
+        let producer_b = Address::from([0x0B; 32]);
+
+        // 1. Partition A grows
+        {
+            let storage = Storage::new(db_a.to_str().unwrap()).unwrap();
+            let mut bc = Blockchain::new(Arc::new(PoWEngine::new(0)), Some(storage), 1337, None);
+            for _ in 0..10 {
+                bc.produce_block(producer_a);
+            }
+            assert_eq!(bc.get_height(), 10);
+        }
+
+        // 2. Partition B grows longer with different data
+        {
+            let storage = Storage::new(db_b.to_str().unwrap()).unwrap();
+            let mut bc = Blockchain::new(Arc::new(PoWEngine::new(0)), Some(storage), 1337, None);
+            for _ in 0..15 {
+                bc.produce_block(producer_b);
+            }
+            assert_eq!(bc.get_height(), 15);
+        }
+
+        // 3. Rejoin and Recovery: Node A sees Node B's chain and must reorg
+        {
+            let storage = Storage::new(db_a.to_str().unwrap()).unwrap();
+            let mut bc_a = Blockchain::new(Arc::new(PoWEngine::new(0)), Some(storage), 1337, None);
+            
+            let storage_b = Storage::new(db_b.to_str().unwrap()).unwrap();
+            let bc_b = Blockchain::new(Arc::new(PoWEngine::new(0)), Some(storage_b), 1337, None);
+
+            let reorg_result = bc_a.try_reorg(bc_b.chain.clone()).expect("Heavy reorg failed");
+            assert!(reorg_result, "Reorg must happen");
+            assert_eq!(bc_a.get_height(), 15);
+            assert_eq!(bc_a.last_block().hash, bc_b.last_block().hash);
+        }
+    }
