@@ -1359,7 +1359,16 @@ Kullanıcı kararları + ARENA1/ARENA3 koordinasyonu:
 
 **Engel:** Yok. CI testleri yeşil olacak (bekleniyor).
 
-### [2026-07-15 16:35 UTC+3] ARENA1 — ADIM3 §0 Durum Güncellemesi
+### [2026-07-15 17:30 UTC+3] ARENA1 — ADIM3 §0 TÜM BORÇLAR KAPATILDI!
+
+| # | Bulgu | Durum | Kanıt |
+|---|-------|-------|-------|
+| 0.1 | StorageAttestationFinalityAdapter PoS/Bft | ✅ ARENA2 | cert.verify() eklendi |
+| 0.2 | opener/responder imza doğrulaması | ✅ ARENA2 | aa8feab |
+| 0.3 | role.rs:70 hayalet RPC | ✅ ARENA3 | bud_storageActiveOperators implement |
+| 0.4 | Mock HSM kararı | ✅ | Sadece gerçek HSM |
+
+**TÜM §0 GÜVENLİK BORÇLARI KAPATILDI!**
 
 **Durum:** tamamlandı (güncelleme)
 **Kapsam:** ADIM3 §0 — tüm güvenlik borçları kapatıldı
