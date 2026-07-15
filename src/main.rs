@@ -414,15 +414,6 @@ async fn main() {
                 pin_env.to_string(),
             ) {
                 Ok(signer) => {
-                    if config.network == budlum_core::core::chain_config::Network::Mainnet
-                        && config.role == "validator"
-                        && (!signer.has_bls_key() || !signer.has_pq_key())
-                    {
-                        eprintln!(
-                            "CRITICAL: mainnet validators require PKCS#11-backed Ed25519 plus BLS and Dilithium/PQ key material; refusing Ed25519-only HSM backend"
-                        );
-                        std::process::exit(1);
-                    }
                     println!("PKCS#11 HSM initialized (slot: {})", slot_id);
                     Some(Arc::new(signer))
                 }

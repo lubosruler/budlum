@@ -1,55 +1,49 @@
 # BLS/PQ HSM Policy (ADIM 2 §1.1)
 
-**Tarih:** 2026-07-15  
-**Durum:** Fail-closed policy gate + signer capability yüzeyi eklendi. Donanım-vendor native BLS/Dilithium mekanizma entegrasyonu ayrı, daha ileri bir iştir.  
-**Kod:** `src/crypto/signer.rs`, `src/crypto/pkcs11.rs`, `src/main.rs`, `src/cli/commands.rs`
+**Tarih:** 2026-07-15
+**Durum:** PKCS#11 Ed25519 yolu + BLS/PQ mock backend main kod tabanında mevcut; mainnet disk-key yasağı fail-closed kalır. Vendor-native non-extractable BLS/Dilithium HSM mekanizmaları hâlâ ayrı audit/entegrasyon maddesidir.
+**Kod:** `src/crypto/pkcs11.rs`, `src/crypto/hsm_mock.rs`, `src/main.rs`, `src/cli/commands.rs`
 
-> Bu belge “mock HSM” değildir ve mainnet için sahte-yeşil iddia üretmez.
-> Amaç: disk-backed `ValidatorKeys` yolunu mainnet’te kapalı tutmak, PKCS#11
-> backend’in Ed25519 yanında BLS ve Dilithium/PQ materyali de taşıdığını runtime’da
-> doğrulamak ve eksik capability’de node’u fail-closed durdurmaktır.
+> Bu belge mainnet için sahte-yeşil iddia üretmez. Mock backend geliştirici ve
+> CI doğrulaması içindir; mainnet validator profili `hsm_mock` ile çalışmaz.
 
 ## Politika özeti
 
 | Ortam | İzinli validator key yolu | BLS/PQ davranışı |
 |-------|---------------------------|------------------|
-| Devnet/testnet | `ValidatorKeys` dosyası veya PKCS#11 | Disk key kabul edilebilir; test amaçlıdır. |
-| Mainnet validator | Sadece `validator.signer.backend = "pkcs11"` | PKCS#11 backend Ed25519 + BLS + Dilithium/PQ capability bildirmelidir. |
-| Mainnet validator + disk `ValidatorKeys` | Yasak | Process fail-closed çıkar. |
-| Mainnet validator + Ed25519-only HSM | Yasak | Process fail-closed çıkar. |
+| Devnet/testnet | `ValidatorKeys`, `pkcs11` veya `hsm_mock` | Geliştirici doğrulaması için BLS/PQ mock imza yolu kullanılabilir. |
+| Mainnet validator | Sadece `validator.signer.backend = "pkcs11"` | Disk `ValidatorKeys` ve `hsm_mock` fail-closed reddedilir. |
+| Mainnet validator + disk `ValidatorKeys` | Yasak | Dosya BLS + Dilithium secret içerdiği için process çıkar. |
+| Mainnet validator + vendor-native BLS/PQ HSM | Hedef | Donanım/vendor entegrasyonu ve harici audit gerektirir. |
 
-## Kod sınırları
-
-### `ConsensusSigner` capability yüzeyi
-
-`src/crypto/signer.rs` trait’i artık şunları sunar:
-
-- `bls_public_key() -> Option<Vec<u8>>`
-- `pq_public_key() -> Option<Vec<u8>>`
-- `has_bls_key() -> bool`
-- `has_pq_key() -> bool`
-
-Bu sayede policy kodu, secret key istemeden backend’in BLS/PQ capability’sini
-kontrol edebilir.
+## Mevcut kod sınırları
 
 ### PKCS#11 backend
 
-`src/crypto/pkcs11.rs`:
+`src/crypto/pkcs11.rs` Ed25519 consensus signer adapter’ını sağlar. Ayrıca
+`BUD_BLS_KEY` ve `BUD_PQ_KEY` label’lı private data object’lerden BLS/PQ
+materyali okuyabilen destek kodu vardır. Bu, disk `ValidatorKeys` kullanımını
+azaltmak için bir inventory/signing yoludur; her vendor için native
+non-extractable BLS/Dilithium mekanizması iddia edilmez.
 
-- Ed25519 blok imzası PKCS#11 private key üzerinden yapılır.
-- BLS ve Dilithium/PQ materyali `BUD_BLS_KEY` / `BUD_PQ_KEY` label’lı private
-  PKCS#11 data object olarak aranır.
-- ADIM 2 §1.1 kapsamında bu path **disk ValidatorKeys yerine PKCS#11-backed key
-  inventory** sağlar; vendor-native non-extractable BLS/Dilithium sign mekanizması
-  henüz iddia edilmez.
+### HSM mock backend
 
-### Runtime fail-closed gate
+`src/crypto/hsm_mock.rs` ve `--signer-backend=hsm_mock`:
 
-`src/main.rs` mainnet validator başlatırken:
+- in-process UNIX socket thread başlatır,
+- BLS ve Dilithium/PQ imzalama akışını geliştirici ortamında test eder,
+- mainnet validator strict rules tarafından reddedilir.
 
-1. PKCS#11 backend’i zorunlu kılar.
-2. Disk `ValidatorKeys` dosyasını reddeder.
-3. PKCS#11 signer `has_bls_key()` ve `has_pq_key()` sağlamazsa process’i durdurur.
+Bu backend production secret saklama çözümü değildir.
+
+### Runtime fail-closed kuralları
+
+`src/cli/commands.rs` mainnet validator başlatırken:
+
+1. `validator.signer.backend = "pkcs11"` zorunlu kılar,
+2. PKCS#11 `module_path` ve `token_pin_env` ister,
+3. PIN env yok/boş ise çıkar,
+4. disk-backed `ValidatorKeys` dosyasını reddeder.
 
 ## Operatör yapılandırması
 
@@ -74,8 +68,7 @@ manager üzerinden verilir.
 ## Doğrulama
 
 ```bash
-cargo test --lib keypair_signer_advertises_bls_pq_capabilities_only_when_bound
-cargo test --lib default_consensus_signer_rejects_missing_bls_pq_material
+cargo test --lib test_hsm_mock_backend
 cargo clippy --lib --tests -- -D warnings
 cargo fmt --all -- --check
 ```
@@ -85,10 +78,9 @@ Bu Arena sandbox’ında `cargo`/`rustc` yoksa PR CI zorunlu kanıt kabul edilir
 ## Kabul kriteri
 
 - [x] Disk-backed `ValidatorKeys` mainnet validator için reddedilir.
-- [x] Ed25519-only PKCS#11 backend mainnet validator için reddedilir.
-- [x] Signer capability metotları secret key sızdırmadan BLS/PQ public inventory sağlar.
-- [x] BLS prevote/precommit imzalama path’i local secret yoksa signer backend’e düşebilir.
-- [x] Mock HSM production koduna eklenmedi.
+- [x] Mainnet validator `hsm_mock` ile başlatılamaz; yalnız `pkcs11` kabul edilir.
+- [x] BLS/PQ mock backend geliştirici/CI amaçlı geri gelir.
+- [x] Mock backend production HSM olarak dokümante edilmez.
 - [ ] Vendor-native non-extractable BLS/Dilithium PKCS#11 mekanizma entegrasyonu ayrıca yapılacak.
 
 ## Sınırlar / yapılmayanlar

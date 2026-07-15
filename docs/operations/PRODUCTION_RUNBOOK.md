@@ -53,12 +53,12 @@ private deployment overlay. Inject the PIN through the service manager or a
 secret store; never place its value in Git, CLI arguments, logs or shell
 history.
 
-ADIM 2 §1.1 policy: mainnet validators must expose Ed25519 plus BLS and
-Dilithium/PQ key material through the PKCS#11 signer capability surface. The
-process rejects disk-backed `ValidatorKeys` and also rejects Ed25519-only PKCS#11
-backends on mainnet. See `docs/operations/HSM_BLS_PQ_POLICY.md`.
+ADIM 2 §1.1 policy/tooling: mainnet validators still require PKCS#11 and reject
+disk-backed `ValidatorKeys`. The BLS/PQ `hsm_mock` backend exists for dev/test
+coverage only and is not a production secret-storage path. See
+`docs/operations/HSM_BLS_PQ_POLICY.md`.
 
-Current limitation: BLS/PQ support is a PKCS#11-backed key-inventory/signing path,
+Current limitation: BLS/PQ support is sufficient for developer integration tests,
 not a claim that every vendor HSM offers native non-extractable BLS/Dilithium
 mechanisms. Hardware-native vendor integrations remain a separate audit item.
 
