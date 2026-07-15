@@ -303,6 +303,13 @@ impl AccountState {
             registry: snapshot.registry.clone().unwrap_or_default(),
             liveness: snapshot.liveness.clone().unwrap_or_default(),
             invalid_votes: snapshot.invalid_votes.clone().unwrap_or_default(),
+            // ADIM6 BNS/NFT/Hub/Marketplace persistence (ARENA3 audit: check_snapshot)
+            // Previously NOT round-tripped, so names were lost on restart from snapshot.
+            // Now persisted with #[serde(default)] for backwards compat.
+            bns_registry: snapshot.bns_registry.clone().unwrap_or_default(),
+            nft_registry: snapshot.nft_registry.clone().unwrap_or_default(),
+            marketplace: snapshot.marketplace.clone().unwrap_or_default(),
+            hub: snapshot.hub.clone().unwrap_or_default(),
         }
     }
 

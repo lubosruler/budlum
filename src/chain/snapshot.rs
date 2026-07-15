@@ -380,6 +380,18 @@ pub struct StateSnapshotV2 {
     #[serde(default)]
     pub invalid_votes: Option<crate::registry::InvalidVoteTracker>,
 
+    // --- ADIM6 BNS/NFT/Hub/Marketplace persistence (ARENA3 audit: Q check_snapshot)
+    // BNS registry was previously NOT round-tripped, so names were lost on restart from snapshot.
+    // Now persisted with #[serde(default)] for backwards compatibility (old snapshots -> empty).
+    #[serde(default)]
+    pub bns_registry: Option<crate::bns::BnsRegistry>,
+    #[serde(default)]
+    pub nft_registry: Option<crate::nft::NftRegistry>,
+    #[serde(default)]
+    pub marketplace: Option<crate::marketplace::MarketplaceRegistry>,
+    #[serde(default)]
+    pub hub: Option<crate::hub::HubRegistry>,
+
     pub snapshot_hash: String,
 }
 
@@ -464,6 +476,11 @@ impl StateSnapshotV2 {
             registry: Some(account_state.registry.clone()),
             liveness: Some(account_state.liveness.clone()),
             invalid_votes: Some(account_state.invalid_votes.clone()),
+            // ADIM6 BNS/NFT/Hub/Marketplace persistence (ARENA3 audit: check_snapshot)
+            bns_registry: Some(account_state.bns_registry.clone()),
+            nft_registry: Some(account_state.nft_registry.clone()),
+            marketplace: Some(account_state.marketplace.clone()),
+            hub: Some(account_state.hub.clone()),
             snapshot_hash: String::new(),
         };
         snapshot.snapshot_hash = snapshot.calculate_hash();
