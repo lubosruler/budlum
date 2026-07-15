@@ -37,13 +37,13 @@ pub const MAX_REORG_DEPTH: usize = 100;
 pub const FINALITY_DEPTH: usize = 50;
 pub const EPOCH_LENGTH: u64 = 32;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageEconomicsEventKind {
     OperatorRewardAccrued,
     OperatorBondSlashed,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StorageEconomicsEvent {
     pub epoch: u64,
     pub deal_id: u64,

@@ -467,11 +467,9 @@ impl From<&NetworkMessage> for pb::ProtoNetworkMessage {
                     pb::ProtoSlashingEvidence::from(evidence),
                 )
             }
-            NetworkMessage::StorageEconomicsEvent(event) => {
+            NetworkMessage::StorageEconomicsEvent { data } => {
                 pb::proto_network_message::Payload::StorageEconomicsEvent(
-                    pb::ProtoStorageEconomicsEvent {
-                        data: serialize_payload_or_log("StorageEconomicsEvent", event),
-                    },
+                    pb::ProtoStorageEconomicsEvent { data: data.clone() },
                 )
             }
             NetworkMessage::GlobalHeader(header) => {
@@ -641,9 +639,7 @@ impl TryFrom<pb::ProtoNetworkMessage> for NetworkMessage {
                 NetworkMessage::SlashingEvidence(SlashingEvidence::try_from(e)?),
             ),
             pb::proto_network_message::Payload::StorageEconomicsEvent(e) => {
-                let event = serde_json::from_slice(&e.data)
-                    .map_err(|err| format!("Invalid storage economics event payload: {err}"))?;
-                Ok(NetworkMessage::StorageEconomicsEvent(event))
+                Ok(NetworkMessage::StorageEconomicsEvent { data: e.data })
             }
             pb::proto_network_message::Payload::GlobalHeader(h) => {
                 let header = serde_json::from_slice(&h.data)
@@ -855,21 +851,14 @@ mod tests {
 
     #[test]
     fn test_storage_economics_event_message_conversion() {
-        let event = crate::chain::blockchain::StorageEconomicsEvent {
-            epoch: 42,
-            deal_id: 7,
-            operator: Address::from([9u8; 32]),
-            amount: 1234,
-            balance_effect: 1000,
-            kind: crate::chain::blockchain::StorageEconomicsEventKind::OperatorBondSlashed,
-        };
-        let msg = NetworkMessage::StorageEconomicsEvent(event);
+        let data = br#"{"kind":"OperatorBondSlashed","dealId":7}"#.to_vec();
+        let msg = NetworkMessage::StorageEconomicsEvent { data: data.clone() };
         let proto_msg = pb::ProtoNetworkMessage::from(&msg);
         let decoded_msg = NetworkMessage::try_from(proto_msg)
             .expect("Failed to decode StorageEconomicsEvent");
 
         match decoded_msg {
-            NetworkMessage::StorageEconomicsEvent(decoded) => assert_eq!(decoded, event),
+            NetworkMessage::StorageEconomicsEvent { data: decoded } => assert_eq!(decoded, data),
             _ => panic!("Expected StorageEconomicsEvent"),
         }
     }

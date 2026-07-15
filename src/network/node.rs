@@ -115,13 +115,10 @@ impl NodeClient {
         ));
     }
 
-    pub fn broadcast_storage_economics_event_sync(
-        &self,
-        event: crate::chain::blockchain::StorageEconomicsEvent,
-    ) {
+    pub fn broadcast_storage_economics_event_sync(&self, data: Vec<u8>) {
         let _ = self.sender.try_send(NodeCommand::Broadcast(
             "blocks".into(),
-            NetworkMessage::StorageEconomicsEvent(event),
+            NetworkMessage::StorageEconomicsEvent { data },
         ));
     }
 }
@@ -1568,15 +1565,11 @@ impl Node {
                                             }
                                         }
                                     }
-                                    NetworkMessage::StorageEconomicsEvent(event) => {
+                                    NetworkMessage::StorageEconomicsEvent { data } => {
                                         info!(
-                                            "StorageEconomicsEvent from {}: kind={:?}, deal={}, epoch={}, amount={}, balance_effect={}",
+                                            "StorageEconomicsEvent from {} ({} bytes)",
                                             peer_id,
-                                            event.kind,
-                                            event.deal_id,
-                                            event.epoch,
-                                            event.amount,
-                                            event.balance_effect
+                                            data.len()
                                         );
                                         if let Ok(mut pm) = self.peer_manager.lock() {
                                             pm.report_good_behavior(&peer_id);
