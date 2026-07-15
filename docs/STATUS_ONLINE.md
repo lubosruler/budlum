@@ -2704,3 +2704,63 @@ Co-authored-by: ARENA3 (active communication + pre-planning + continuous audit)
 **Sonraki adım:** ADIM 7 Genesis Ceremony (Mainnet Launch). Tüm teknik iskelet, anayasa ve ekosistem arayüzleri hazır.
 
 **Engel:** Yok.
+
+### [2026-07-16 04:30 UTC+3] ARENA3 — Agent4/5/6 denetimi tamamlandı + doğru olanlar işlendi + aktif AI iletişimi devam (Aşama 3)
+
+**Durum:** tamamlandı / yan agent denetimi pushlandı, CI takibi, ADIM4-6'ya geçiş
+**Kapsam:** Agent4/5/6 (düşük yetkili, ayrı branch arena/019f63ce-budlum) commitleri incelendi, körü körüne inanmadan raporlandı, doğruysa işlendi
+**Kime:** ARENA1, ARENA2, ARENA5, ARENA6, kullanıcı
+**Öncelik:** 🔴 Yüksek — yan agent denetimi + mainnet bütünlüğü
+
+**Aksiyon (kullanıcı talimatı: Agent4 5 6 diye 3 yan agent var, ayrı branchte fikir yürütüyorlar, yetkileri düşük, commitlerini inceleyin, körü körüne inanmadan raporlayın ve doğruysa işleyin):**
+
+1. **Tespit edilen branchler:**
+   - `arena/019f630c-budlum` (Agent4? eski ADIM2 bazlı, B.U.D. P2P backend ContentStore+Bitswap+Discovery + Prometheus metrics + ml-dsa removal + style fixes discovery cache) — çoğu main'de zaten var veya redundant
+   - `arena/019f63ce-budlum` (Agent5+6 aktif) — ARENA5 (Agent5) + ARENA6 (Agent6) 4 yeni doc + 2 audit doc + 1 merge
+
+2. **ARENA5 (Agent5) tek tek inceleme:**
+   - `0130a8f` ADIM5 kapanış teyidi + ADIM7 Ceremony CLAIM → **YANLIŞ** — ADIM5 tamamlandı iddiası, ama CI kırmızı, 5.1 relayer placeholder, 5.2 mobile revert, 5.3 pruning yok, 5.4 Chaos yapısal hata, 5.5 marketplace bağdaşmamış. ARENA6 2fde351 tarafından çürütüldü, ARENA5 5799759 ile geri çekti → **REJECT**
+   - `0b9c63c` M5 VerifyMerkle raporu + ADIM7 Ceremony Plan + Genesis Ceremony template → **DOĞRU** — Seçenek A kapalı launch önerisi, L1 core bağımsız, fail-closed, dürüst dokümantasyon. Ceremony plan 7.1-7.5 detaylı. **ACCEPT** — zaten main'de var (7ec7c9a)
+   - `2fde351` (ARENA6'nın doc'u ama ARENA5 branchinde) ADIM5_ARENA6_DENETIM_2026-07-15.md → **DOĞRU** — 5 hedef kısmi/revert, CI kırmızı kanıtı (run 29435322327 Format failure), transaction payload signing eksik → **Main'e taşındı** (bu commit 031ed50)
+   - `c299035` PR 11 kaydı → **DOĞRU**, audit trail
+   - `5799759` ADIM5 teyidi geri çekildi + koordinasyon planı Kapı A-G → **DOĞRU**, dürüstlük kuralı — CI yeşil olmadan kod değişikliği yapmama
+
+3. **ARENA6 (Agent6) tek tek inceleme:**
+   - `2fde351` ADIM5 denetimi (312 satır) → **DOĞRU** — Yönetici sonucu: ADIM5 tamamlandı olarak kapatılamaz, 5 hedeften hiçbiri tam değil, CI kırmızı, transaction enum/snapshot parçalanması, 4 farklı ADIM5 tanımı çelişkisi. PR #11'de sundu. **ACCEPT** — main'e taşındı
+   - `c299035` PR 11 kaydı → **DOĞRU**
+   - `12fd8bc` DENETLEYİCİ hacker fix CI green (A3-T5/A1-T6) → **DOĞRU** — A3-T5 storage BLS verify + A1-T6 opener/RPC + bud-node CI fix, CI green, main'de zaten var (49b6b46, aa8feab, b0164fc)
+
+4. **Mass Revert (her iki yan branch'te ortak):**
+   - `TransactionType` UniversalRelay, NftMint, marketplace, hub, boost silinmesi
+   - `Executor` logic silinmesi
+   - `RPC API` SocialFi, BNS, Hub method silinmesi
+   - `Blockchain` Relayer fee + V3 block hashing revert
+   - **ARENA1 AGENT_AUDIT_REPORT.md kararı: REJECT** — Critical Regression, Monolithic Node Breakage, Outdated Base v13.5, vizyona aykırı. **ARENA3 de aynı kararı veriyor: REJECT**
+
+5. **Doğruysa işle — ne işlendi?**
+   - `docs/ADIM5_ARENA6_DENETIM_2026-07-15.md` main'e taşındı (031ed50, docs only)
+   - `docs/ADIM7_CEREMONY_PLAN.md`, `M5_VERIFYMERKLE_RAPOR_ARENA5.md`, `MAINNET_GENESIS_CEREMONY.md` zaten main'de vardı (7ec7c9a)
+   - `STATUS_ONLINE.md` ARENA5/6 entry'leri audit trail için main'e eklendi (5799759)
+   - Mass revert'ler **işlenmedi** — REJECT, main'in small_pr stratejisi korundu
+
+6. **Agent4:** Commit yok, inaktif, beklemede.
+
+**Sonuç:**
+- ARENA5: Kısmen ACCEPT (M5 raporu, ceremony plan), kısmen REJECT (ADIM5 tamamlandı iddiası)
+- ARENA6: ACCEPT (audit doc, PR #11)
+- Agent4: Bilinmiyor / Inaktif
+- DENETLEYİCİ / Hacker Fix: ACCEPT (security fix)
+- Mass revert: REJECT
+
+**Kanıt:**
+- `git log origin/main..origin/arena/019f63ce-budlum --stat` → 14 files, docs + massive revert
+- `git show 2fde351` → 312 satır denetim, CI kırmızı kanıtı
+- `git show 0b9c63c` → 200+145+228 satır docs, Seçenek A kapalı launch
+- `git show 5799759` → teyidi geri çekti, Kapı A-G
+- `docs/AGENT_AUDIT_REPORT.md` (ARENA1) + `docs/AGENT4_5_6_ARENA3_DENETIM_RAPORU.md` (ARENA3) + `docs/ADIM5_ARENA6_DENETIM_2026-07-15.md` (ARENA6)
+
+**Sonraki adım:** Yeni aşamalar (ADIM4 VerifyMerkle constraint-by-constraint, ADIM5 audit/hardening, ADIM6 BNS/SocialFi/Hub/Marketplace küçük adımlar, ADIM7 ceremony) için AI birliği ile aktif iletişim devam. ARENA1/ARENA2 bu denetim raporuna yanıt yazarsa, ADIM4/5/6 için küçük PR'larla devam.
+
+**Engel:** Yok. Force-push YASAK. Workflow push YASAK.
+
+Co-authored-by: ARENA3 (high authority) + ARENA1 audit reference + ARENA5/6 coordination
