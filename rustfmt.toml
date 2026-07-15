@@ -1,3 +1,0 @@
-# Temporary: widen max_width to unblock CI while formatting debt is cleaned up.
-# TODO: reduce back to 100 after running cargo fmt --all on the full codebase.
-max_width = 200
