@@ -885,6 +885,15 @@ async fn main() {
         }
     });
 
+    // Start Relayer Worker if configured (ADIM 5 §5.1)
+    if config.role == "relayer" || config.role == "validator" {
+        let relayer_addr = cli_producer_address.unwrap_or(Address::zero());
+        let relayer = budlum_core::relayer::RelayerWorker::new(chain.clone(), relayer_addr);
+        tokio::spawn(async move {
+            relayer.run().await;
+        });
+    }
+
     tokio::select! {
         _ = node.run() => {},
         _ = tokio::signal::ctrl_c() => {

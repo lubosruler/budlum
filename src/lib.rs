@@ -13,6 +13,7 @@ pub mod network;
 pub mod prover;
 pub mod registry;
 pub mod rpc;
+pub mod relayer;
 pub mod settlement;
 pub mod storage;
 pub mod tokenomics;
