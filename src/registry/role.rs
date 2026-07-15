@@ -66,9 +66,7 @@ pub mod roles {
     /// permissionless (the deal's `operator_bond` is the only gate, see
     /// `domain::storage_deal::StorageRegistry::open_deal`). Registering as
     /// `STORAGE_OPERATOR` is only required to be eligible for the
-    /// per-deal reward stream and the active-operator set exposed by
-    /// `bud_storageActiveOperators` (alias of `bud_registryActiveMembers`
-    /// with `role_id = 5`).
+    /// per-deal reward stream and `bud_storageActiveOperators` listing.
     ///
     /// Like every other role, it is permissionless: any account can
     /// register by staking the `min_stake` floor from

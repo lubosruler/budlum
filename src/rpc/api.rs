@@ -342,8 +342,7 @@ pub trait BudlumApi {
         challenge_id: u64,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
-    /// Active B.U.D. storage operators (RoleId = 5 / STORAGE_OPERATOR).
-    /// Thin alias over `bud_registryActiveMembers`.
+    /// Active storage operators (`STORAGE_OPERATOR` / role_id = 5).
     #[method(name = "bud_storageActiveOperators")]
     async fn storage_active_operators(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
 }

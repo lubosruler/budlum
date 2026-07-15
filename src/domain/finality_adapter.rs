@@ -847,19 +847,18 @@ impl StorageAttestationFinalityAdapter {
     ) -> Result<FinalityStatus, FinalityError> {
         if cert.checkpoint_height != commitment.domain_height {
             return Ok(FinalityStatus::Rejected(
-                "Storage attestation cert height does not match commitment".into(),
+                "Storage attestation cert height mismatch".into(),
             ));
         }
         let commitment_hash = hex::encode(commitment.domain_block_hash);
         if cert.checkpoint_hash != commitment_hash {
             return Ok(FinalityStatus::Rejected(
-                "Storage attestation cert hash does not match commitment".into(),
+                "Storage attestation cert hash mismatch".into(),
             ));
         }
         if validator_snapshot.set_hash != cert.set_hash {
             return Ok(FinalityStatus::Rejected(
-                "Storage attestation cert set hash does not match validator snapshot"
-                    .into(),
+                "Storage attestation cert set_hash mismatch vs validator snapshot".into(),
             ));
         }
         if cert.agg_sig_bls.is_empty() {
@@ -870,7 +869,7 @@ impl StorageAttestationFinalityAdapter {
         match cert.verify(validator_snapshot) {
             Ok(()) => Ok(FinalityStatus::Finalized),
             Err(e) => Ok(FinalityStatus::Rejected(format!(
-                "Storage attestation BLS certificate verification failed: {e}"
+                "Storage attestation BLS cert verify failed: {e}"
             ))),
         }
     }
@@ -1409,9 +1408,12 @@ mod tests {
         let adapter = StorageAttestationFinalityAdapter;
         let domain = default_domain(
             5,
-            crate::domain::ConsensusKind::StorageAttestation(
-                crate::domain::StorageDomainParams::default(),
-            ),
+            crate::domain::ConsensusKind::StorageAttestation(crate::domain::StorageDomainParams {
+                min_operator_bond: 100,
+                chunk_size: 1024,
+                challenge_interval: 10,
+                ..Default::default()
+            }),
             1337,
             crate::domain::types::STORAGE_ATTESTATION_ADAPTER,
             0,
