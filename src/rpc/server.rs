@@ -2007,4 +2007,3 @@ impl BudlumApiServer for RpcServer {
         })?;
         Ok(hex::encode(data))
     }
-}
