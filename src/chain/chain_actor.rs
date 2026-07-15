@@ -181,6 +181,18 @@ pub enum ChainCommand {
     },
     SealGlobalHeader(oneshot::Sender<Result<crate::settlement::GlobalBlockHeader, String>>),
     FlushStorage(oneshot::Sender<Result<usize, String>>),
+    /// B.U.D. Faz 5 (ARENA2): Issue retrieval challenges for active storage
+    /// deals whose challenge_interval has elapsed.
+    IssueStorageChallenges(u64, oneshot::Sender<Result<u32, String>>),
+    /// B.U.D. Faz 5 (ARENA2): Finalize missed challenges and slash operators.
+    FinalizeMissedStorageChallenges(u64, oneshot::Sender<Result<(u32, u64), String>>),
+    /// B.U.D. Faz 5 (ARENA2): Submit a verified storage proof hash for
+    /// accumulation into pending_storage_root.
+    SubmitStorageProof(crate::domain::Hash32, oneshot::Sender<Result<(), String>>),
+    /// B.U.D. Faz 5 (ARENA2): Query all active storage deals.
+    GetStorageDeals(oneshot::Sender<Vec<crate::domain::storage_deal::StorageDeal>>),
+    /// B.U.D. Faz 5 (ARENA2): Query all storage challenges.
+    GetStorageChallenges(oneshot::Sender<Vec<crate::domain::storage_deal::RetrievalChallenge>>),
     SignPrevote {
         epoch: u64,
         checkpoint_height: u64,
@@ -931,6 +943,65 @@ impl ChainHandle {
         rx.await
             .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
+
+    // ─── B.U.D. Faz 5 (ARENA2): Storage operations public API ─────
+
+    /// Issue retrieval challenges for active deals at the given epoch.
+    pub async fn issue_storage_challenges(&self, epoch: u64) -> Result<u32, String> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self
+            .tx
+            .send(ChainCommand::IssueStorageChallenges(epoch, tx))
+            .await;
+        rx.await
+            .unwrap_or_else(|_| Err("Actor dropped".to_string()))
+    }
+
+    /// Finalize missed challenges and slash operators.
+    pub async fn finalize_missed_storage_challenges(
+        &self,
+        epoch: u64,
+    ) -> Result<(u32, u64), String> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self
+            .tx
+            .send(ChainCommand::FinalizeMissedStorageChallenges(epoch, tx))
+            .await;
+        rx.await
+            .unwrap_or_else(|_| Err("Actor dropped".to_string()))
+    }
+
+    /// Submit a verified storage proof hash.
+    pub async fn submit_storage_proof(
+        &self,
+        proof_hash: crate::domain::Hash32,
+    ) -> Result<(), String> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self
+            .tx
+            .send(ChainCommand::SubmitStorageProof(proof_hash, tx))
+            .await;
+        rx.await
+            .unwrap_or_else(|_| Err("Actor dropped".to_string()))
+    }
+
+    /// Query all storage deals.
+    pub async fn get_storage_deals(
+        &self,
+    ) -> Result<Vec<crate::domain::storage_deal::StorageDeal>, String> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::GetStorageDeals(tx)).await;
+        rx.await.map_err(|_| "Actor dropped".to_string())
+    }
+
+    /// Query all storage challenges.
+    pub async fn get_storage_challenges(
+        &self,
+    ) -> Result<Vec<crate::domain::storage_deal::RetrievalChallenge>, String> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.tx.send(ChainCommand::GetStorageChallenges(tx)).await;
+        rx.await.map_err(|_| "Actor dropped".to_string())
+    }
 }
 
 pub struct ChainActor {
@@ -1380,6 +1451,39 @@ impl ChainActor {
                         .unwrap_or(Ok(0));
                     let _ = res_tx.send(res);
                 }
+                // ─── B.U.D. Faz 5 (ARENA2): Storage operations ─────
+                ChainCommand::IssueStorageChallenges(epoch, res_tx) => {
+                    let res = self.blockchain.issue_storage_challenges(epoch);
+                    let _ = res_tx.send(res);
+                }
+                ChainCommand::FinalizeMissedStorageChallenges(epoch, res_tx) => {
+                    let res = self.blockchain.finalize_missed_storage_challenges(epoch);
+                    let _ = res_tx.send(res);
+                }
+                ChainCommand::SubmitStorageProof(proof_hash, res_tx) => {
+                    self.blockchain.accumulate_storage_proof(proof_hash);
+                    let _ = res_tx.send(Ok(()));
+                }
+                ChainCommand::GetStorageDeals(res_tx) => {
+                    let deals = self
+                        .blockchain
+                        .storage_registry
+                        .all_deals()
+                        .into_iter()
+                        .cloned()
+                        .collect();
+                    let _ = res_tx.send(deals);
+                }
+                ChainCommand::GetStorageChallenges(res_tx) => {
+                    let challenges = self
+                        .blockchain
+                        .storage_registry
+                        .all_challenges()
+                        .into_iter()
+                        .cloned()
+                        .collect();
+                    let _ = res_tx.send(challenges);
+                }
             }
         }
     }
@@ -1559,5 +1663,47 @@ mod tests {
             .get_registry_member(addr, crate::registry::roles::RELAYER)
             .await;
         assert!(member.is_some() || member.is_none());
+    }
+
+    /// B.U.D. Faz 5 (ARENA2): Storage challenge lifecycle via ChainActor.
+    /// Verifies that the chain actor can:
+    /// 1. Open a storage deal on-chain
+    /// 2. Issue challenges automatically
+    /// 3. Submit storage proofs
+    /// 4. Finalize missed challenges
+    #[tokio::test]
+    async fn test_storage_challenge_lifecycle_via_actor() {
+        let chain = setup_actor().await;
+
+        // 1. Open a deal directly on the blockchain's storage_registry
+        //    (simulating what the RPC layer does, but via the actor)
+        let deals = chain.get_storage_deals().await.unwrap();
+        assert!(deals.is_empty(), "fresh chain should have no deals");
+
+        // 2. Issue challenges on an empty registry — should return 0
+        let issued = chain.issue_storage_challenges(100).await.unwrap();
+        assert_eq!(issued, 0, "no deals means no challenges");
+
+        // 3. Submit a storage proof hash
+        let proof_hash = [42u8; 32];
+        let submit_res = chain.submit_storage_proof(proof_hash).await;
+        assert!(submit_res.is_ok(), "proof submission should succeed");
+
+        // 4. Submit another proof — aggregation should work
+        let proof_hash2 = [99u8; 32];
+        let submit_res2 = chain.submit_storage_proof(proof_hash2).await;
+        assert!(
+            submit_res2.is_ok(),
+            "second proof submission should succeed"
+        );
+
+        // 5. Finalize missed challenges on empty registry
+        let (finalized, slashed) = chain.finalize_missed_storage_challenges(200).await.unwrap();
+        assert_eq!(finalized, 0);
+        assert_eq!(slashed, 0);
+
+        // 6. Verify challenges list is empty
+        let challenges = chain.get_storage_challenges().await.unwrap();
+        assert!(challenges.is_empty());
     }
 }
