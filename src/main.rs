@@ -409,11 +409,28 @@ async fn main() {
             );
             std::process::exit(1);
         }
+        // Vendor-specific mechanisms (optional, for BLS/PQ native HSM sign)
+        let bls_mech = config
+            .pkcs11_bls_mechanism
+            .as_deref()
+            .and_then(budlum_core::crypto::pkcs11::Pkcs11Signer::parse_mechanism);
+        let pq_mech = config
+            .pkcs11_pq_mechanism
+            .as_deref()
+            .and_then(budlum_core::crypto::pkcs11::Pkcs11Signer::parse_mechanism);
+        if bls_mech.is_some() || pq_mech.is_some() {
+            println!(
+                "INFO: PKCS#11 vendor mechanisms: BLS={:?} PQ={:?}",
+                bls_mech, pq_mech
+            );
+        }
         match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
             module_path.to_string(),
             slot_id,
             pin_env.to_string(),
-        ) {
+        )
+        .map(|s| s.with_vendor_mechanisms(bls_mech, pq_mech))
+        {
             Ok(signer) => {
                 if config.network == budlum_core::core::chain_config::Network::Mainnet
                     && config.role == "validator"
