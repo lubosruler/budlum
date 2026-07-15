@@ -144,7 +144,9 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
             commitment.sequence,
             Some(commitment.domain_block_hash),
             event,
-            &event_proof, Address::zero())
+            &event_proof,
+            Address::zero(),
+        )
         .expect("header-chain-finalized PoW event may mint");
 
     let legacy_error = chain
@@ -154,7 +156,9 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
             0,
             Some([0u8; 32]),
             events.events()[0].clone(),
-            &event_proof, Address::zero())
+            &event_proof,
+            Address::zero(),
+        )
         .expect_err("legacy self-declared PoW must stay mint-gated");
     assert!(legacy_error.contains(POW_HEADER_CHAIN_ADAPTER));
 }

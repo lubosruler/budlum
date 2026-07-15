@@ -1,9 +1,9 @@
 pub mod types;
 
-use crate::hub::types::{AppRecord, HubError, AppCategory};
 use crate::core::address::Address;
-use std::collections::BTreeMap;
+use crate::hub::types::{AppCategory, AppRecord, HubError};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct HubRegistry {
@@ -53,8 +53,12 @@ impl HubRegistry {
         if &app.developer != caller {
             return Err(HubError::NotDeveloper);
         }
-        if let Some(url) = new_url { app.website_url = url; }
-        if let Some(manifest) = new_manifest { app.manifest_id = Some(manifest); }
+        if let Some(url) = new_url {
+            app.website_url = url;
+        }
+        if let Some(manifest) = new_manifest {
+            app.manifest_id = Some(manifest);
+        }
         Ok(())
     }
 

@@ -32,6 +32,8 @@ pub mod qcblob_quorum;
 // on `AccountState`, so these test files now exercise the real code paths
 // again. They were the regression tests for the Tur 1-19 patch series.
 #[cfg(test)]
+pub mod disaster_recovery;
+#[cfg(test)]
 pub mod finality_adversarial;
 #[cfg(test)]
 pub mod finality_live_path;
@@ -58,5 +60,3 @@ pub mod settlement_prod;
 pub mod tokenomics;
 #[cfg(test)]
 pub mod zkvm;
-#[cfg(test)]
-pub mod disaster_recovery;

@@ -419,7 +419,10 @@ pub trait BudlumApi {
 
     /// Get all posts by a user.
     #[method(name = "bud_socialGetProfile")]
-    async fn social_get_profile(&self, address: String) -> Result<serde_json::Value, ErrorObjectOwned>;
+    async fn social_get_profile(
+        &self,
+        address: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// B.U.D. SocialFi: Get global social feed.
     #[method(name = "bud_socialGetFeed")]

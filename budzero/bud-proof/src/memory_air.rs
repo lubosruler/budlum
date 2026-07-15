@@ -60,7 +60,7 @@ impl<AB: AirBuilder> Air<AB> for MemoryAir {
         builder.when_transition().assert_zero(
             m_active.clone() * nm_active.clone() * m_same.clone() * (nm_addr - m_addr),
         );
-        
+
         // Active flags must be boolean
         builder.assert_bool(m_active.clone());
     }

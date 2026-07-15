@@ -93,11 +93,19 @@ pub enum TransactionType {
     NftMint,
     NftTransfer,
     NftBurn,
-    NftBoost { nft_id: u64, amount: u64 },
+    NftBoost {
+        nft_id: u64,
+        amount: u64,
+    },
     UniversalRelay(ExternalTransaction),
     RelayerResult(RelayerExternalResult),
-    AiOfferData { cid: crate::storage::content_id::ContentId, price: u64 },
-    AiPurchaseData { offer_id: u64 },
+    AiOfferData {
+        cid: crate::storage::content_id::ContentId,
+        price: u64,
+    },
+    AiPurchaseData {
+        offer_id: u64,
+    },
     HubRegisterApp {
         name: String,
         category: crate::hub::types::AppCategory,

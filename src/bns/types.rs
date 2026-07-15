@@ -41,7 +41,12 @@ impl NameRecord {
         }
     }
 
-    pub fn with_storage(mut self, storage_root: [u8; 32], storage_domain_id: u32, height: u64) -> Self {
+    pub fn with_storage(
+        mut self,
+        storage_root: [u8; 32],
+        storage_domain_id: u32,
+        height: u64,
+    ) -> Self {
         self.storage_root = Some(storage_root);
         self.storage_domain_id = Some(storage_domain_id);
         self.storage_root_height = Some(height);

@@ -1149,7 +1149,10 @@ impl ChainHandle {
 
     pub async fn bns_resolve(&self, name: String) -> Option<Address> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::BnsResolve { name, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::BnsResolve { name, response: tx })
+            .await;
         rx.await.unwrap_or(None)
     }
 
@@ -1162,15 +1165,28 @@ impl ChainHandle {
         rx.await.unwrap_or(None)
     }
 
-    pub async fn bns_resolve_content(&self, name: String) -> Option<crate::storage::content_id::ContentId> {
+    pub async fn bns_resolve_content(
+        &self,
+        name: String,
+    ) -> Option<crate::storage::content_id::ContentId> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::BnsResolveContent { name, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::BnsResolveContent { name, response: tx })
+            .await;
         rx.await.unwrap_or(None)
     }
 
     pub async fn bns_resolve_subdomain(&self, parent: String, label: String) -> Option<Address> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::BnsResolveSubdomain { parent, label, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::BnsResolveSubdomain {
+                parent,
+                label,
+                response: tx,
+            })
+            .await;
         rx.await.unwrap_or(None)
     }
 
@@ -1192,30 +1208,53 @@ impl ChainHandle {
                 response: tx,
             })
             .await;
-        rx.await.unwrap_or_else(|_| Err("Actor dropped".to_string()))
+        rx.await
+            .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
 
     pub async fn bns_calculate_cost(&self, name: String, duration: u64) -> u64 {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::BnsCalculateCost { name, duration, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::BnsCalculateCost {
+                name,
+                duration,
+                response: tx,
+            })
+            .await;
         rx.await.unwrap_or(0)
     }
 
     pub async fn nft_get(&self, id: u64) -> Option<crate::nft::types::Nft> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::NftGet { id, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::NftGet { id, response: tx })
+            .await;
         rx.await.unwrap_or(None)
     }
 
     pub async fn nft_get_by_owner(&self, owner: Address) -> Vec<crate::nft::types::Nft> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::NftGetByOwner { owner, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::NftGetByOwner {
+                owner,
+                response: tx,
+            })
+            .await;
         rx.await.unwrap_or_default()
     }
 
     pub async fn nft_get_feed(&self, limit: usize) -> Vec<crate::nft::types::Nft> {
         let (tx, rx) = oneshot::channel();
-        let _ = self.tx.send(ChainCommand::NftGetFeed { limit, response: tx }).await;
+        let _ = self
+            .tx
+            .send(ChainCommand::NftGetFeed {
+                limit,
+                response: tx,
+            })
+            .await;
         rx.await.unwrap_or_default()
     }
 }
@@ -1811,16 +1850,39 @@ impl ChainActor {
                     let _ = res_tx.send(challenges);
                 }
                 ChainCommand::BnsResolve { name, response } => {
-                    let _ = response.send(self.blockchain.state.bns_registry.resolve(&name, self.blockchain.state.epoch_index));
+                    let _ = response.send(
+                        self.blockchain
+                            .state
+                            .bns_registry
+                            .resolve(&name, self.blockchain.state.epoch_index),
+                    );
                 }
                 ChainCommand::BnsResolveFull { name, response } => {
-                    let _ = response.send(self.blockchain.state.bns_registry.resolve_full(&name, self.blockchain.state.epoch_index));
+                    let _ = response.send(
+                        self.blockchain
+                            .state
+                            .bns_registry
+                            .resolve_full(&name, self.blockchain.state.epoch_index),
+                    );
                 }
                 ChainCommand::BnsResolveContent { name, response } => {
-                    let _ = response.send(self.blockchain.state.bns_registry.resolve_content(&name, self.blockchain.state.epoch_index));
+                    let _ = response.send(
+                        self.blockchain
+                            .state
+                            .bns_registry
+                            .resolve_content(&name, self.blockchain.state.epoch_index),
+                    );
                 }
-                ChainCommand::BnsResolveSubdomain { parent, label, response } => {
-                    let _ = response.send(self.blockchain.state.bns_registry.resolve_subdomain(&parent, &label, self.blockchain.state.epoch_index));
+                ChainCommand::BnsResolveSubdomain {
+                    parent,
+                    label,
+                    response,
+                } => {
+                    let _ = response.send(self.blockchain.state.bns_registry.resolve_subdomain(
+                        &parent,
+                        &label,
+                        self.blockchain.state.epoch_index,
+                    ));
                 }
                 ChainCommand::BnsSetStorage {
                     name,
@@ -1837,19 +1899,48 @@ impl ChainActor {
                         self.blockchain.state.epoch_index,
                     ));
                 }
-                ChainCommand::BnsCalculateCost { name, duration, response } => {
-                    let _ = response.send(self.blockchain.state.bns_registry.calculate_cost(&name, duration));
+                ChainCommand::BnsCalculateCost {
+                    name,
+                    duration,
+                    response,
+                } => {
+                    let _ = response.send(
+                        self.blockchain
+                            .state
+                            .bns_registry
+                            .calculate_cost(&name, duration),
+                    );
                 }
                 ChainCommand::NftGet { id, response } => {
                     let _ = response.send(self.blockchain.state.nft_registry.get_nft(id).cloned());
                 }
                 ChainCommand::NftGetByOwner { owner, response } => {
-                    let nft_ids = self.blockchain.state.nft_registry.ownership.get(&owner).cloned().unwrap_or_default();
-                    let nfts: Vec<_> = nft_ids.iter().filter_map(|id| self.blockchain.state.nft_registry.get_nft(*id)).cloned().collect();
+                    let nft_ids = self
+                        .blockchain
+                        .state
+                        .nft_registry
+                        .ownership
+                        .get(&owner)
+                        .cloned()
+                        .unwrap_or_default();
+                    let nfts: Vec<_> = nft_ids
+                        .iter()
+                        .filter_map(|id| self.blockchain.state.nft_registry.get_nft(*id))
+                        .cloned()
+                        .collect();
                     let _ = response.send(nfts);
                 }
                 ChainCommand::NftGetFeed { limit, response } => {
-                    let nfts: Vec<_> = self.blockchain.state.nft_registry.nfts.values().rev().take(limit).cloned().collect();
+                    let nfts: Vec<_> = self
+                        .blockchain
+                        .state
+                        .nft_registry
+                        .nfts
+                        .values()
+                        .rev()
+                        .take(limit)
+                        .cloned()
+                        .collect();
                     let _ = response.send(nfts);
                 }
             }

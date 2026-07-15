@@ -18,7 +18,10 @@ impl BudGateway {
     /// name: "ayaz.bud" -> Returns raw bytes (HTML/Media).
     pub async fn fetch_name_content(&self, name: &str) -> Result<Vec<u8>, String> {
         // 1. Resolve Name to CID
-        let _cid = self.chain.bns_resolve_content(name.to_string()).await
+        let _cid = self
+            .chain
+            .bns_resolve_content(name.to_string())
+            .await
             .ok_or_else(|| format!("BNS name '{}' not linked to any content", name))?;
 
         // 2. B.U.D. storage content lookup is not yet wired to the local Storage

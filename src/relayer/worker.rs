@@ -1,12 +1,12 @@
 use crate::chain::chain_actor::ChainHandle;
-use crate::core::transaction::{Transaction, TransactionType};
 use crate::core::address::Address;
-use tokio::sync::mpsc;
+use crate::core::transaction::{Transaction, TransactionType};
 use std::sync::Arc;
-use tracing::{info, warn, error};
+use tokio::sync::mpsc;
+use tracing::{error, info, warn};
 
 /// ADIM 5 §5.1: Universal Relayer Worker.
-/// Watches the Budlum chain for UniversalRelay transactions and 
+/// Watches the Budlum chain for UniversalRelay transactions and
 /// "relays" them to external chains (EVM, Solana, etc.).
 
 pub struct RelayerWorker {
@@ -24,13 +24,16 @@ impl RelayerWorker {
     }
 
     pub async fn run(self) {
-        info!("Universal Relayer Worker started for {}", self.relayer_address);
-        
+        info!(
+            "Universal Relayer Worker started for {}",
+            self.relayer_address
+        );
+
         let mut last_height = self.chain.get_height().await;
 
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-            
+
             let current_height = self.chain.get_height().await;
             if current_height <= last_height {
                 continue;
@@ -45,7 +48,7 @@ impl RelayerWorker {
                                 target = %ext_tx.target_address,
                                 "Relayer: Detected external transaction request"
                             );
-                            
+
                             // Real-world: Connect to Web3 provider (ethers-rs, solana-sdk)
                             // and submit the signed payload.
                             self.process_relay(tx.from, ext_tx).await;
@@ -57,7 +60,11 @@ impl RelayerWorker {
         }
     }
 
-    async fn process_relay(&self, user: Address, ext_tx: crate::core::transaction::ExternalTransaction) {
+    async fn process_relay(
+        &self,
+        user: Address,
+        ext_tx: crate::core::transaction::ExternalTransaction,
+    ) {
         // Implementation for different chains (Hat 5.1 extension)
         match ext_tx.chain {
             crate::core::transaction::ExternalChain::Ethereum => {
@@ -69,7 +76,7 @@ impl RelayerWorker {
                     success: true,
                     receipt_proof: vec![1, 2, 3], // Mock proof
                 };
-                
+
                 // Submit result back to Budlum
                 let mut result_tx = Transaction::new_with_chain_id(
                     self.relayer_address,
@@ -82,7 +89,7 @@ impl RelayerWorker {
                     TransactionType::RelayerResult(result),
                 );
                 // Note: The relayer would sign here with its own key.
-                
+
                 let _ = self.chain.add_transaction(result_tx).await;
             }
             _ => {
