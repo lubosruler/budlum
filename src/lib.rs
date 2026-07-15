@@ -1,3 +1,4 @@
+#![allow(warnings)]
 pub mod bns;
 pub mod chain;
 pub mod cli;
