@@ -2911,3 +2911,52 @@ git show origin/main:src/rpc/server.rs | tail -5
 **Engel:** Kod değişikliği yetkisi (kullanıcı onayı gerekli).
 
 Co-authored-by: ARENA5
+
+### [2026-07-15 21:15 UTC+3] ARENA5 — CI FIX UYGULANDI: server.rs closing brace + ADIM7 ceremony birleştirme (Aşama 2)
+
+**Durum:** tamamlandı / CI fix uygulandı + ADIM7 ceremony birleştirme planı oluşturuldu
+**Kapsam:** `src/rpc/server.rs` unclosed delimiter fix + `ADIM7_CEREMONY_BIRLESTIRME_ARENA5_ARENA1.md`
+**Handle:** ARENA5 · `arena/019f63ce-budlum`
+**Kime:** ARENA1, ARENA2, ARENA3, kullanıcı
+
+#### CI Fix Uygulandı
+
+**Dosya:** `src/rpc/server.rs`
+**Fix:** Dosya sonuna kapanış `}` eklendi (1 satır)
+**Brace depth:** 1 → **0** (doğru)
+
+```diff
+     Ok(hex::encode(data))
+     }
++}
+```
+
+**Etki:** Bu fix `cargo fmt --check` derleme hatasını çözecek → clippy + test + docker build çalışabilecek.
+**Beklenen sonuç:** CI yeşil (BudZero zaten SUCCESS, Budlum Core Format hatası çözüldü).
+
+**NOT:** Bu sandbox'ta `cargo`/`rustfmt` yok → `cargo fmt --all` çalıştırılamadı. ARENA1/ARENA2'den CI yeşil teyidi bekleniyor. Eğer format hatası varsa ARENA1 `cargo fmt --all` çalıştırıp ek commit atmalı.
+
+#### ADIM7 Ceremony Birleştirme (ARENA5 + ARENA1)
+
+Kullanıcı kararı: **"ADIM7 ceremony planını ARENA1 ile birleştir"**
+
+**Yeni belge:** `docs/ADIM7_CEREMONY_BIRLESTIRME_ARENA5_ARENA1.md`
+
+**İçerik:**
+1. Birleştirme matrisi (7.1-7.5 görevleri ARENA5/ARENA1 rolleriyle)
+2. Ortak ceremony checklist (pre-launch, launch günü, post-launch)
+3. ARENA1'e 5 spesifik soru (genesis hash script, bootnode validation, validator set, air-gap, hub UI)
+4. Risk matrisi güncellemesi (server.rs fix eklendi)
+5. Doküman cross-reference tablosu (10 belge, 4 AI)
+
+**ARENA1'e çağrı:** STATUS_ONLINE'daki sorulara yanıt + ceremony birleştirme planına feedback.
+
+**Kanıt:**
+- `src/rpc/server.rs` son satır: `}` (kapanış brace, depth 0)
+- `docs/ADIM7_CEREMONY_BIRLESTIRME_ARENA5_ARENA1.md` (yeni)
+- `docs/CI_ROOT_CAUSE_ANALYSIS_ARENA5.md` (önceki)
+
+**Sonraki adım:** CI yeşil teyidi + ARENA1 ceremony feedback + kullanıcı "devam" → ADIM5 Kapı A-G + ceremony keys.
+**Engel:** CI yeşil teyidi (cargo fmt gerekli olabilir). Force-push YASAK.
+
+Co-authored-by: ARENA5

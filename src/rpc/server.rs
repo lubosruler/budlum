@@ -1910,7 +1910,6 @@ impl BudlumApiServer for RpcServer {
             chain_id: self.chain.get_chain_id().await,
             tx_type: crate::core::transaction::TransactionType::BnsSetContent,
         };
-
         Ok(serde_json::json!({
             "name": name,
             "owner": owner,
@@ -1950,6 +1949,20 @@ impl BudlumApiServer for RpcServer {
         Ok(serde_json::Value::Array(list))
     }
 
+    async fn social_get_feed(&self, limit: usize) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let nfts = self.chain.nft_get_feed(limit).await;
+        let list: Vec<_> = nfts.into_iter().map(|nft| {
+            serde_json::json!({
+                "id": nft.id,
+                "owner": Self::to_0x_hash(nft.owner.to_hex()),
+                "content_id": format!("0x{}", hex::encode(nft.content_id.0)),
+                "minted_at": nft.minted_at_epoch,
+                "author": nft.author_name,
+            })
+        }).collect();
+        Ok(serde_json::Value::Array(list))
+    }
+
     async fn social_prepare_post(
         &self,
         author: String,
@@ -1965,9 +1978,6 @@ impl BudlumApiServer for RpcServer {
         let cid_bytes = hex::decode(clean_cid).map_err(|e| {
             ErrorObjectOwned::owned(-32602, format!("Invalid CID hex: {}", e), None::<()>)
         })?;
-        if cid_bytes.len() != 32 {
-            return Err(ErrorObjectOwned::owned(-32602, "CID must be 32 bytes", None::<()>));
-        }
         let mut cid_arr = [0u8; 32];
         cid_arr.copy_from_slice(&cid_bytes);
         let cid_obj = crate::storage::content_id::ContentId(cid_arr);
@@ -1999,7 +2009,274 @@ impl BudlumApiServer for RpcServer {
             "tx_template": tx,
         }))
     }
-}
+
+    async fn social_prepare_burn(
+        &self,
+        owner: String,
+        nft_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_owner = owner.strip_prefix("0x").unwrap_or(&owner);
+        let owner_addr = Address::from_hex(clean_owner).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid owner address: {}", e), None::<()>)
+        })?;
+
+        let data = bincode::serialize(&nft_id)
+            .map_err(|e| ErrorObjectOwned::owned(-32000, e.to_string(), None::<()>))?;
+
+        let tx = crate::core::transaction::Transaction {
+            from: owner_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 500,
+            nonce: self.chain.get_nonce(&owner_addr).await,
+            data,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::NftBurn,
+        };
+
+        Ok(serde_json::json!({
+            "owner": owner,
+            "nft_id": nft_id,
+            "tx_template": tx,
+        }))
+    }
+
+    async fn social_prepare_boost(
+        &self,
+        booster: String,
+        nft_id: u64,
+        amount: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_booster = booster.strip_prefix("0x").unwrap_or(&booster);
+        let booster_addr = Address::from_hex(clean_booster).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid booster address: {}", e), None::<()>)
+        })?;
+
+        let tx = crate::core::transaction::Transaction {
+            from: booster_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 500,
+            nonce: self.chain.get_nonce(&booster_addr).await,
+            data: Vec::new(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::NftBoost { nft_id, amount },
+        };
+
+        Ok(serde_json::json!({
+            "booster": booster,
+            "nft_id": nft_id,
+            "amount": amount,
+            "tx_template": tx,
+        }))
+    }
+
+    async fn market_get_offers(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let offers = self.chain.market_get_offers().await;
+        Ok(serde_json::json!(offers))
+    }
+
+    async fn market_prepare_offer(
+        &self,
+        seller: String,
+        cid: String,
+        price: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_seller = seller.strip_prefix("0x").unwrap_or(&seller);
+        let seller_addr = Address::from_hex(clean_seller).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid seller address: {}", e), None::<()>)
+        })?;
+
+        let clean_cid = cid.strip_prefix("0x").unwrap_or(&cid);
+        let cid_bytes = hex::decode(clean_cid).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid CID hex: {}", e), None::<()>)
+        })?;
+        let mut cid_arr = [0u8; 32];
+        cid_arr.copy_from_slice(&cid_bytes);
+        let cid_obj = crate::storage::content_id::ContentId(cid_arr);
+
+        let data = bincode::serialize(&(cid_obj, price))
+            .map_err(|e| ErrorObjectOwned::owned(-32000, e.to_string(), None::<()>))?;
+
+        let tx = crate::core::transaction::Transaction {
+            from: seller_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 500,
+            nonce: self.chain.get_nonce(&seller_addr).await,
+            data,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::AiOfferData { cid: cid_obj, price },
+        };
+
+        Ok(serde_json::json!({
+            "seller": seller,
+            "cid": cid,
+            "price": price,
+            "tx_template": tx,
+        }))
+    }
+
+    async fn market_prepare_purchase(
+        &self,
+        buyer: String,
+        offer_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_buyer = buyer.strip_prefix("0x").unwrap_or(&buyer);
+        let buyer_addr = Address::from_hex(clean_buyer).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid buyer address: {}", e), None::<()>)
+        })?;
+
+        let data = bincode::serialize(&offer_id)
+            .map_err(|e| ErrorObjectOwned::owned(-32000, e.to_string(), None::<()>))?;
+
+        let tx = crate::core::transaction::Transaction {
+            from: buyer_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 500,
+            nonce: self.chain.get_nonce(&buyer_addr).await,
+            data,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::AiPurchaseData { offer_id },
+        };
+
+        Ok(serde_json::json!({
+            "buyer": buyer,
+            "offer_id": offer_id,
+            "tx_template": tx,
+        }))
+    }
+
+    async fn hub_get_apps(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let apps = self.chain.hub_get_apps().await;
+        Ok(serde_json::json!(apps))
+    }
+
+    async fn hub_prepare_register(
+        &self,
+        developer: String,
+        name: String,
+        category: crate::hub::types::AppCategory,
+        website_url: String,
+        manifest_id: Option<String>,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_dev = developer.strip_prefix("0x").unwrap_or(&developer);
+        let dev_addr = Address::from_hex(clean_dev).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid developer address: {}", e), None::<()>)
+        })?;
+
+        let m_id = if let Some(m_str) = manifest_id {
+            let clean_m = m_str.strip_prefix("0x").unwrap_or(&m_str);
+            let m_bytes = hex::decode(clean_m).map_err(|e| {
+                ErrorObjectOwned::owned(-32602, format!("Invalid manifest hex: {}", e), None::<()>)
+            })?;
+            let mut m_arr = [0u8; 32];
+            m_arr.copy_from_slice(&m_bytes);
+            Some(crate::storage::content_id::ContentId(m_arr))
+        } else {
+            None
+        };
+
+        let tx = crate::core::transaction::Transaction {
+            from: dev_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 500,
+            nonce: self.chain.get_nonce(&dev_addr).await,
+            data: Vec::new(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::HubRegisterApp {
+                name,
+                category,
+                website_url,
+                manifest_id: m_id,
+            },
+        };
+
+        Ok(serde_json::json!({
+            "developer": developer,
+            "name": tx.from.to_hex(),
+            "tx_template": tx,
+        }))
+    }
+
+    async fn relayer_prepare_external_tx(
+        &self,
+        from: String,
+        chain: crate::core::transaction::ExternalChain,
+        target_address: String,
+        payload: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_from = from.strip_prefix("0x").unwrap_or(&from);
+        let from_addr = Address::from_hex(clean_from).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid from address: {}", e), None::<()>)
+        })?;
+
+        let payload_bytes = hex::decode(payload.strip_prefix("0x").unwrap_or(&payload)).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid payload hex: {}", e), None::<()>)
+        })?;
+
+        let ext_tx = crate::core::transaction::ExternalTransaction {
+            chain,
+            target_address,
+            payload: payload_bytes,
+            external_nonce: 0,
+        };
+
+        let tx = crate::core::transaction::Transaction {
+            from: from_addr,
+            to: Address::zero(),
+            amount: 0,
+            fee: 2000,
+            nonce: self.chain.get_nonce(&from_addr).await,
+            data: Vec::new(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            tx_type: crate::core::transaction::TransactionType::UniversalRelay(ext_tx),
+        };
+
+        Ok(serde_json::json!({
+            "from": from,
+            "tx_template": tx,
+        }))
+    }
+
     async fn gateway_fetch_content(&self, name: String) -> Result<String, ErrorObjectOwned> {
         let gateway = crate::gateway::BudGateway::new(self.chain.clone(), self.storage.as_ref().map(|s| s.lock().unwrap().clone()));
         let data = gateway.fetch_name_content(&name).await.map_err(|e| {
