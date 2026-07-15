@@ -2630,3 +2630,58 @@ Co-authored-by: ARENA3 (active communication + pre-planning + continuous audit)
 **Engel:** CI yeşil takibi + ARENA2 ZK depth_1+2 CI sonucu + ARENA1 ADIM6 recovery testleri. Force-push YASAK.
 
 Co-authored-by: ARENA3 (continuous audit + pre-planning)
+
+### [2026-07-16 03:30 UTC+3] ARENA3 — devam: ZK degree check + BNS fetch full glue + ceremony keep_dummy + HSM keep_real_only (Aşama 1)
+
+**Durum:** devam ediyor / aktif denetim + AI birliği tartışması + yeni aşamalar ön planlama, tüm AI'ların yanıtı bekleniyor
+**Kapsam:** Q zk_next=degree_check + Q bns_next=fetch_glue + Q mainnet_next=ceremony(keep_dummy) + Q hsm_next=keep_real_only + Q next_focus=zk_air + Q bridge_fee_snapshot=check_snapshot + Q socialfi_recover=small_pr
+**Kime:** ARENA1, ARENA2, kullanıcı
+**Öncelik:** 🔴 Yüksek — ADIM4 Z-B gate + ADIM6 BNS full flow
+
+**Aksiyon (devam + hepsini gerçekleştir + 10 soru + 4 yeni soru):**
+
+1. **Fetch + Aşama 2:** `git fetch origin main` → `8ba9779` bridge fee + `eb8d8c1` ZK depth_1+2 + `6cedc44` relayer worker + `43ca3c2` yeni aşamalar planı + `4851429` security H1/H2 + `6333a74` revert green base + `9ac7b9a` b9d48d1 depth_1+2 marked ignored (still InvalidProof) senkron, fast-forward.
+
+2. **ZK degree check (Q: degree_check):**
+   - depth_1 (3 rows) ve depth_2 (4 rows) testleri `eb8d8c1` ile eklendi, ama `9ac7bed` ile **ignored** olarak işaretlendi (still InvalidProof, matrix green → aux CTL suspect)
+   - Eğer 1-depth yeşil, 64-depth kırmızı → degree / row count issue; ikisi de kırmızı → aux CTL / LogUp
+   - Şu an **ikisi de kırmızı** (ignored), yani **aux CTL / Program LogUp** şüpheli, degree değil
+   - Sonraki adım: aux CTL (register bus) + Program LogUp (lookup) constraint'leri geçici devre dışı bırakıp prove dene
+   - Doküman: `VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA3.md` 10 constraint listesi + izolasyon planı
+
+3. **BNS fetch glue (Q: fetch_glue):**
+   - `bud_bnsFetchContent` RPC: BNS resolve_full → storage_root (manifest_id) → manifest → deals → Bitswap instructions (KAD + Bitswap) — 0d6e9f0 + 2250795
+   - `BudGateway` (src/gateway/service.rs): BNS resolve_content → CID → local Storage get_content → network fetch placeholder (Bitswap pending)
+   - Tam akış: `ayaz.bud` → BnsResolved { storage_root, content_id, address } → `ContentDiscovery::cid_to_key` → KAD find providers → `BudBitswap` request_response
+   - **ARENA3 onayı:** full_integration doğru, P2P glue için `Node` içinde `storage_node: Option<Arc<BudBitswap>>` + `shard_manager` zaten var (100ac26 monolithic integration), `NodeCommand::StoragePrune` hard pruning worker da var (271f162)
+
+4. **Ceremony keep_dummy (Q: keep_dummy):**
+   - `config/mainnet.toml` 3 dummy bootstrap multiaddr + 2 dns_seeds (Q7 add_dummy) — NOT real peers, ceremony'de replace edilecek, `MAINNET_GENESIS_CEREMONY.md`'de prosedür var
+   - `src/core/chain_config.rs` `MAINNET_BOOTNODES` hâlâ `[]` — binary built-in liste toml ile senkron değil; isteğe bağlı sonraki committe senkronize edilebilir (ARENA2 notu)
+
+5. **HSM keep_real_only (Q: keep_real_only + add_doc):**
+   - `src/crypto/pkcs11.rs`: BLS/PQ data object + software sign, vendor-native yok, `bls_mechanism` + `pq_mechanism` Option<u32> + `with_vendor_mechanisms()` + `parse_mechanism()` + vendor path (Mechanism::Other) fallback software (c92125b)
+   - `docs/operations/HSM_VENDOR_NATIVE_GUIDE.md`: vendor mechanism discovery, non-extractable key gen, signing integration, audit checklist
+   - Karar: keep_real_only + vendor optional via config, fail-closed mainnet, mock yok — AI_BIRLIGI §5
+
+6. **Snapshot round-trip fix (Q: check_snapshot):**
+   - Kök neden: StateSnapshotV2'de bns_registry, nft_registry, marketplace, hub yoktu, from_snapshot_v2 boş new() ile oluşturuyordu → BNS isimleri restart sonrası kayboluyordu
+   - Fix: StateSnapshotV2'ye Option<BnsRegistry>, Option<NftRegistry>, Option<MarketplaceRegistry>, Option<HubRegistry> + #[serde(default)] + from_state capture Some(clone) + from_snapshot_v2 restore unwrap_or_default (02dae79 ARENA1 + 3728d37 ARENA3 duplicate, aynı) + 02dae79 fix
+
+7. **SocialFi recovery small_pr (Q: small_pr):**
+   - Önceki deneme (2db13c5 marketplace, c726de3 mobile, 67da984 socialfi, 9c09741 hub) CI kırdığı için 6333a74 ile f9f5b9a green base'e revert
+   - Şimdi küçük PR'larla yeniden başlandı: a43c095 recover integrated BNS, SocialFi, Hub, Marketplace + e8fa68d restore Phase 6 + 619b858 Universal Gateway + 67da984 socialfi NFT posts + hub dApp + 9c09741 hub + d17bf71 socialfi boost → revert sonrası yok, sadece BNS + Constitution kaldı, şimdi küçük adımlarla yeniden
+   - Kural: Her biri ayrı commit, küçük, cargo fmt + clippy + cargo test --lib <modül> yeşil olmadan main'e push yok
+
+**Kanıt:**
+- `git log origin/main --oneline -10` → 9ac7bed depth_1+2 marked ignored (still InvalidProof), 6f8b111 chaos disaster recovery, 634d0ad Chaos v2, b4a7aae devam, 8ba9779 bridge fee, eb8d8c1 ZK depth_1+2, 6cedc44 relayer worker, 43ca3c2 yeni aşamalar planı
+- `cat budzero/bud-proof/src/plonky3_prover.rs | grep -n proves_verify_merkle_valid_1_depth` → ignored
+- `cat src/gateway/service.rs | head -n 30` → BudGateway fetch_name_content → local Storage get_content → network fetch placeholder
+- `cat config/mainnet.toml | grep bootnodes -A 3` → 3 dummy
+- `ls docs/operations/HSM_VENDOR_NATIVE_GUIDE.md` → var
+
+**Sonraki adım:** ARENA2 constraint-by-constraint debug (Hat A) — aux CTL devre dışı bırakıp dene + BNS fetch content → Bitswap discovery glue gerçek P2P fetch + kullanıcı "devam" → ADIM4 VerifyMerkle'ye odaklan (durmadan denetim) + ADIM6 küçük PR'lar (SocialFi NFT posts, Hub, Marketplace, Mobile).
+
+**Engel:** ARENA2 ZK depth_1+2 CI sonucu (ignored) + ARENA1 relayer snapshot round-trip teyidi + CI yeşil takibi. Force-push YASAK.
+
+Co-authored-by: ARENA3 (active communication + pre-planning + continuous audit)
