@@ -29,6 +29,9 @@ pub struct Metrics {
     pub p2p_sync_requests: IntCounter,
     pub mempool_evictions: IntCounter,
     pub mempool_expired_cleanups: IntCounter,
+    pub rpc_request_duration_seconds: Histogram,
+    pub rpc_requests_total: IntCounter,
+    pub rpc_rate_limited_total: IntCounter,
 }
 
 impl Metrics {
@@ -134,6 +137,19 @@ impl Metrics {
             "Expired mempool cleanup runs",
         )
         .expect("metric");
+        let rpc_request_duration_seconds = Histogram::with_opts(HistogramOpts::new(
+            "budlum_rpc_request_duration_seconds",
+            "RPC request latency in seconds",
+        ))
+        .expect("metric");
+        let rpc_requests_total =
+            IntCounter::new("budlum_rpc_requests_total", "Total RPC requests received")
+                .expect("metric");
+        let rpc_rate_limited_total = IntCounter::new(
+            "budlum_rpc_rate_limited_total",
+            "Total RPC requests rejected due to rate limiting",
+        )
+        .expect("metric");
 
         registry
             .register(Box::new(chain_height.clone()))
@@ -210,6 +226,15 @@ impl Metrics {
         registry
             .register(Box::new(mempool_expired_cleanups.clone()))
             .expect("metric");
+        registry
+            .register(Box::new(rpc_request_duration_seconds.clone()))
+            .expect("metric");
+        registry
+            .register(Box::new(rpc_requests_total.clone()))
+            .expect("metric");
+        registry
+            .register(Box::new(rpc_rate_limited_total.clone()))
+            .expect("metric");
 
         Metrics {
             registry: Arc::new(registry),
@@ -238,6 +263,9 @@ impl Metrics {
             p2p_sync_requests,
             mempool_evictions,
             mempool_expired_cleanups,
+            rpc_request_duration_seconds,
+            rpc_requests_total,
+            rpc_rate_limited_total,
         }
     }
 

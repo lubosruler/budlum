@@ -131,13 +131,15 @@ pub enum RpcMode {
 struct RpcSecurityLayer {
     config: Arc<RpcSecurityConfig>,
     per_ip_rates: Arc<Mutex<HashMap<IpAddr, VecDeque<Instant>>>>,
+    metrics: Option<Arc<crate::core::metrics::Metrics>>,
 }
 
 impl RpcSecurityLayer {
-    fn new(config: RpcSecurityConfig) -> Self {
+    fn new(config: RpcSecurityConfig, metrics: Option<Arc<crate::core::metrics::Metrics>>) -> Self {
         Self {
             config: Arc::new(config),
             per_ip_rates: Arc::new(Mutex::new(HashMap::new())),
+            metrics,
         }
     }
 }
@@ -150,6 +152,7 @@ impl<S> Layer<S> for RpcSecurityLayer {
             inner,
             config: self.config.clone(),
             per_ip_rates: self.per_ip_rates.clone(),
+            metrics: self.metrics.clone(),
         }
     }
 }
@@ -159,6 +162,7 @@ struct RpcSecurityService<S> {
     inner: S,
     config: Arc<RpcSecurityConfig>,
     per_ip_rates: Arc<Mutex<HashMap<IpAddr, VecDeque<Instant>>>>,
+    metrics: Option<Arc<crate::core::metrics::Metrics>>,
 }
 
 impl<S, B> Service<HttpRequest<B>> for RpcSecurityService<S>
@@ -191,6 +195,9 @@ where
 
         let client_ip = extract_client_ip(&self.config, &req);
         if !is_per_ip_rate_limited(&self.config, &self.per_ip_rates, client_ip) {
+            if let Some(ref m) = self.metrics {
+                m.rpc_rate_limited_total.inc();
+            }
             return Box::pin(async {
                 Ok(text_response(
                     StatusCode::TOO_MANY_REQUESTS,
@@ -198,9 +205,21 @@ where
                 ))
             });
         }
+        if let Some(ref m) = self.metrics {
+            m.rpc_requests_total.inc();
+        }
 
+        let start = std::time::Instant::now();
+        let metrics = self.metrics.clone();
         let mut inner = self.inner.clone();
-        Box::pin(async move { inner.call(req).await })
+        Box::pin(async move {
+            let result = inner.call(req).await;
+            if let Some(ref m) = metrics {
+                m.rpc_request_duration_seconds
+                    .observe(start.elapsed().as_secs_f64());
+            }
+            result
+        })
     }
 }
 
@@ -214,6 +233,10 @@ pub struct RpcServer {
     /// producers. The public RPC surface mutates it; the chain layer reads
     /// from a snapshot at block-application time.
     storage: Arc<Mutex<StorageRegistry>>,
+    /// Prometheus metrics handle for RPC latency and rate-limit counters.
+    /// If `None`, metrics are silently skipped (e.g. in tests without a
+    /// global registry).
+    metrics: Option<Arc<crate::core::metrics::Metrics>>,
 }
 
 impl RpcServer {
@@ -224,6 +247,7 @@ impl RpcServer {
             security: RpcSecurityConfig::default(),
             mode: RpcMode::Public,
             storage: Arc::new(Mutex::new(StorageRegistry::new())),
+            metrics: None,
         }
     }
 
@@ -238,6 +262,7 @@ impl RpcServer {
             security,
             mode: RpcMode::Public,
             storage: Arc::new(Mutex::new(StorageRegistry::new())),
+            metrics: None,
         }
     }
 
@@ -253,7 +278,13 @@ impl RpcServer {
             security,
             mode,
             storage: Arc::new(Mutex::new(StorageRegistry::new())),
+            metrics: None,
         }
+    }
+
+    pub fn with_metrics(mut self, metrics: Arc<crate::core::metrics::Metrics>) -> Self {
+        self.metrics = Some(metrics);
+        self
     }
 
     /// Construct with a shared storage registry (e.g. a chain-level one).
@@ -268,13 +299,16 @@ impl RpcServer {
             security: RpcSecurityConfig::default(),
             mode: RpcMode::Public,
             storage,
+            metrics: None,
         }
     }
 
     pub async fn run(self, addr: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use jsonrpsee::server::ServerBuilder;
-        let http_middleware =
-            ServiceBuilder::new().layer(RpcSecurityLayer::new(self.security.clone()));
+        let http_middleware = ServiceBuilder::new().layer(RpcSecurityLayer::new(
+            self.security.clone(),
+            self.metrics.clone(),
+        ));
         let mut builder = ServerBuilder::default().set_http_middleware(http_middleware);
 
         if let Some(limit) = self.security.max_request_body_size {

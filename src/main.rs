@@ -760,7 +760,8 @@ async fn main() {
             node.get_client(),
             rpc_security.clone(),
             RpcMode::Public,
-        );
+        )
+        .with_metrics(metrics.clone());
         let pub_addr = public_addr.clone();
         tokio::spawn(async move {
             if let Err(e) = pub_server.run(pub_addr.clone()).await {
@@ -778,7 +779,8 @@ async fn main() {
                 node.get_client(),
                 op_security,
                 RpcMode::Operator,
-            );
+            )
+            .with_metrics(metrics.clone());
             let op_addr = operator_addr.clone();
             tokio::spawn(async move {
                 if let Err(e) = op_server.run(op_addr.clone()).await {

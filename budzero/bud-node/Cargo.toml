@@ -4,9 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# Core Budlum types (ContentId, Hash32, ContentManifest)
-budlum-core = { path = "../..", package = "budlum-core" }
-
 # Async runtime
 tokio = { version = "1", features = ["full"] }
 
