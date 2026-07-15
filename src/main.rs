@@ -272,7 +272,11 @@ async fn main() {
             "✅ Mandatory pre-migration backup verified at: {}",
             backup_path.display()
         );
-        println!("✅ ConsensusStateV2 schema migration ready and compatible. Minimum schema threshold MIN_SCHEMA_VERSION=2 verified.");
+        println!(
+            "✅ ConsensusStateV2 schema migration ready and compatible. Supported schema window: {}..={}.",
+            budlum_core::chain::snapshot::MIN_SUPPORTED_STATE_SNAPSHOT_SCHEMA_VERSION,
+            budlum_core::chain::snapshot::CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION
+        );
         return;
     }
 
@@ -393,72 +397,82 @@ async fn main() {
     );
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    let hsm_signer: Option<Arc<dyn ConsensusSigner>> =
-        if config.signer_backend.as_deref() == Some("pkcs11") {
-            let module_path = config.pkcs11_module_path.as_deref().unwrap_or("");
-            let slot_id = config.pkcs11_slot_id.unwrap_or(0);
-            let pin_env = config.pkcs11_token_pin_env.as_deref().unwrap_or("");
-            if module_path.is_empty() || pin_env.is_empty() {
-                eprintln!(
+    let hsm_signer: Option<Arc<dyn ConsensusSigner>> = if config.signer_backend.as_deref()
+        == Some("pkcs11")
+    {
+        let module_path = config.pkcs11_module_path.as_deref().unwrap_or("");
+        let slot_id = config.pkcs11_slot_id.unwrap_or(0);
+        let pin_env = config.pkcs11_token_pin_env.as_deref().unwrap_or("");
+        if module_path.is_empty() || pin_env.is_empty() {
+            eprintln!(
                 "ERROR: PKCS#11 backend requires --pkcs11-module-path and --pkcs11-token-pin-env"
             );
+            std::process::exit(1);
+        }
+        match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
+            module_path.to_string(),
+            slot_id,
+            pin_env.to_string(),
+        ) {
+            Ok(signer) => {
+                if config.network == budlum_core::core::chain_config::Network::Mainnet
+                    && config.role == "validator"
+                    && (!signer.has_bls_key() || !signer.has_pq_key())
+                {
+                    eprintln!(
+                            "CRITICAL: mainnet validators require PKCS#11-backed Ed25519 plus BLS and Dilithium/PQ key material; refusing Ed25519-only HSM backend"
+                        );
+                    std::process::exit(1);
+                }
+                println!("PKCS#11 HSM initialized (slot: {})", slot_id);
+                Some(Arc::new(signer))
+            }
+            Err(e) => {
+                eprintln!("CRITICAL: Failed to initialize PKCS#11 signer: {}", e);
                 std::process::exit(1);
             }
-            match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
-                module_path.to_string(),
-                slot_id,
-                pin_env.to_string(),
-            ) {
-                Ok(signer) => {
-                    println!("PKCS#11 HSM initialized (slot: {})", slot_id);
-                    Some(Arc::new(signer))
-                }
-                Err(e) => {
-                    eprintln!("CRITICAL: Failed to initialize PKCS#11 signer: {}", e);
-                    std::process::exit(1);
-                }
-            }
-        } else if config.signer_backend.as_deref() == Some("hsm_mock") {
-            let socket_path = &config.hsm_socket_path;
-            let kp = config
-                .validator_key_file
-                .as_ref()
-                .and_then(|p| load_signing_key(p));
-            let bls = budlum_core::crypto::primitives::BlsKeypair::generate().ok();
-            let pq = Some(budlum_core::crypto::primitives::PqKeyPair::generate());
-            match budlum_core::crypto::hsm_mock::HsmMockServer::spawn_inprocess(
-                socket_path,
-                kp,
-                bls,
-                pq,
-            ) {
-                Ok(_server) => {
-                    std::thread::sleep(std::time::Duration::from_millis(50));
-                    match budlum_core::crypto::hsm_mock::HsmMockSigner::new(socket_path) {
-                        Ok(signer) => {
-                            println!(
-                                "BLS-PQ HSM mock backend initialized at UNIX socket: {}",
-                                socket_path
-                            );
-                            Some(Arc::new(signer))
-                        }
-                        Err(e) => {
-                            eprintln!(
-                                "CRITICAL: Failed to connect to HSM mock socket {}: {}",
-                                socket_path, e
-                            );
-                            std::process::exit(1);
-                        }
+        }
+    } else if config.signer_backend.as_deref() == Some("hsm_mock") {
+        let socket_path = &config.hsm_socket_path;
+        let kp = config
+            .validator_key_file
+            .as_ref()
+            .and_then(|p| load_signing_key(p));
+        let bls = budlum_core::crypto::primitives::BlsKeypair::generate().ok();
+        let pq = Some(budlum_core::crypto::primitives::PqKeyPair::generate());
+        match budlum_core::crypto::hsm_mock::HsmMockServer::spawn_inprocess(
+            socket_path,
+            kp,
+            bls,
+            pq,
+        ) {
+            Ok(_server) => {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                match budlum_core::crypto::hsm_mock::HsmMockSigner::new(socket_path) {
+                    Ok(signer) => {
+                        println!(
+                            "BLS-PQ HSM mock backend initialized at UNIX socket: {}",
+                            socket_path
+                        );
+                        Some(Arc::new(signer))
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "CRITICAL: Failed to connect to HSM mock socket {}: {}",
+                            socket_path, e
+                        );
+                        std::process::exit(1);
                     }
                 }
-                Err(e) => {
-                    eprintln!("CRITICAL: Failed to spawn HSM mock server: {}", e);
-                    std::process::exit(1);
-                }
             }
-        } else {
-            None
-        };
+            Err(e) => {
+                eprintln!("CRITICAL: Failed to spawn HSM mock server: {}", e);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        None
+    };
 
     let consensus: Arc<dyn ConsensusEngine> = match consensus_type {
         ConsensusType::PoW => {
