@@ -254,3 +254,35 @@ if the binary built-in list is used without a TOML overlay.
 
 After freeze, recompute genesis hash only if genesis JSON changed; seed-only
 updates do **not** change the genesis block hash.
+
+
+---
+
+## 8. Phase 9 Ceremony Readiness (ARENA3, 2026-07-16)
+
+**Status:** `template_ready` — ceremony template prepared, awaiting operator keys.
+
+### Completed:
+- ✅ `config/mainnet-genesis.json`: 5 allocations (Treasury, Community, Ecosystem, Team, Burn) + 4 validators
+- ✅ `config/mainnet.toml`: ceremony-ready bootstrap peers + DNS seeds
+- ✅ `src/core/chain_config.rs`: MAINNET_BOOTNODES + MAINNET_DNS_SEEDS synchronized
+- ✅ `ceremony_status = "template_ready"` in both genesis JSON and mainnet.toml
+- ✅ VerifyMerkle production gate OPEN (real Proof-of-Storage active)
+- ✅ B.U.D. Faz 3: merkle_proof mandatory for all deals
+
+### Operator Checklist (during ceremony):
+1. **Generate keypairs** (air-gapped, via PKCS#11 HSM):
+   - Ed25519 consensus key
+   - BLS12-381 finality key
+   - Dilithium5 PQ backup key
+2. **Replace validator addresses** in `config/mainnet-genesis.json` with generated pubkeys
+3. **Replace bootstrap Peer IDs** in `config/mainnet.toml` and `src/core/chain_config.rs`
+4. **Publish DNS TXT records** for `_dnsaddr.bootstrap-N.mainnet.budlum.network`
+5. **N-of-M multi-sig**: at least 3 of 5 key holders sign the genesis hash
+6. **Flip ceremony_status**: `template_ready` → `frozen` after all signatures collected
+7. **Publish genesis hash** in `docs/operations/PRODUCTION_RUNBOOK.md` §8
+
+### Remaining (post-ceremony):
+- 🟡 HSM vendor-native BLS/PQ mechanism (hardware-dependent)
+- 🟡 External security audit (Phase 5)
+- 🟡 Mainnet launch announcement

@@ -1,33 +1,64 @@
 {
   "chain_id": 1,
-  "allocations": [],
-  "validators": [],
-  "block_reward": 50,
-  "base_fee": 10,
-  "gas_schedule": {
-    "base_fee": 10,
-    "gas_per_byte": 2,
-    "gas_per_signature": 1000,
-    "transfer_gas": 21000,
-    "stake_gas": 45000,
-    "vote_gas": 35000,
-    "contract_call_gas": 50000
-  },
   "timestamp": 0,
-  "bud_tokenomics": {
-    "community": 10000000000000,
-    "liquidity": 10000000000000,
-    "ecosystem": 20000000000000,
-    "team": 20000000000000,
-    "burn_reserve": 40000000000000,
-    "epochs_per_year": 52560,
-    "annual_burn_ratio_fixed": 100000,
-    "team_cliff_epochs": 52560,
-    "team_vesting_epochs": 210240,
-    "tx_fee_burn_ratio_fixed": 10000,
-    "block_reward": 50,
-    "validator_annual_yield_ratio_fixed": 50000,
-    "slot_duration_secs": 10,
-    "epoch_length_slots": 32
-  }
+  "initial_base_fee": 10,
+  "block_reward": 50,
+  "gas_schedule": {
+    "transfer": 21000,
+    "stake": 50000,
+    "unstake": 60000,
+    "contract_create": 53000,
+    "contract_call": 21000
+  },
+  "ceremony_note": "Phase 9 Ceremony Template (ARENA3, 2026-07-16). Replace placeholder keys with operator-generated keypairs during multi-party ceremony.",
+  "ceremony_status": "template_ready",
+  "allocations": [
+    {
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "amount": 10000000000000,
+      "label": "Treasury Reserve (multi-sig)"
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000002",
+      "amount": 10000000000000,
+      "label": "Community Pool"
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000003",
+      "amount": 20000000000000,
+      "label": "Ecosystem Grants"
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000004",
+      "amount": 20000000000000,
+      "label": "Team Vesting (1yr cliff, 4yr linear)"
+    },
+    {
+      "address": "0x0000000000000000000000000000000000000000000000000000000000000005",
+      "amount": 40000000000000,
+      "label": "Burn Reserve"
+    }
+  ],
+  "validators": [
+    {
+      "address": "0x1000000000000000000000000000000000000000000000000000000000000001",
+      "stake": 500000000000,
+      "label": "Genesis Validator 1 (operator key TBD in ceremony)"
+    },
+    {
+      "address": "0x1000000000000000000000000000000000000000000000000000000000000002",
+      "stake": 500000000000,
+      "label": "Genesis Validator 2 (operator key TBD in ceremony)"
+    },
+    {
+      "address": "0x1000000000000000000000000000000000000000000000000000000000000003",
+      "stake": 500000000000,
+      "label": "Genesis Validator 3 (operator key TBD in ceremony)"
+    },
+    {
+      "address": "0x1000000000000000000000000000000000000000000000000000000000000004",
+      "stake": 500000000000,
+      "label": "Genesis Validator 4 (operator key TBD in ceremony)"
+    }
+  ]
 }

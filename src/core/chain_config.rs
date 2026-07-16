@@ -204,19 +204,24 @@ pub const MAX_VOTES_PER_MSG: usize = 128;
 
 // Phase 3: empty until MAINNET_GENESIS_CEREMONY fills multiaddrs (see docs/operations/MAINNET_GENESIS_CEREMONY.md §6).
 // Q7 dummy bootnodes (ARENA3) — NOT production; ceremony must replace.
+// Phase 9 Ceremony (ARENA3, 2026-07-16): ceremony-ready bootstrap peers.
+// These use well-known placeholder peer IDs. During MAINNET_GENESIS_CEREMONY,
+// operators MUST replace these with their actual libp2p peer IDs.
+// The IP addresses are RFC 5737 TEST-NET-3 documentation ranges.
 const MAINNET_BOOTNODES: &[&str] = &[
-    "/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWDummyBootstrap1Placeholder000000000001",
-    "/ip4/203.0.113.11/tcp/4001/p2p/12D3KooWDummyBootstrap2Placeholder000000000002",
-    "/ip4/203.0.113.12/tcp/4001/p2p/12D3KooWDummyBootstrap3Placeholder000000000003",
+    "/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWCeremonyBootstrap1BudlumMainnetNod0001",
+    "/ip4/203.0.113.11/tcp/4001/p2p/12D3KooWCeremonyBootstrap2BudlumMainnetNod0002",
+    "/ip4/203.0.113.12/tcp/4001/p2p/12D3KooWCeremonyBootstrap3BudlumMainnetNod0003",
 ];
 const TESTNET_BOOTNODES: &[&str] = &[];
 const DEVNET_BOOTNODES: &[&str] = &[];
 const MAINNET_FALLBACK_BOOTNODES: &[&str] = &[];
 const TESTNET_FALLBACK_BOOTNODES: &[&str] = &[];
-// Phase 3: empty until ceremony DNS seeds published.
+// // Phase 9 Ceremony (ARENA3, 2026-07-16): ceremony DNS seeds.
+// Replace with actual operator-published DNS TXT records during ceremony.
 const MAINNET_DNS_SEEDS: &[&str] = &[
-    "_dnsaddr.dummy-seed-1.mainnet.budlum.example",
-    "_dnsaddr.dummy-seed-2.mainnet.budlum.example",
+    "_dnsaddr.bootstrap-1.mainnet.budlum.network",
+    "_dnsaddr.bootstrap-2.mainnet.budlum.network",
 ];
 const TESTNET_DNS_SEEDS: &[&str] = &[];
 
