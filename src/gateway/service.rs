@@ -5,7 +5,7 @@ use crate::storage::db::Storage;
 /// Phase 6 §6.1: B.U.D. Universal Gateway.
 /// Resolves a BNS name (.bud) to content stored in B.U.D.
 ///
-/// Phase 8.9 (C1 fix): local Storage lookup + P2P Bitswap fallback path.
+/// Phase 8.9 (C1 fix): Bitswap + ContentDiscovery P2P fetch entegre edildi.
 
 pub struct BudGateway {
     chain: ChainHandle,
@@ -31,14 +31,17 @@ impl BudGateway {
             return Err(format!("BNS name '{name}' expired"));
         }
 
-        // 2. Derive ContentId from storage_root or content_id
+        // 2. Derive ContentId from storage_root
         let storage_root = resolved
             .storage_root
             .ok_or_else(|| format!("BNS name '{name}' has no storage binding"))?;
 
+        // storage_root zaten 32-bayt content anahtarı — ContentId tuple-wrap yeterli.
         let cid = ContentId(storage_root);
 
-        // 3. Local storage lookup (cached content)
+        // 3. Local storage lookup (cached content). NOT: Storage::get_content
+        //    bugün stub (Phase 0.40 kapsamı: blob store henüz yok) — bu dal
+        //    doğal olarak ıskalar, NotFound dönüşü P2P hatasına düşer.
         if let Some(ref storage) = self.storage {
             if let Ok(chunk) = storage.get_content(&cid) {
                 return Ok(chunk);
