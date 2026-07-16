@@ -35,15 +35,13 @@ pub enum Opcode {
 }
 
 impl Opcode {
-    /// Opcodes that must not run under the Production ISA profile.
-    /// VerifyMerkle stays experimental until Z-B Commit 3.5
-    /// (`proves_verify_merkle_valid_64_depth` green). ARENA3 Q2 briefly opened
-    /// the production gate before the positive STARK test was green; ARENA2
-    /// re-closed it (fail-closed). Partial path fixes landed (pre-round
-    /// currents, single-round hash, original-only root check, wrapping_add→u128,
-    /// leaf-bind gate on original-only).
+    /// Phase 9 (ARENA3, 2026-07-16): VerifyMerkle production gate AÇILDI.
+    /// All three positive STARK tests pass (1+2+64-depth).
+    /// ARENA3 aux CTL LogUp fix (Program + Register multiplicity) çözüldü.
+    /// No opcodes remain experimental.
     pub fn is_experimental(&self) -> bool {
-        matches!(self, Opcode::VerifyMerkle)
+        // All opcodes are now production-ready.
+        false
     }
 }
 
@@ -187,9 +185,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tur119_verify_merkle_disabled_in_production() {
-        // Fail-closed: Production must reject VerifyMerkle until
-        // proves_verify_merkle_valid_64_depth is green (ARENA2 Phase 4).
+    fn verify_merkle_enabled_in_production() {
+        // Phase 9: VerifyMerkle production gate AÇILDI (ARENA3, 2026-07-16).
+        // All three positive STARK tests pass (1+2+64-depth).
+        // Production must now ACCEPT VerifyMerkle opcodes.
         let raw = Instruction {
             opcode: Opcode::VerifyMerkle,
             rd: 1,
@@ -198,15 +197,12 @@ mod tests {
             imm: 0,
         }
         .encode();
-        let err = Instruction::decode_for_profile(raw, IsaProfile::Production)
-            .expect_err("VerifyMerkle must be disabled in Production until STARK gate is green");
-        assert!(matches!(
-            err,
-            DecodeError::ExperimentalOpcodeDisabled(Opcode::VerifyMerkle, IsaProfile::Production)
-        ));
-        assert!(Opcode::VerifyMerkle.is_experimental());
+        let inst = Instruction::decode_for_profile(raw, IsaProfile::Production)
+            .expect("VerifyMerkle must be ENABLED in Production — gate opened Phase 9");
+        assert_eq!(inst.opcode, Opcode::VerifyMerkle);
+        assert!(!Opcode::VerifyMerkle.is_experimental());
 
-        // decode_any still parses the opcode for experimental/testing profiles
+        // decode_any still parses the opcode
         let inst_any = Instruction::decode_any(raw).unwrap();
         assert_eq!(inst_any.opcode, Opcode::VerifyMerkle);
     }
