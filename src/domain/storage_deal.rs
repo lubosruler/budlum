@@ -281,6 +281,9 @@ pub enum StorageError {
     /// Manifest with the given `manifest_id` is not registered in the
     /// storage domain.
     UnknownManifest(ContentId),
+    /// B.U.D. Faz 3 (Phase 9): merkle_proof and storage_root are mandatory
+    /// now that VerifyMerkle production gate is open.
+    MerkleProofRequired,
 }
 
 impl std::fmt::Display for StorageError {
@@ -317,6 +320,10 @@ impl std::fmt::Display for StorageError {
                 write!(f, "challenge {id} already resolved")
             }
             StorageError::UnknownManifest(id) => write!(f, "unknown manifest {id}"),
+            StorageError::MerkleProofRequired => write!(
+                f,
+                "B.U.D. Faz 3: merkle_proof and storage_root are mandatory (VerifyMerkle gate open)"
+            ),
         }
     }
 }
@@ -381,8 +388,16 @@ impl StorageRegistry {
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<Hash32>,
     ) -> Result<u64, StorageError> {
-        // NOTE: merkle_proof and storage_root are optional in Faz 2 (interim).
-        // In Faz 3 (Phase 4), they will be required.
+        // === B.U.D. Faz 3 (Phase 9): Merkle proof MANDATORY ===
+        // VerifyMerkle production gate AÇILDI (ARENA3, 2026-07-16).
+        // All three positive STARK tests pass (1+2+64-depth).
+        // Real Proof-of-Storage is now active — merkle_proof + storage_root required.
+        if merkle_proof.is_none() {
+            return Err(StorageError::MerkleProofRequired);
+        }
+        if storage_root.is_none() {
+            return Err(StorageError::MerkleProofRequired);
+        }
         if start_epoch >= end_epoch {
             return Err(StorageError::InvalidEpochRange {
                 start: start_epoch,
@@ -711,8 +726,8 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                None,
-                None,
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
             )
             .unwrap();
         (id, shard_id)
@@ -734,8 +749,8 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                None,
-                None,
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
             )
             .unwrap_err();
         assert!(matches!(err, StorageError::UnknownShard { .. }));
@@ -757,8 +772,8 @@ mod tests {
                 100,
                 good_econ(),
                 &params(),
-                None,
-                None,
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
             )
             .unwrap_err();
         assert!(matches!(err, StorageError::InvalidEpochRange { .. }));
@@ -782,8 +797,8 @@ mod tests {
                 200,
                 econ,
                 &params(),
-                None,
-                None,
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
             )
             .unwrap_err();
         assert!(matches!(err, StorageError::InsufficientBond { .. }));
@@ -805,8 +820,8 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                None,
-                None,
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
             )
             .unwrap();
         let id2 = reg
@@ -820,8 +835,8 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                None,
-                None,
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
             )
             .unwrap();
         assert_ne!(id1, id2);
