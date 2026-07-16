@@ -27,7 +27,7 @@ fi
 
 # 2. SBOM üret
 SBOM_FILE="$REPO_ROOT/sbom.cdx.json"
-cargo cyclonedx --format json --output-file "$SBOM_FILE" --override-filename ""
+cargo cyclonedx --format json > "$SBOM_FILE"
 
 # 3. JSON validasyon
 if ! python3 -c "import json; json.load(open('$SBOM_FILE'))" 2>/dev/null; then
