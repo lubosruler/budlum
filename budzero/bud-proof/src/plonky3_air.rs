@@ -1117,9 +1117,15 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             let s_reg_cur: AB::ExprEF = perm_cur[0].into();
             let s_reg_nxt: AB::ExprEF = perm_nxt[0].into();
             let is_real_op_ext: AB::ExprEF = is_real_op.into();
+            // Phase 8.10 (ARENA3 aux CTL fix #2): Register LogUp must also
+            // exclude VerifyMerkle expansion rows (same multiplicity mismatch
+            // as Program CTL). The trace_matrix correctly skips register events
+            // for expansion rows, so the CPU side must match.
+            let is_expand_ext_reg: AB::ExprEF = cur[COL_VM_MERKLE_IS_EXPAND].into();
+            let is_reg_active: AB::ExprEF = is_real_op_ext.clone() * (AB::ExprEF::ONE - is_expand_ext_reg);
             builder.when_transition().assert_zero_ext(
                 (s_reg_nxt.clone() - s_reg_cur.clone()) * d_total
-                    - (is_real_op_ext * (d_rs1 + d_rs2 + d_rd) - r_active_ext * d_reg),
+                    - (is_reg_active * (d_rs1 + d_rs2 + d_rd) - r_active_ext * d_reg),
             );
             builder.when_first_row().assert_zero_ext(s_reg_cur.clone());
             builder.when_last_row().assert_zero_ext(s_reg_cur);
