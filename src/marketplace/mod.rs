@@ -25,7 +25,10 @@ impl MarketplaceRegistry {
         Self::default()
     }
 
-    pub fn create_offer(&mut self, seller: Address, cid: ContentId, price: u64) -> u64 {
+    pub fn create_offer(&mut self, seller: Address, cid: ContentId, price: u64) -> Result<u64, String> {
+        if price == 0 {
+            return Err("Price must be greater than zero".into());
+        }
         let id = self.next_offer_id;
         let offer = DataOffer {
             id,
@@ -36,7 +39,7 @@ impl MarketplaceRegistry {
         };
         self.offers.insert(id, offer);
         self.next_offer_id += 1;
-        id
+        Ok(id)
     }
 
     pub fn close_offer(&mut self, id: u64, caller: &Address) -> Result<(), String> {

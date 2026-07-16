@@ -401,7 +401,8 @@ impl Executor {
                 sender.nonce = sender.nonce.saturating_add(1);
             }
             TransactionType::AiOfferData { cid, price } => {
-                state.marketplace.create_offer(tx.from, *cid, *price);
+                state.marketplace.create_offer(tx.from, *cid, *price)
+                    .map_err(|e| BudlumError::validation("offer_invalid", e))?;
                 let sender = state.get_or_create(&tx.from);
                 sender.balance = sender.balance.saturating_sub(tx.fee);
                 sender.nonce = sender.nonce.saturating_add(1);

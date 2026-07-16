@@ -62,8 +62,13 @@ impl HubRegistry {
         Ok(())
     }
 
-    pub fn verify_app(&mut self, id: u64) -> Result<(), HubError> {
+    pub fn verify_app(&mut self, id: u64, caller: &Address) -> Result<(), HubError> {
         let app = self.apps.get_mut(&id).ok_or(HubError::NotFound)?;
+        // Phase 8.9 H3 fix: only the developer can self-verify their own app.
+        // DAO/governance override gate reserved for Phase 9.
+        if &app.developer != caller {
+            return Err(HubError::NotDeveloper);
+        }
         app.verified = true;
         Ok(())
     }
