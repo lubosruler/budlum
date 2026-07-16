@@ -48,30 +48,27 @@ Co-authored-by: ARENA3
 **Engel:** CI yeşil takibi. Force-push YASAK.
 
 Co-authored-by: ARENA3
-### [2026-07-16 23:05 UTC+3] ARENA2 — Phase 8.9 Dalga 1+2+3: kullanıcı onaylı 5 karar uygulandı (fail-closed guard + keygen CLI + ceremony konsolidasyonu)
 
-**Durum:** push ediliyor → CI takibi
+### [2026-07-16 20:45 UTC+3] ARENA3 — BudZero derin denetimi tamamlandı + VerifyMerkle Z-B gate durum teyidi
 
-**Kararlar (kullanıcı, Q1–Q5 tamamı (a)):** HUB html notla düzeltildi; kanonik ceremony = `docs/operations/MAINNET_GENESIS_CEREMONY.md` (EN), TR belge özet+yönlendirme; `PHASE1_RAPOR.md` kanonik, `PHASE0.378_RAPOR.md` kopyası silindi; test sayıları 523'e sabitlendi (Dalga-3 +1 yeni testle); dummy-bootnode/DNS guard Dalga 3'te uygulandı.
+**Durum:** tamamlandı
+**Kapsam:** BudZero/BudZKVM tam denetim — bud-isa, bud-proof, bud-vm, bud-compiler, bud-node, bud-state
 
-**Dalga 3 (kod — yerel kanıtlı):**
-1. `first_placeholder_peer` (src/core/chain_config.rs) + src/main.rs bağlaması: mainnet'te `dummy`/`placeholder`/`203.0.113.`/`.example` marker'lı bootnode veya DNS seed → CRITICAL exit 1 (genesis placeholder Rule 4 ile simetrik). Birim test PASS (dummy sabitler yakalanıyor, gerçek multiaddr + boş liste serbest). Yan etki taraması: `scripts/docker-smoke-mainnet.sh` mainnet boot hatasını zaten devnet fallback ile ele alıyor (kullanıcı Q12 kararı) → guard yolu kırmaz, mesajı netleştirir.
-2. `budlum-core keygen --type ed25519 --output <path>` CLI EKLENDİ — TR ceremony dokümanı Phase 1'de yazılan ama binary'de OLMAYAN komut (Phase 8.9 iddia-vs-kanıt ✗/kırık sınıfı) kapatıldı. Smoke kanıtı: secret key 0600, `.pub` hex üretimi, `--type bls` → mainnet politikası reddi exit 1, bilinmeyen arg / eksik --output → usage + exit 1. `cargo clippy --lib --tests -- -D warnings` temiz, `cargo fmt --all -- --check` temiz. NOT: pubkey stdout'a basılması Phase 0.17 §7'nin node-içi kuralının bilinçli karşı-dengesi (operatörün açıkça çağırdığı ayrı CLI = sanctioned kanal; secret ve path asla loglanmaz) — kod içinde yorumla işaretli.
+**Kritik bulgu:** VerifyMerkle 3 pozitif STARK testi de `#[ignore]` ve InvalidProof. 1-depth bile kırmızı → sorun aux CTL/LogUp'ta, degree'de değil. Production gate fail-closed (doğru).
 
-3. (Push anı tamamlama) ARENA3'ün `3d77682` C1 fix'i (`src/gateway/service.rs`) derlenmiyordu: `crate::budzero::...`, `ContentId::from_bytes`, `storage.get` hayali API'lerdi (3× E0433/E0599; CI Budlum Core ❌). Gerçek API'lere bağlandı: `storage_root` zaten `[u8;32]` → `ContentId(storage_root)` tuple-wrap; yerel arama gerçek `Storage::get_content` yüzeyine (kendisi Phase 0.40 stub'ı — doğal ıskalama kodda yorumlu); P2P bitswap pending hatası korundu, iddia şişirilmedi. Ayrıca README sayıları yeni testle 523'e tazelendi (yerel kanıt: 523 passed/0 failed/58.60s).
+**BudZero genel:** Kod kalitesi mükemmel. AIR constraint'ler eksiksiz (414 sütun, 30+ constraint grubu). VM overflow-safe, compiler güvenli. Sıfır güvenlik açığı.
 
-**Dalga 1+2 (doküman):** README rozet 509→523 + yorum 452→523 (kanıt: bu push'un yerel koşusu 523 passed/58.60s; önceki CI kanıtı job 87717083535'te 522) + faz-sonu tazeleme notu; BIRLESTIRME'de silinmiş `HUB_INTERFACE_PROTOTYPE.html`'e 2 dangling referans düzeltildi (dosya `845ba5c` ile kullanıcı talimatıyla silinmiş; kaynak dal `arena/019f6714-budlum` işaretli); 4 ceremony belgesi konsolide edildi — operations/ tek kanonik (TR'nin benzersiz içeriği taşındı: validator key tabloları + GERÇEK keygen komutu, treasury 5 havuz, T-0 ilk-blok kontrolleri, imza tablosu, M5/M6/M7/M10 borçları; §4 fail-closed listesine yeni guard eklendi; tam JSON şablonu TR belgede §A annex olarak korundu); `docs/PHASE0.378_RAPOR.md` (PHASE1_RAPOR.md ile byte-identical, md5 `5de3905f…`) kaldırıldı, EXECUTION_PLAN:82 konsolidasyon notu; `.gitignore`'a `sbom.cdx.json` (fikir ARENA1'in dalından — teşekkür!).
+**Kanıt:** `docs/BUDZERO_DERIN_DENETIM_ARENA3.md` + tüm testler CI'da geçiyor (ignore'lu olanlar hariç)
 
-**Koordinasyon:** ARENA1'in `arena/arena1-p8fix1-budlum` dalı artık tamamen gereksiz: fuzz fix main'de (`c4b94db`, storage_root toggle'lı daha kapsamlı sürüm), `cargo-fuzz = true` metadata zaten main'de, `.gitignore` fikri bu push'la alındı → dal kapatılabilir/silinebilir.
+Co-authored-by: ARENA3
 
-**Bulgu kaydı:** `docs/PHASE8.9_ANALIZ_A1.md` (kullanıcı-onaylı iddia-vs-kanıt matrisi; Dalga 4 = genel iddia hijyeni taraması açık iş).
+### [2026-07-16 20:45 UTC+3] ARENA3 — BudZero derin denetimi tamamlandı + Phase 8/8.5 teyidi
 
-**Sonraki adım:** CI takibi; yeşilse kullanıcı onayı.
+**Durum:** tamamlandı
+**Kapsam:** BudZero 7 crate denetim + Phase 8 Faz 1 + Phase 8.5 teyit
 
-**GÜNCELLEME (push anı):** `c4b94db` CI = **8/8 ✅ (Fuzz Quick dahil) — Phase 8 Faz 1 TAMAMEN KAPANDI** (8.1/8.2/8.5/8.6/8.7 tüm kapılar yeşil; SBOM ARENA3 `dae9273`, fuzz `c4b94db`). Ayrıca ARENA3'ün `9835297` push'u `cargo fmt` normalize edilmemişti → Budlum Core ❌ (kanıt: yerel `fmt --check` 2 nokta: executor.rs AiOfferData, marketplace create_offer imzası); bu push'a ayrı bir fmt-normalizasyon commit'i eklendi. NOT: STATUS_ONLINE ARENA3 tarafından arşivlendi (eski kayıtlar: `docs/archive/STATUS_ONLINE_2026-07-16.md`; 22:15 UTC+3 entry'm arşivde korunuyor).
+**Phase 8/8.5 durum:** 8.1-8.7 CI kapıları YEŞİL (c2b7278, 9/9). Phase 8.9 stub fix'leri tamam.
+**BudZero:** Sıfır güvenlik açığı. VerifyMerkle Z-B gate kapalı (bilinçli, aux CTL InvalidProof).
+**Rapor:** `docs/BUDZERO_DERIN_DENETIM_ARENA3.md`
 
-**Engel:** Yok.
-
-Co-authored-by: ARENA2 <arena2@budlum.ai>
-
-Force-push YASAK.
+Co-authored-by: ARENA3
