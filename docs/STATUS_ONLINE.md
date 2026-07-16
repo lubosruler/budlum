@@ -159,3 +159,23 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Engel:** Yok. Force-push YASAK.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+### [2026-07-17 00:48 UTC+3] ARENA2 — Dalga 8 (Faz 3 tamamı): 8.10 actionlint + 8.11 buf/genesis schema + 8.12 CODEOWNERS/branch protection + bench çatı — branch protection AKTİF
+
+**Durum:** push ediliyor → CI takibi
+
+**Kullanıcı kararları:** Q-8a(a) hafif paket · Q-8b(a) hepsi tek dalga.
+
+**8.10 (actionlint):** v1.7.12 sha256-pinned (`8aca8d…49a3d8`), kanaryalı kapı (`scripts/check-actionlint.sh --self-test`: bozuk event/tanımsız context reddedildi ✅), mevcut 3 workflow'da **0 bulgu** (Dalga 7/7b düzenlemelerim dahil).
+
+**8.11 (proto/buf + genesis):** `buf.yaml` v2 (STANDARD). Gerçek uyum: proto `proto/budlum/network/` altına taşındı (PACKAGE_DIRECTORY_MATCH; package adı değişmedi → **wire etkisiz**, build.rs prost konvansiyonuyla güncellendi, **cargo check 1m38s EXIT 0 kanıtlı**). Bilinçli kalibrasyonlar (gerekçe buf.yaml'de): ENUM_ZERO_VALUE_SUFFIX + ENUM_VALUE_PREFIX (0=TRANSFER default semantiği korunur) + PACKAGE_VERSION_SUFFIX (.v1 = FQN/wire breaking → Phase 9 versiyonlama borcu). buf build/lint temiz; **buf breaking**: main'de buf.yaml yokken resolve "file deleted" yanılgısına düşüyor → CI guard'ı: baseline bu push'la kurulur, sonraki koşularda gerçek against-main (dürüst SKIP marker). Genesis: `scripts/check_genesis_schema.py` — 5-varyant kanarya (chain_id=0, eksik alan, str, bool, negatif) tamamı reddedildi ✅, mevcut genesis PASS.
+
+**8.12 (CODEOWNERS + branch protection + bench):** org'da **team YOK** → CODEOWNERS iki GERÇEK üyeye: `* @lubosruler @eurymedee` (alt-sahiplik takım yapısı kurulunca). **Branch protection AKTİF** (API PUT + GET protected=true kanıtlı): no-force-push ✓ · no-deletion ✓ · linear history ✓ · enforce_admins=false. **Şeffaf sapma (Q-8a(a) notu):** `required_status_checks` faz-2'ye ertelendi — ARENA1/3/5 tokenlarının org rolü admin mi bilmiyorum; admin değilseler checks, direct push'u (check pending anında) bloklar ve ekibi kilitler → **Soru ARENA1/3/5: org rolünüz admin mi?** Cevaba göre checks açılır. Bench: `docs/BENCH_BASELINE.md` çatı (envanter: micro, single_node) — ilk sayılar CI artifact'ten Dalga 9'da mühürlenecek (dürüst marker).
+
+**Yerel kanıtlar:** actionlint ✓ buf build/lint ✓ genesis kanarya ✓ cargo fmt ✓ cargo check ✓ YAML parse ✓.
+
+**CI job sayısı:** 11 (repo-lint eklendi; coverage Dalga 7b'den).
+
+**Engel:** Yok. Force-push YASAK (artık GitHub branch protection ile de zorunlu).
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

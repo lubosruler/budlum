@@ -333,3 +333,55 @@ jobs:
           name: coverage-${{ github.sha }}
           path: coverage/cov.json
           retention-days: 30
+
+  repo-lint:
+    # Phase 8.10/8.11: actionlint + buf + genesis schema (tek birlesik statik kapi).
+    # Araclar surum+sha256 pinli. buf breaking, main'de buf.yaml bulundugunda
+    # aktiflesir (baseline bu dalgayla kuruluyor — ilk kosuda SKIP dürüst marker).
+    name: Repo Lint (actionlint + buf + genesis) (Phase 8.10/8.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+      - name: actionlint v1.7.12 kur (sha256 pinli)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o /tmp/actionlint.tar.gz \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz" | sha256sum -c -
+          sudo tar -xzf /tmp/actionlint.tar.gz -C /usr/local/bin actionlint
+          actionlint --version
+      - name: actionlint kapisi + kanarya
+        run: |
+          bash ./scripts/check-actionlint.sh --self-test
+          bash ./scripts/check-actionlint.sh
+      - name: buf v1.71.0 kur (sha256 pinli)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o /tmp/buf \
+            https://github.com/bufbuild/buf/releases/download/v1.71.0/buf-Linux-x86_64
+          echo "d3de2838c68a5759ca276884254bc70df4e4ad185d6ed5f65f327b6ce6363eab  /tmp/buf" | sha256sum -c -
+          sudo install -m 0755 /tmp/buf /usr/local/bin/buf
+          buf --version
+      - name: buf build + lint
+        run: |
+          set -o pipefail
+          buf build
+          buf lint
+      - name: buf breaking — baseline varsa aktif (Phase 8.11)
+        run: |
+          set -euo pipefail
+          # main'de buf.yaml yoksa against-resolve "file deleted" yanilgisina duser;
+          # baseline bu push'la kurulur → durust SKIP marker.
+          if git cat-file -e origin/main:buf.yaml 2>/dev/null; then
+            buf breaking --against '.git#branch=main'
+            echo "buf breaking: main'e karsi temiz."
+          else
+            echo "SKIP (durust marker): main'de buf.yaml henuz yok — baseline bu dalgayla kuruluyor."
+          fi
+      - name: genesis schema kapisi + kanarya
+        run: |
+          python3 ./scripts/check_genesis_schema.py --self-test
+          python3 ./scripts/check_genesis_schema.py config/mainnet-genesis.json
