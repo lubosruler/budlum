@@ -1,25 +1,25 @@
-# TUR 16 PLANI — Mainnet Launch (budlum uygulama notu)
+# Phase 0.42 PLANI — Mainnet Launch (budlum uygulama notu)
 
-> **Master plan:** `the-plan/TUR16_PLAN.md` (güncel, 2 alt-tur).
-> **Önkoşul:** `the-plan/TUR15_PLAN.md` (tek tur, 7 ana iş paketi).
+> **Master plan:** `the-plan/PHASE0.42_PLAN.md` (güncel, 2 alt-tur).
+> **Önkoşul:** `the-plan/PHASE0.40_PLAN.md` (tek tur, 7 ana iş paketi).
 > Bu dosya budlum tarafındaki uygulama perspektifinden kısa özet.
 
 ## Üst bağlam
 
 | Tur | Kapsam | Durum |
 |-----|--------|-------|
-| Tur 13.5 | L1 + BudZero + operasyon | ✅ merged (PR #5) |
-| Tur 14 | B.U.D. Faz 1-2 plan | ✅ PR #6 = audit (kod Tur 15'te) |
-| Tur 14.5 | B.U.D. Faz 5 plan | ✅ referans |
-| Tur 14.9 | Denetim | ✅ PR #6 |
-| **Tur 15** | **Önkoşul: kod borçları + dokümanlar + test/fuzzing** | **plan (TUR15_PLAN.md)** |
-| **Tur 16** | **Mainnet launch** | **bu plan (2 alt-tur)** |
+| Phase 0.37 | L1 + BudZero + operasyon | ✅ merged (PR #5) |
+| Phase 0.38 | B.U.D. Faz 1-2 plan | ✅ PR #6 = audit (kod Phase 0.40'te) |
+| Phase 0.39 | B.U.D. Faz 5 plan | ✅ referans |
+| Phase 0.398 | Denetim | ✅ PR #6 |
+| **Phase 0.40** | **Önkoşul: kod borçları + dokümanlar + test/fuzzing** | **plan (PHASE0.40_PLAN.md)** |
+| **Phase 0.42** | **Mainnet launch** | **bu plan (2 alt-tur)** |
 
-**Tur 15 tamamlanmadan Tur 16 başlamaz.**
+**Phase 0.40 tamamlanmadan Phase 0.42 başlamaz.**
 
-## Tur 15 (önkoşul) — 7 ana iş paketi
+## Phase 0.40 (önkoşul) — 7 ana iş paketi
 
-`the-plan/TUR15_PLAN.md` §1'de detaylı. Özet:
+`the-plan/PHASE0.40_PLAN.md` §1'de detaylı. Özet:
 
 1. **BLS/PQ HSM (B1)** — `src/crypto/pkcs11_bls.rs` + `pkcs11_pq.rs` + mock + policy.
 2. **B.U.D. Faz 1-2 implementasyonu** — Custom veya StorageAttestation
@@ -30,7 +30,7 @@
 6. **README roadmap kapanış tablosu** — B.U.D. hariç.
 7. **Fuzzing + dependency audit + SBOM** — `fuzz/`, `scripts/`, `docs/operations/`.
 
-## Tur 16.5 — Devnet pilotu + harici audit
+## Phase 0.43 — Devnet pilotu + harici audit
 
 **Yapılacak:**
 1. **B.U.D. Faz 1-2 devnet pilotu (koşullu):** Eğer §0 karar 2 = "dahil" ise.
@@ -40,10 +40,10 @@
    - Operatör permissionless kayıt testi (PoA izolasyonu bozulmamalı).
    - 1 hafta devnet monitoring.
 2. **Harici audit:**
-   - `docs/AUDIT_CHECKLIST.md` (Tur 15 §1.5 çıktısı) + tüm repo =
+   - `docs/AUDIT_CHECKLIST.md` (Phase 0.40 §1.5 çıktısı) + tüm repo =
      audit firmasına teslim.
    - Audit firması seçimi (kullanıcı kararı).
-   - Pre-audit iç denetim taraması tamamlanmış (Tur 15 §1.7).
+   - Pre-audit iç denetim taraması tamamlanmış (Phase 0.40 §1.7).
    - Audit firması ile sözleşme + kickoff.
    - Bulgu takip sistemi.
 
@@ -51,7 +51,7 @@
 governance/BudZKVM contract/pruning (ch12 §3.6 mainnet v1'de kapalı),
 B.U.D. Faz 3-6.
 
-## Tur 16.9 — Harici audit kabul + Mainnet launch
+## Phase 0.438 — Harici audit kabul + Mainnet launch
 
 **Yapılacak:**
 1. **Harici audit kabul:** `docs/AUDIT_REPORT.md`. Limited veya full
@@ -65,21 +65,21 @@ B.U.D. Faz 3-6.
 4. **Mainnet launch kararı:**
    - Tüm koşullar ✅ → launch (genesis + validator set +
      `docs/MAINNET_GENESIS.md` + duyuru).
-   - ❌ → Tur 17'ye erteleme + borç listesi.
+   - ❌ → Phase 0.44'ye erteleme + borç listesi.
 
 **Yapılmayacak:** Yeni özellik, mantık değişikliği, v1 ötesi, B.U.D.
 Faz 3-6.
 
-## Açık karar noktaları (Tur 15 başlangıcında)
+## Açık karar noktaları (Phase 0.40 başlangıcında)
 
 1. **Vizyon §3 vs §8.1** — Custom (`ConsensusKind::Custom("StorageProofOfReplication")`)
    vs StorageAttestation (`ConsensusKind::StorageAttestation(StorageDomainParams)`).
    §1.2 öncesi netleşmeli.
 2. **BLS/PQ HSM kapsamı** — Tam HSM mı (gerçek donanım), mock mı
    (CI). §1.1 öncesi netleşmeli.
-3. **B.U.D. mainnet launch'a dahil mi** — Tur 15 sonunda değerlendirilir.
-   README:137 "Tur 14 only" diyor; Tur 16.5'te B.U.D. Faz 1-2 devnet
-   pilotuna alınabilir ya da Tur 17+'ya ertelenir.
+3. **B.U.D. mainnet launch'a dahil mi** — Phase 0.40 sonunda değerlendirilir.
+   README:137 "Phase 0.38 only" diyor; Phase 0.43'te B.U.D. Faz 1-2 devnet
+   pilotuna alınabilir ya da Phase 0.44+'ya ertelenir.
 
 ## Kabul kriterleri (tüm alt-turlar)
 
@@ -89,24 +89,24 @@ Faz 3-6.
 - Yeni allow YOK.
 - Her alt-turda `docs/DEVIR_RAPORU.md` güncellenir.
 - Her commit'te `git ls-tree -r HEAD` ile gerçek dosya ağacı doğrulanır.
-- Uydurma referans YOK (Tur 14.9 denetim dersleri).
+- Uydurma referans YOK (Phase 0.398 denetim dersleri).
 
 ## Dış müdahale noktaları
 
-- **Harici audit firması:** Tur 16.5 + 16.9. Audit firması kendi
-  threat modeli + bulgularıyla dönebilir; Tur 17'ye erteleme gerekebilir.
+- **Harici audit firması:** Phase 0.43 + 16.9. Audit firması kendi
+  threat modeli + bulgularıyla dönebilir; Phase 0.44'ye erteleme gerekebilir.
 - **External contributors:** Yeni yazılımcılar PR review'da: kanıtlanmış
   bilgi + vizyon referansı zorunlu.
 - **Z-B gate:** BudZero ekibinin sorumluluğunda. Gate açılmadan B.U.D.
   Faz 3-6 yazılamaz.
 - **Vizyon değişikliği:** budlum-xyz/B.U.D. upstream güncellenirse
-  Tur 15/16 planı revize edilmeli.
+  Phase 0.40/16 planı revize edilmeli.
 
 ## Sonuç
 
-Tur 16 = mainnet launch. İki alt-tur (16.5, 16.9) ile:
+Phase 0.42 = mainnet launch. İki alt-tur (16.5, 16.9) ile:
 - 16.5: Devnet pilotu + harici audit
 - 16.9: Audit kabul + mainnet feature flag + launch kararı
 
-Tur 15 (önkoşul) bitmeden Tur 16 başlamaz. 3 açık karar Tur 15
+Phase 0.40 (önkoşul) bitmeden Phase 0.42 başlamaz. 3 açık karar Phase 0.40
 başlangıcında netleşmeli.

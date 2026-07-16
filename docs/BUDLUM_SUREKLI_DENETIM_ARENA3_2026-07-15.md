@@ -1,7 +1,7 @@
 # Budlum Sürekli Denetim — ARENA3 (2026-07-15 22:45, devam)
 
 **Talimat:** "devam durmadan Budlum'ı incelemeye denetlemeye odaklan"
-**HEAD:** `d153bc7` (ARENA1 yanıt + ADIM4 cleanup)
+**HEAD:** `d153bc7` (ARENA1 yanıt + Phase 4 cleanup)
 **Denetçi:** ARENA3
 **Kapsam:** mainnet öncesi sürekli denetim, main branch bütünü
 
@@ -23,13 +23,13 @@
 ## 2. Bulgular — Kritik / Yüksek / Orta / Düşük
 
 ### 🔴 Kritik — Yok (şu an için)
-ADIM3 güvenlik borçları 0.1/0.2/0.4 kapalı, 0.3 kod olarak kapalı (test eksik).
+Phase 3 güvenlik borçları 0.1/0.2/0.4 kapalı, 0.3 kod olarak kapalı (test eksik).
 
 ### 🟠 Yüksek — 2 bulgu
 
 #### H1: `storage_open_challenge` hâlâ `unwrap_or_default` kullanıyor (self-reported zero address riski)
 **Dosya:** `src/rpc/server.rs:1562` `let opener = request.opener.unwrap_or_default();`
-**Durum:** İmza zorunluluğu eklendi (`opener_signature` required), ama `opener` None ise zero address'e düşüyor. Zero address'in imzası teorik olarak geçersiz olmalı (verify_signature zero pubkey'i reddeder), ama **fail-closed yerine fail-open** riski: `Address::zero` için `verify_signature` ne döndürüyor? Test edilmemiş. ADIM3 0.2 fix’i "opener zorunlu ve non-zero" demişti (A1-T6a), ama kod hâlâ `unwrap_or_default`.
+**Durum:** İmza zorunluluğu eklendi (`opener_signature` required), ama `opener` None ise zero address'e düşüyor. Zero address'in imzası teorik olarak geçersiz olmalı (verify_signature zero pubkey'i reddeder), ama **fail-closed yerine fail-open** riski: `Address::zero` için `verify_signature` ne döndürüyor? Test edilmemiş. Phase 3 0.2 fix’i "opener zorunlu ve non-zero" demişti (A1-T6a), ama kod hâlâ `unwrap_or_default`.
 **Öneri:** `request.opener.ok_or_else(|| -32602 "opener is required")?` + `if opener == Address::zero() { reject }`
 **Sahip:** ARENA3 — bir sonraki commit’te fixlenecek.
 
@@ -37,7 +37,7 @@ ADIM3 güvenlik borçları 0.1/0.2/0.4 kapalı, 0.3 kod olarak kapalı (test eks
 **Dosya:** `config/mainnet-genesis.json` + `src/chain/genesis.rs::mainnet_genesis()` (tokenomics rewrite sonrası placeholder mı yoksa gerçek mi?)
 **Durum:** ARENA1 `e20397c` ile permissionless + tokenomics rewrite yaptı, ama `mainnet-genesis.json` hâlâ eski repeated-byte adresler (`1010...`, `2020...`). Yeni `mainnet_genesis()` artık boş validator seti + full tokenomics (100M). JSON ↔ kod hash testleri `b024eb2`'de fixlendi, ama **mainnet ceremony için gerçek treasury/validator anahtarları hâlâ TBD**.
 **Risk:** Gerçek mainnet launch'ta placeholder adreslerle launch yapılamaz.
-**Öneri:** `docs/operations/MAINNET_GENESIS_CEREMONY.md`'de ceremony prosedürü var, placeholder olduğu dokümante. Mainnet hash `9bf07f9f...` bu placeholder’larla hesaplı — ceremony’de değişecek. Bu bilinçli borç, ADIM3 honest closeout'ta işaretli.
+**Öneri:** `docs/operations/MAINNET_GENESIS_CEREMONY.md`'de ceremony prosedürü var, placeholder olduğu dokümante. Mainnet hash `9bf07f9f...` bu placeholder’larla hesaplı — ceremony’de değişecek. Bu bilinçli borç, Phase 3 honest closeout'ta işaretli.
 **Sahip:** Kullanıcı + ARENA2 (ceremony)
 
 ### 🟡 Orta — 4 bulgu
@@ -54,13 +54,13 @@ ADIM3 güvenlik borçları 0.1/0.2/0.4 kapalı, 0.3 kod olarak kapalı (test eks
 ```
 **Dosya:** `src/chain/blockchain.rs:3549`
 **Durum:** `storage_slashed_bond_total` artıyor, ama gerçek `burn_from` yok. Escrow tam operasyonel (`f2b8075` + `44fe0f0`), ama slashed bond hâlâ sadece ledger'da kayıtlı, yakılmıyor/total supply'den düşmüyor. Interim retrieval için kabul edilebilir, ama mainnet ekonomi için "fail-closed" değil.
-**Öneri:** `burn_from` + `total_supply` azaltma veya `TokenomicsBurnSnapshot` ile bağla. ADIM4 Faz 5 tam ekonomi için.
+**Öneri:** `burn_from` + `total_supply` azaltma veya `TokenomicsBurnSnapshot` ile bağla. Phase 4 Faz 5 tam ekonomi için.
 **Sahip:** ARENA1 (ekonomi)
 
 #### M3: `src/rpc/server.rs:1410` TODO(ARENA2) — iki registry var, tek source değil
 **Dosya:** `src/rpc/server.rs:1410` `// TODO(ARENA2): unify the two registries into a single source of truth.`
 **Durum:** RPC kendi `StorageRegistry` (Arc<Mutex>) tutuyor, chain de kendi `storage_registry` tutuyor. `storage_open_deal` hem chain hem RPC registry'ye senkronize ediyor (44fe0f0 fix), ama race condition riski.
-**Öneri:** Chain'i single source of truth yap, RPC registry kaldır veya read-through proxy yap. ADIM4'te düzelt.
+**Öneri:** Chain'i single source of truth yap, RPC registry kaldır veya read-through proxy yap. Phase 4'te düzelt.
 **Sahip:** ARENA2
 
 #### M4: `budzero/bud-node` P2P storage backend CI'da koşturulmuyor (smoke test yok)
@@ -77,7 +77,7 @@ ADIM3 güvenlik borçları 0.1/0.2/0.4 kapalı, 0.3 kod olarak kapalı (test eks
 #### L2: `src/network/node.rs` `peer_manager` lock `if let Ok` ile fixlendi (ARENA3 512 test), ama `chain_actor.rs` hâlâ `rx.await.unwrap_or(default)` kullanıyor — actor dropped ise 0 döndürüyor, fail-closed değil ama DoS değil.
 **Durum:** Kabul edilebilir, actor dropped ise zaten node kapanıyor.
 
-#### L3: `docs/TUR4_PLAN.md` (ADIM4) içinde `is_experimental=false` önerisi var, ama `TUR4` adı eski terminoloji — ADIM4 olmalı. Doküman başlığı "ADIM 4 — B.U.D. Faz 3" ama dosya adı `TUR4_PLAN.md`. Tutarlılık için `ADIM4_PLAN.md` symlink veya rename önerilir.
+#### L3: `docs/PHASE0.06_PLAN.md` (Phase 4) içinde `is_experimental=false` önerisi var, ama `Phase 0.06` adı eski terminoloji — Phase 4 olmalı. Doküman başlığı "Phase 4 — B.U.D. Faz 3" ama dosya adı `PHASE0.06_PLAN.md`. Tutarlılık için `PHASE4_PLAN.md` symlink veya rename önerilir.
 
 ---
 
@@ -89,10 +89,10 @@ ADIM3 güvenlik borçları 0.1/0.2/0.4 kapalı, 0.3 kod olarak kapalı (test eks
 | M2 | Docker smoke CI | 🟡 Kısmi | ARENA2/3 |
 | M3 | Seeds/ceremony placeholders | 🟡 Hash var, seed boş | Kullanıcı + ARENA2 |
 | M4 | Validator onboarding E2E | 📄 Docs only → ARENA1 aldı (Hat B3) | ARENA1 |
-| M5 | VerifyMerkle gate | 🔒 Kapalı — ADIM4 | ARENA2+ARENA3 |
+| M5 | VerifyMerkle gate | 🔒 Kapalı — Phase 4 | ARENA2+ARENA3 |
 | M6 | BLS/PQ vendor-native HSM | 🟡 Mock yok, software fallback | ARENA1/audit |
-| M7 | External audit/TLA+/Privacy/AI | ❌ Açık | ADIM5 |
-| M8 | BNS/.bud | 🔒 Ertelendi | ADIM5+ |
+| M7 | External audit/TLA+/Privacy/AI | ❌ Açık | Phase 5 |
+| M8 | BNS/.bud | 🔒 Ertelendi | Phase 5+ |
 | M9 | Archive drill CI | 🟡 Doküman var | ARENA2 |
 
 ---

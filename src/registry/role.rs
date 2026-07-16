@@ -60,7 +60,7 @@ pub mod roles {
     /// submission is fully permissionless (STARK proofs are self-verifying);
     /// registering as a PROVER is only required to be eligible for rewards.
     pub const PROVER: RoleId = RoleId(4);
-    /// B.U.D. storage operator (Tur 14, Faz 1).
+    /// B.U.D. storage operator (Phase 0.38, Faz 1).
     ///
     /// Registration is OPTIONAL — opening a `StorageDeal` is itself
     /// permissionless (the deal's `operator_bond` is the only gate, see
@@ -68,7 +68,7 @@ pub mod roles {
     /// `STORAGE_OPERATOR` is only required to be eligible for the
     /// per-deal reward stream.
     ///
-    /// **Note (ADIM3 §0.3, fixed by ARENA3 2026-07-15):** `bud_storageActiveOperators`
+    /// **Note (Phase 3 §0.3, fixed by ARENA3 2026-07-15):** `bud_storageActiveOperators`
     /// RPC is now implemented (`src/rpc/api.rs` + `server.rs`) — queries active
     /// `PermissionlessRegistry` members for `RoleId(5)`. Previously it was ghost
     /// docs only.

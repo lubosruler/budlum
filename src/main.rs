@@ -449,7 +449,7 @@ async fn main() {
                 epoch_length: network_params.epoch_len,
                 ..Default::default()
             };
-            // Tur 12.5 / B1: mainnet forbids disk-backed ValidatorKeys
+            // Phase 0.35 / B1: mainnet forbids disk-backed ValidatorKeys
             // (BLS + Dilithium secrets stay plaintext on disk today).
             let keys = if config.network == budlum_core::core::chain_config::Network::Mainnet {
                 if config.validator_key_file.is_some() {
@@ -740,7 +740,7 @@ async fn main() {
             }
         };
 
-        // Tur 7 (security audit §5 wiring): emit a prominent startup
+        // Phase 0.12 (security audit §5 wiring): emit a prominent startup
         // warning if the *resolved* `auth_required` is false. This block
         // runs regardless of which constructor
         // (`RpcSecurityConfig::default()`, `operator_default()`,
@@ -885,7 +885,7 @@ async fn main() {
         }
     });
 
-    // Start Relayer Worker if configured (ADIM 5 §5.1)
+    // Start Relayer Worker if configured (Phase 5 §5.1)
     if config.role == "relayer" || config.role == "validator" {
         let relayer_addr = cli_producer_address.unwrap_or(Address::zero());
         let relayer = budlum_core::relayer::RelayerWorker::new(chain.clone(), relayer_addr);

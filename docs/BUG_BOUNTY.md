@@ -1,6 +1,6 @@
-# Budlum Bug Bounty Programı — ADIM2 Kararı (2.4=C)
+# Budlum Bug Bounty Programı — Phase 2 Kararı (2.4=C)
 
-**Durum:** Taslak (ADIM2)  
+**Durum:** Taslak (Phase 2)  
 **Geçerlilik:** Mainnet v1 lansmanından itibaren  
 **Yöneten:** ARENA1 / AI Birliği koordinasyonu  
 
@@ -36,13 +36,13 @@
 | **Orta** | Rate limit bypass, information leak, economic manipulation | $2,500–$5,000 |
 | **Düşük** | Best practice violation, documentation inconsistency | $500–$1,000 |
 
-> **Not:** Ödüller ADIM4'te bug bounty platformu (immunefi.com, Q6 kararı: bug_bounty) ile entegre edildiğinde kesinleşecek. ADIM3 10-soru anket Q6: bug_bounty seçildi (harici firma değil, immunefi tipi platform).
+> **Not:** Ödüller Phase 4'te bug bounty platformu (immunefi.com, Q6 kararı: bug_bounty) ile entegre edildiğinde kesinleşecek. Phase 3 10-soru anket Q6: bug_bounty seçildi (harici firma değil, immunefi tipi platform).
 
-**Güncelleme (ADIM4 Q6):** Immunefi entegrasyonu için `https://immunefi.com/bounty/budlum` taslak başvurusu hazırlanacak; kritik bulgular için $50k-$100k aralığı korunuyor. Mainnet self-audited olduğu için immunefi "medium" tier ile başlanacak, audit sonrası "high" tier'e yükseltilecek.
+**Güncelleme (Phase 4 Q6):** Immunefi entegrasyonu için `https://immunefi.com/bounty/budlum` taslak başvurusu hazırlanacak; kritik bulgular için $50k-$100k aralığı korunuyor. Mainnet self-audited olduğu için immunefi "medium" tier ile başlanacak, audit sonrası "high" tier'e yükseltilecek.
 
 ## 4. Raporlama Süreci
 
-1. **Başvuru:** `security@budlum.network` (PGP key: `0xBUDLUM-SECURITY` — ADIM3'te yayınlanacak)
+1. **Başvuru:** `security@budlum.network` (PGP key: `0xBUDLUM-SECURITY` — Phase 3'te yayınlanacak)
 2. **Triage:** 72 saat içinde ilk yanıt
 3. **Değerlendirme:** 14 gün içinde ön değerlendirme
 4. **Düzeltme:** Kritik bulgular 30 gün içinde patch
@@ -57,8 +57,8 @@
 
 ## 6. Dependency Policy
 
-`cargo audit` tarafından tespit edilen CVE'ler (örneğin `protobuf`, `pqcrypto-*`, `ring`) bu program kapsamında **değerlendirilmez** — bunlar ayrı bir dependency upgrade ADIM'inde ele alınır. Ancak, bir dependency CVE'sinin Budlum spesifik bir exploit chain'ine dönüştürülebildiği kanıtlanırsa, "Kritik" seviyede değerlendirilebilir.
+`cargo audit` tarafından tespit edilen CVE'ler (örneğin `protobuf`, `pqcrypto-*`, `ring`) bu program kapsamında **değerlendirilmez** — bunlar ayrı bir dependency upgrade PHASE'inde ele alınır. Ancak, bir dependency CVE'sinin Budlum spesifik bir exploit chain'ine dönüştürülebildiği kanıtlanırsa, "Kritik" seviyede değerlendirilebilir.
 
 ---
 
-**Sonraki adım:** ADIM3'te immunefi.com veya benzeri bir platforma kayıt + PGP key yayınlama.
+**Sonraki adım:** Phase 3'te immunefi.com veya benzeri bir platforma kayıt + PGP key yayınlama.

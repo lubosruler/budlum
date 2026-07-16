@@ -174,7 +174,7 @@ pub fn verify_signature(&self) -> bool {
     // 3. HEX formatındaki anahtarı byte dizisine çevir.
     let public_key = hex::decode(producer_hex)...;
 
-    // 4. KRİTİK ADIM: Bloğun hash'ini elindeki verilerle YENİDEN HESAPLA.
+    // 4. KRİTİK PHASE: Bloğun hash'ini elindeki verilerle YENİDEN HESAPLA.
     // Asla blok üzerinde yazan 'self.hash'e güvenme, hileli olabilir.
     let calculated_hash = self.calculate_hash();
     if calculated_hash != self.hash { return false; } // Veri bütünlüğü bozuk!

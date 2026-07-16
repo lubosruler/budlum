@@ -1,7 +1,7 @@
 [network]
 profile = "mainnet"
 chain_id = 1
-# ADIM3 section 3.1: file must exist; hash in docs/operations/PRODUCTION_RUNBOOK.md section 8.2
+# Phase 3 section 3.1: file must exist; hash in docs/operations/PRODUCTION_RUNBOOK.md section 8.2
 # Genesis block hash (ARENA1 tokenomics mainnet, timestamp=0): 9bf07f9f9bda9bf1fba9f12e859e4184dd468c0138cd6327710284629c30df4f
 genesis_file = "./config/mainnet-genesis.json"
 

@@ -31,7 +31,7 @@ pub struct BridgeTransfer {
     pub amount: u128,
     pub status: BridgeStatus,
     pub source_event_hash: Hash32,
-    /// TUR 6 (security audit §3): height at which this lock expires.
+    /// Phase 0.10 (security audit §3): height at which this lock expires.
     /// `BridgeState::sweep_expired_locks(current_height)` returns
     /// `Locked` transfers to `Active` once `current_height >= expiry_height`,
     /// preventing permanent DoS via a forgotten/abandoned lock.
@@ -315,7 +315,7 @@ impl BridgeState {
         self.transfers.get(message_id)
     }
 
-    /// TUR 6 (security audit §3): sweep all `Locked` transfers whose
+    /// Phase 0.10 (security audit §3): sweep all `Locked` transfers whose
     /// `expiry_height` is below `current_height`, returning their
     /// `asset_id` back to `Active` so a forgotten/abandoned lock can
     /// never permanently DoS the bridge. Returns the (asset_id, amount)

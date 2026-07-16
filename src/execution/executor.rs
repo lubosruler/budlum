@@ -378,7 +378,7 @@ impl Executor {
                 sender.nonce = sender.nonce.saturating_add(1);
             }
             TransactionType::RelayerResult(res) => {
-                // ADIM 6 §6.2: Relayer EVM Proofs
+                // Phase 6 §6.2: Relayer EVM Proofs
                 // Verification logic stub for cross-chain receipt proof.
                 // In production, this would verify the Merkle proof against
                 // a previously submitted and finalized external state root.

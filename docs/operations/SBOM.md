@@ -1,4 +1,4 @@
-# SBOM (Software Bill of Materials) (ADIM 2 §1.7)
+# SBOM (Software Bill of Materials) (Phase 2 §1.7)
 
 **Güncelleme:** 2026-07-15  
 **Araç:** `cargo-cyclonedx` (https://github.com/CycloneDX/cyclonedx-rust-cargo)  

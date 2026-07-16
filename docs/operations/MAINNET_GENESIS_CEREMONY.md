@@ -1,4 +1,4 @@
-# Mainnet Genesis Ceremony Procedure (ADIM3)
+# Mainnet Genesis Ceremony Procedure (Phase 3)
 
 **Status:** procedure only — does **not** claim a ceremony has occurred.  
 **Audience:** release managers, multi-sig holders, node operators.  
@@ -131,7 +131,7 @@ signatures). Do not store private keys in the repository.
 
 - This document does **not** generate production keys.
 - This document does **not** mark Mainnet as audited.
-- VerifyMerkle / B.U.D. Faz 3 remains ADIM4; interim retrieval is documented in
+- VerifyMerkle / B.U.D. Faz 3 remains Phase 4; interim retrieval is documented in
   `docs/BUD_INTERIM.md`.
 
 

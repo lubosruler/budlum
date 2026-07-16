@@ -1,11 +1,11 @@
-// Tur 6: bridge lifecycle integration test (security audit §3). The
+// Phase 0.10: bridge lifecycle integration test (security audit §3). The
 // `bud_lockBridgeTransfer` RPC is removed; the full lock → mint → burn →
 // unlock happy path is now exercised through the *internal*
 // `Blockchain::lock_bridge_transfer` system path, plus the
 // `apply_bridge_sweep` expiry-sweep.
 #[cfg(test)]
 pub mod bridge_lifecycle;
-// Tur 7: QcBlob quorum-check unit tests (security audit §4). The
+// Phase 0.12: QcBlob quorum-check unit tests (security audit §4). The
 // `import_qc_blob` minimum-signature count contract is verified by
 // replaying the same arithmetic the production code uses, against
 // 3-validator snapshots.
@@ -15,9 +15,9 @@ pub mod bench_performance;
 pub mod block_reward;
 #[cfg(test)]
 pub mod bns;
-// Tur 14, Faz 1-2 + Faz 5: B.U.D. E2E test + ekip-bağımsızlık invariantları.
+// Phase 0.38, Faz 1-2 + Faz 5: B.U.D. E2E test + ekip-bağımsızlık invariantları.
 // 3-aktör (operatör A + operatör B + izleyici C) senaryosu + 9 adet
-// permissionless/whitelist/data-sovereignty invariantı (Tur 14.5 plan §0.5
+// permissionless/whitelist/data-sovereignty invariantı (Phase 0.39 plan §0.5
 // + §4 kabul kriterleri).
 #[cfg(test)]
 pub mod bud_e2e;
@@ -29,10 +29,10 @@ pub mod chaos;
 pub mod distributed_settlement;
 #[cfg(test)]
 pub mod qcblob_quorum;
-// Tur 5: re-enabled (was `#![cfg(false)]`'d during Tur 2 ghost-hunting).
+// Phase 0.08: re-enabled (was `#![cfg(false)]`'d during Phase 0.02 ghost-hunting).
 // The permissionless-registry / liveness / invalid-vote state was reinstated
 // on `AccountState`, so these test files now exercise the real code paths
-// again. They were the regression tests for the Tur 1-19 patch series.
+// again. They were the regression tests for the Phase 0-19 patch series.
 #[cfg(test)]
 pub mod disaster_recovery;
 #[cfg(test)]

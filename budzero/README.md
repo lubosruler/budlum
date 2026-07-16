@@ -70,16 +70,16 @@ Aligned with [budlum-xyz/BudZero](https://github.com/budlum-xyz/BudZero) phases 
 
 | Item | Status |
 | --- | --- |
-| Public inputs (Z-A) | Bound (incl. event_digest Log fix Tur 12.9) |
-| `VerifyMerkle` path AIR (Z-B) | Expansion + Poseidon round checks; **Tur 13 partial**: pre-round currents, single-round path hash, original-only root check, expand gas |
+| Public inputs (Z-A) | Bound (incl. event_digest Log fix Phase 0.358) |
+| `VerifyMerkle` path AIR (Z-B) | Expansion + Poseidon round checks; **Phase 0.36 partial**: pre-round currents, single-round path hash, original-only root check, expand gas |
 | Valid 64-depth prove | **`#[ignore]`** — still `InvalidProof` (Commit 3.5 remaining) |
 | Production gate | `VerifyMerkle` **experimental** — off in Production decode |
-| Termination / halt (Z-C/D) | Landed Tur 10.zk |
+| Termination / halt (Z-C/D) | Landed Phase 0.30.zk |
 | Storage gas (SRead/SWrite) | Higher than Load/Store; AIR aligned |
 | Phase 10 performance benches | Planned Tur **13.5** |
 | Phase 11 external audit | Checklist Tur **13.9** (not claimed done) |
 
-Until Z-B Commit 3.5 lands, do **not** treat Merkle membership inside STARK proofs as production-safe. **B.U.D.** proof-of-storage (org storage vision) is **Tur 14**, not this repo’s L1 host work.
+Until Z-B Commit 3.5 lands, do **not** treat Merkle membership inside STARK proofs as production-safe. **B.U.D.** proof-of-storage (org storage vision) is **Phase 0.38**, not this repo’s L1 host work.
 
 ---
 

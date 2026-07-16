@@ -1,17 +1,17 @@
 //! B.U.D. (Broad Universal Database) — Storage ConsensusDomain parameters
-//! (Tur 14, Faz 1).
+//! (Phase 0.38, Faz 1).
 //!
 //! Vision reference: `budlum-xyz/B.U.D./BUD_Merkeziyetsiz_Depolama_Vizyonu.md`,
 //! §8.1. The vision proposes `ConsensusKind::StorageAttestation(StorageDomainParams)`()
 //! as a NEW enum variant (not a `Custom("...")` string) so the type system
 //! forces every consumer to handle the storage parameters explicitly.
 //!
-//! Per the Tur 14 plan (`/tmp/the-plan/TUR14_PLAN.md` §3.1), the goal of
+//! Per the Phase 0.38 plan (`/tmp/the-plan/PHASE0.38_PLAN.md` §3.1), the goal of
 //! Faz 1 is **accounting only** — registering a storage domain in the
 //! existing `ConsensusDomainRegistry` so it is queryable via the existing
 //! `bud_registerConsensusDomain` / `bud_getConsensusDomains` RPC surface.
 //! No proof, no slashing, no retrieval — those are Faz 3/5, gated on the
-//! BudZero `VerifyMerkle` Z-B gate and on Tur 13.9 BLS/PQ HSM, respectively.
+//! BudZero `VerifyMerkle` Z-B gate and on Phase 0.378 BLS/PQ HSM, respectively.
 //!
 //! Permissionless / whitelist rule (master context, CLAUDE.md §2): the
 //! `STORAGE_OPERATOR` role is registered via the **same** permissionless

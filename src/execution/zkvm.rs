@@ -25,9 +25,9 @@ impl ZkVmExecutor {
         }
 
         let program = decode_program(bytecode)?;
-        let mut vm = Vm::with_gas_limit(8192, gas_limit); // Tur 11 / A11: match compiler heap base 4096
+        let mut vm = Vm::with_gas_limit(8192, gas_limit); // Phase 0.32 / A11: match compiler heap base 4096
 
-        // Tur 12.9: use run_receipt so the trace matches prover/AIR assumptions
+        // Phase 0.358: use run_receipt so the trace matches prover/AIR assumptions
         // (including Z-D terminal Halt row semantics).
         let receipt =
             std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vm.run_receipt(&program)))
@@ -68,7 +68,7 @@ pub fn prove_bytecode(
         return Err("BudZKVM bytecode length must be a multiple of 8 bytes".into());
     }
     let program = decode_program(bytecode)?;
-    let mut vm = Vm::with_gas_limit(8192, gas_limit); // Tur 11 / A11: match compiler heap base 4096
+    let mut vm = Vm::with_gas_limit(8192, gas_limit); // Phase 0.32 / A11: match compiler heap base 4096
     let receipt =
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| vm.run_receipt(&program)))
             .map_err(|_| "BudZKVM execution failed".to_string())?;
@@ -86,7 +86,7 @@ fn build_public_inputs(
     vm: &Vm,
     receipt: &bud_vm::ExecutionReceipt,
 ) -> ExecutionPublicInputs {
-    // Tur 12.9: public inputs must match BudZero AIR bindings.
+    // Phase 0.358: public inputs must match BudZero AIR bindings.
     // `event_digest` is NOT a keccak of events — the AIR binds an additive
     // Log accumulator packed as eight little-endian u32 limbs (limb 0 holds
     // the sum of Log values). Using keccak here made every prove/verify fail
@@ -187,7 +187,7 @@ mod tests {
         assert!(receipt.proof_bytes > 0);
     }
 
-    /// Tur 12.9: Log + prove/verify against BudZero main (event_digest AIR fixed).
+    /// Phase 0.358: Log + prove/verify against BudZero main (event_digest AIR fixed).
     #[test]
     fn tur129_log_program_proves_against_budzero_main() {
         let program = vec![

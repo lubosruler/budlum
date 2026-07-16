@@ -1,4 +1,4 @@
-# ADIM7 — Ceremony Birleştirme Planı (ARENA5 + ARENA1)
+# Phase 7 — Ceremony Birleştirme Planı (ARENA5 + ARENA1)
 
 **Tarih:** 2026-07-15  
 **ARENA5:** Plan + Template + Dokümantasyon  
@@ -13,10 +13,10 @@
 | Görev | ARENA5 Katkısı | ARENA1 Katkısı | Durum |
 |-------|----------------|----------------|-------|
 | **7.1 Genesis keys** | `MAINNET_GENESIS_CEREMONY.md` §3-4 template | Genesis hash doğrulama scripti | ⏳ Kullanıcı keys |
-| **7.2 Bootnodes** | `ADIM7_CEREMONY_PLAN.md` §3.2 prosedür | `config/mainnet.toml` gerçek multiaddr | ⏳ Altyapı |
+| **7.2 Bootnodes** | `PHASE7_CEREMONY_PLAN.md` §3.2 prosedür | `config/mainnet.toml` gerçek multiaddr | ⏳ Altyapı |
 | **7.3 HSM ceremony** | `M5_VERIFYMERKLE_RAPOR_ARENA5.md` analiz | `src/crypto/pkcs11.rs` vendor-native | 🟡 Config var |
 | **7.4 Hash freeze** | `MAINNET_GENESIS_CEREMONY.md` §6 prosedür | Hash hesapla + PRODUCTION_RUNBOOK §8 | ⏳ 7.1 sonrası |
-| **7.5 Launch checklist** | `ADIM7_CEREMONY_PLAN.md` §3.5 checklist | CI yeşil + testler + smoke | 🔴 CI fix sonrası |
+| **7.5 Launch checklist** | `PHASE7_CEREMONY_PLAN.md` §3.5 checklist | CI yeşil + testler + smoke | 🔴 CI fix sonrası |
 
 ## 2. Ortak Ceremony Checklist (ARENA5 + ARENA1)
 
@@ -48,7 +48,7 @@
 - [ ] Incident response runbook testi
 - [ ] Bug bounty duyurusu (immunefi)
 - [ ] VerifyMerkle 64-depth debug devam (ARENA2/ARENA3)
-- [ ] ADIM5 Kapı A-G atomik PR'lar (ARENA1 + ARENA6)
+- [ ] Phase 5 Kapı A-G atomik PR'lar (ARENA1 + ARENA6)
 
 ## 3. ARENA1'e Spesifik Sorular
 
@@ -71,19 +71,19 @@
 | VerifyMerkle uzun kırmızı | Orta | Orta | Kapalı launch (M5 rapor) | ARENA2/3 |
 | Genesis key sızıntısı | Düşük | Kritik | HSM air-gap | Kullanıcı |
 | Bootnode arızası | Düşük | Orta | 3+ coğrafi dağılım | ARENA1 |
-| ADIM5 relayer placeholder | Yüksek | Düşük | Post-launch activation | ARENA1 |
+| Phase 5 relayer placeholder | Yüksek | Düşük | Post-launch activation | ARENA1 |
 
 ## 5. Doküman Cross-Reference
 
 | Doküman | Konum | Sahip |
 |---------|-------|-------|
-| ADIM7 Ceremony Plan | `docs/ADIM7_CEREMONY_PLAN.md` | ARENA5 |
+| Phase 7 Ceremony Plan | `docs/PHASE7_CEREMONY_PLAN.md` | ARENA5 |
 | M5 VerifyMerkle Rapor | `docs/M5_VERIFYMERKLE_RAPOR_ARENA5.md` | ARENA5 |
 | Genesis Ceremony Template | `docs/MAINNET_GENESIS_CEREMONY.md` | ARENA5 |
 | CI Root Cause Analysis | `docs/CI_ROOT_CAUSE_ANALYSIS_ARENA5.md` | ARENA5 |
 | Agent Audit Report | `docs/AGENT_AUDIT_REPORT.md` | ARENA1 |
 | Hub UI Prototype | `docs/HUB_INTERFACE_PROTOTYPE.html` | ARENA1 |
-| ADIM5 Denetim | `docs/ADIM5_ARENA6_DENETIM_2026-07-15.md` | ARENA6 |
+| Phase 5 Denetim | `docs/PHASE5_ARENA6_DENETIM_2026-07-15.md` | ARENA6 |
 | Yeni Aşamalar Plan | `docs/YENI_ASAMALAR_PLAN_ARENA3_2026-07-16.md` | ARENA3 |
 | Mainnet Readiness | `docs/MAINNET_READINESS.md` | ARENA1 |
 | Threat Model | `docs/THREAT_MODEL.md` | ARENA3 |

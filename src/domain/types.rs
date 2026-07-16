@@ -27,12 +27,12 @@ pub enum ConsensusKind {
     Bft,
     Zk,
     Custom(String),
-    /// B.U.D. Storage ConsensusDomain (Tur 14, Faz 1, vision §8.1).
+    /// B.U.D. Storage ConsensusDomain (Phase 0.38, Faz 1, vision §8.1).
     ///
     /// Carries the bounded `StorageDomainParams` so the type system forces
     /// every consumer to handle the storage-specific limits. We use a new
     /// enum variant (not `Custom("StorageProofOfReplication")`) because the
-    /// parameter bundle is part of the consensus surface — see Tur 14 plan
+    /// parameter bundle is part of the consensus surface — see Phase 0.38 plan
     /// §3.1: "yeni bir hash fonksiyonu icat etme" / "yeni bir köprü protokolü
     /// icat etme" but it IS a new domain kind that needs its own typing.
     StorageAttestation(StorageDomainParams),

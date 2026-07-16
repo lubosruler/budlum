@@ -56,12 +56,12 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
-  # ============================ ADIM 8 / Faz 1 (P0) ============================
-  # Strict mod: aşağıdaki tüm job'lar ilk günden FAIL kapısıdır (ADIM 8.5 ruhu).
+  # ============================ Phase 8 / Faz 1 (P0) ============================
+  # Strict mod: aşağıdaki tüm job'lar ilk günden FAIL kapısıdır (Phase 8.5 ruhu).
   # Kapıların "boş" (vacuous) olmadığı kanarya testleriyle her koşuda kanıtlanır.
 
   dependency-audit:
-    # ADIM 8.1: cargo audit + SBOM üretimi + SBOM artifact.
+    # Phase 8.1: cargo audit + SBOM üretimi + SBOM artifact.
     name: Dependency Audit + SBOM (8.1)
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -84,7 +84,7 @@ jobs:
           retention-days: 90
 
   cargo-deny:
-    # ADIM 8.2: root ve budzero grafikleri ayrı matrix adımlarında denetlenir.
+    # Phase 8.2: root ve budzero grafikleri ayrı matrix adımlarında denetlenir.
     name: Cargo Deny (${{ matrix.name }}) (8.2)
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -103,7 +103,7 @@ jobs:
           command: check
 
   fuzz-quick:
-    # ADIM 8.5: mevcut 5 fuzz target'ının her biri her push/PR'da 90 sn.
+    # Phase 8.5: mevcut 5 fuzz target'ının her biri her push/PR'da 90 sn.
     # Uzun koşular fuzz-nightly.yml (schedule, 4h/target, corpus cache) işler.
     name: Fuzz Quick (90s × 5 target) (8.5)
     runs-on: ubuntu-latest
@@ -145,7 +145,7 @@ jobs:
           retention-days: 30
 
   secret-scan:
-    # ADIM 8.7: TAM git geçmişinde secret taraması (fetch-depth: 0).
+    # Phase 8.7: TAM git geçmişinde secret taraması (fetch-depth: 0).
     # gitleaks OSS binary'yi kullanıyoruz: resmi GitHub Action, organizasyon
     # repolarında GITLEAKS_LICENSE (dış kayıt) ister; binary aynı motoru
     # lisanssız çalıştırır. Sürüm + sha256 pinlidir. Resmi action'a geçiş,
@@ -190,7 +190,7 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose
 
   timing-safe:
-    # ADIM 8.6: RPC/crypto'da ham-eşitlik statik taraması + dudect-tarzı
+    # Phase 8.6: RPC/crypto'da ham-eşitlik statik taraması + dudect-tarzı
     # istatistiksel zamanlama regresyon testi (cargo bench).
     name: Timing-Safe Regression (8.6)
     runs-on: ubuntu-latest

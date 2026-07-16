@@ -1,4 +1,4 @@
-//! Integration tests for Tur-4 permissionless prover integration.
+//! Integration tests for Phase 0.06 permissionless prover integration.
 //!
 //! Covers the required cases:
 //!  - unregistered account: valid proof accepted, but NO reward

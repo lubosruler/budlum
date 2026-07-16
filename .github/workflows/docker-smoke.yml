@@ -1,4 +1,4 @@
-name: Docker Smoke (ADIM3 §3.2)
+name: Docker Smoke (Phase 3 §3.2)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
     paths:
       - 'Dockerfile'
       - 'config/mainnet.toml'
-      - 'scripts/adim3_smoke_rpc.sh'
+      - 'scripts/phase3_smoke_rpc.sh'
       - 'scripts/docker-smoke-mainnet.sh'
       - 'src/**'
   pull_request:
@@ -24,8 +24,8 @@ jobs:
         run: docker build -t budlum-core:smoke-test -f Dockerfile .
       - name: Run RPC smoke (devnet)
         run: |
-          chmod +x scripts/adim3_smoke_rpc.sh
-          SMOKE_NETWORK=devnet SMOKE_RPC_PORT=18545 ./scripts/adim3_smoke_rpc.sh || (cat /tmp/budlum-adim3-smoke-db/node.log 2>/dev/null; exit 1)
+          chmod +x scripts/phase3_smoke_rpc.sh
+          SMOKE_NETWORK=devnet SMOKE_RPC_PORT=18545 ./scripts/phase3_smoke_rpc.sh || (cat /tmp/budlum-phase3-smoke-db/node.log 2>/dev/null; exit 1)
       - name: Run Docker mainnet smoke
         run: |
           chmod +x scripts/docker-smoke-mainnet.sh

@@ -28,7 +28,7 @@ use tracing::info;
 /// rotating source addresses can turn rate limiting itself into a memory DoS.
 const MAX_TRACKED_RPC_CLIENTS: usize = 10_000;
 
-// Tur 6 (security audit §5): `auth_required` defaults to `true` (secure
+// Phase 0.10 (security audit §5): `auth_required` defaults to `true` (secure
 // by default). Operators that explicitly want an unauthenticated RPC
 // must call [`RpcSecurityConfig::operator_default`], which logs a
 // prominent warning at server startup.
@@ -46,7 +46,7 @@ pub struct RpcSecurityConfig {
 
 impl Default for RpcSecurityConfig {
     fn default() -> Self {
-        // Tur 6 (security audit §5): secure default — auth ON, no API key
+        // Phase 0.10 (security audit §5): secure default — auth ON, no API key
         // (caller must configure `api_key` before serving). This is what
         // [`Self::operator_default`] used to be (auth OFF); the prior
         // behaviour is preserved under that explicit name for trusted
@@ -66,7 +66,7 @@ impl Default for RpcSecurityConfig {
 
 impl RpcSecurityConfig {
     pub fn operator_default() -> Self {
-        // TUR 6 SECURITY WARNING: this constructor explicitly disables
+        // Phase 0.10 SECURITY WARNING: this constructor explicitly disables
         // authentication. It is intended for trusted local / private
         // network deployments only. A loud, multi-line `warn!` is logged
         // at every server start so an operator cannot accidentally ship
@@ -231,7 +231,7 @@ pub struct RpcServer {
     node: NodeClient,
     security: RpcSecurityConfig,
     mode: RpcMode,
-    /// B.U.D. storage registry (Tur 14, Faz 5). Wrapped in `Arc<Mutex<_>>`
+    /// B.U.D. storage registry (Phase 0.38, Faz 5). Wrapped in `Arc<Mutex<_>>`
     /// so the same registry is shared with future consensus-side
     /// producers. The public RPC surface mutates it; the chain layer reads
     /// from a snapshot at block-application time.
@@ -460,7 +460,7 @@ impl RpcServer {
     }
 }
 
-/// ADIM 8.6: `benches/micro/timing_safe.rs` regresyon bench'i bu fonksiyona
+/// Phase 8.6: `benches/micro/timing_safe.rs` regresyon bench'i bu fonksiyona
 /// erişir; bu yüzden `pub`'tır. Public API yüzeyinin parçası DEĞİLDİR
 /// (`#[doc(hidden)]`); dış kullanıcılar için stabilite garantisi yoktur.
 /// Değiştirilirse timing-safe CI kapısı (statik tarama + dudect-tarzı
@@ -488,7 +488,7 @@ fn is_authorized<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> bool {
         return false;
     };
 
-    // Tur 12.5 / B3: constant-time compare of provided secret material.
+    // Phase 0.35 / B3: constant-time compare of provided secret material.
     let api_ok = req
         .headers()
         .get("x-api-key")
@@ -525,7 +525,7 @@ fn extract_client_ip<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> Opt
         }
     }
 
-    // Tur 12.5 / B2: X-Real-IP is client-spoofable unless the request
+    // Phase 0.35 / B2: X-Real-IP is client-spoofable unless the request
     // actually came through a reverse proxy we trust. Only honor it when
     // `trusted_proxies` is non-empty (same gate as X-Forwarded-For).
     if !config.trusted_proxies.is_empty() {
@@ -1325,7 +1325,7 @@ impl BudlumApiServer for RpcServer {
         &self,
         proof: crate::consensus::qc::QcFaultProof,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
-        // Tur 9.5 (security audit §4): permissionless entry-point.
+        // Phase 0.17 (security audit §4): permissionless entry-point.
         // The proof's correctness is enforced by
         // `handle_qc_fault_proof` (merkle inclusion +
         // cryptographic dilithium verification), which is the
@@ -1384,11 +1384,11 @@ impl BudlumApiServer for RpcServer {
         }))
     }
 
-    // === TUR 14 — B.U.D. Storage RPC implementations ====================
+    // === Phase 0.38 — B.U.D. Storage RPC implementations ====================
     // The chain layer does not yet own a storage registry; we hold one on
     // the RPC server (`Arc<Mutex<StorageRegistry>>`) and snapshot it for
     // the chain-side accounting at block-application time (Faz 5 follow-up
-    // in Tur 15). For Tur 14 the registry is RPC-driven and survives only
+    // in Phase 0.40). For Phase 0.38 the registry is RPC-driven and survives only
     // for the life of the process — that is the documented scope of this
     // iskeleton's RPC surface (vision §8.1 "accounting only").
 
@@ -1626,9 +1626,9 @@ impl BudlumApiServer for RpcServer {
         &self,
         request: RetrievalChallengeRequest,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
-        // ADIM3 §0.2 + H1 fix (ARENA3 sürekli denetim): opener zorunlu ve non-zero olmalı
+        // Phase 3 §0.2 + H1 fix (ARENA3 sürekli denetim): opener zorunlu ve non-zero olmalı
         let opener = request.opener.ok_or_else(|| {
-            ErrorObjectOwned::owned(-32602, "opener is required (ADIM3 §0.2 / H1)", None::<()>)
+            ErrorObjectOwned::owned(-32602, "opener is required (Phase 3 §0.2 / H1)", None::<()>)
         })?;
         if opener == crate::core::address::Address::zero() {
             return Err(ErrorObjectOwned::owned(
@@ -1638,14 +1638,14 @@ impl BudlumApiServer for RpcServer {
             ));
         }
 
-        // ADIM3 §0.2: opener must cryptographically prove ownership of the
+        // Phase 3 §0.2: opener must cryptographically prove ownership of the
         // declared address. Without this, any caller can self-report any
         // address as the opener, rendering the opener_bond anti-spam gate
         // economically meaningless.
         let opener_sig = request.opener_signature.as_deref().ok_or_else(|| {
             ErrorObjectOwned::owned(
                 -32602,
-                "opener_signature is required (ADIM3 §0.2)",
+                "opener_signature is required (Phase 3 §0.2)",
                 None::<()>,
             )
         })?;
@@ -1702,13 +1702,13 @@ impl BudlumApiServer for RpcServer {
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         let responder = response.responder;
 
-        // ADIM3 §0.2: responder must cryptographically prove ownership of the
+        // Phase 3 §0.2: responder must cryptographically prove ownership of the
         // declared address. Without this, any caller can set responder to the
         // deal's operator address and bypass the NotTheOperator registry check.
         let responder_sig = response.responder_signature.as_deref().ok_or_else(|| {
             ErrorObjectOwned::owned(
                 -32602,
-                "responder_signature is required (ADIM3 §0.2)",
+                "responder_signature is required (Phase 3 §0.2)",
                 None::<()>,
             )
         })?;
@@ -1797,7 +1797,7 @@ impl BudlumApiServer for RpcServer {
     }
 
     async fn storage_active_operators(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
-        // ADIM3 §0.3: ghost RPC was documented but not implemented.
+        // Phase 3 §0.3: ghost RPC was documented but not implemented.
         // Implementation: query PermissionlessRegistry active members for STORAGE_OPERATOR (RoleId 5).
         // No admin gate, no whitelist — permissionless read, same as bud_registryActiveMembers.
         let role = crate::registry::role::roles::STORAGE_OPERATOR;

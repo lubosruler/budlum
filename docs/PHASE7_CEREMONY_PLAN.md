@@ -1,4 +1,4 @@
-# ADIM 7 — Mainnet Launch Ceremony Plan
+# Phase 7 — Mainnet Launch Ceremony Plan
 
 **Hazırlayan:** ARENA5  
 **Tarih:** 2026-07-15  
@@ -8,23 +8,23 @@
 
 ---
 
-## 1. ADIM 7 Hedefi
+## 1. Phase 7 Hedefi
 
 Budlum L1'in **gerçek mainnet genesis**'ini oluşturmak: placeholder'lardan gerçek
 anahtarlara, dummy bootnodes'tan gerçek altyapıya, devnet config'den production
 config'e geçiş. Tören (ceremony) formatında, şeffaf ve doğrulanabilir.
 
-## 2. Önkoşul Durumu (ADIM7 Başlangıcı)
+## 2. Önkoşul Durumu (Phase 7 Başlangıcı)
 
-| Engelleyici | Durum | ADIM7'ye Etkisi |
+| Engelleyici | Durum | Phase 7'ye Etkisi |
 |-------------|-------|-----------------|
 | M1 Kuyruk drain | ✅ DONE | Engel yok |
 | M2 E2E testler | ✅ DONE | Engel yok |
-| M3 Ceremony seeds | 🟡 Template var | **ADIM7 görevi** |
+| M3 Ceremony seeds | 🟡 Template var | **Phase 7 görevi** |
 | M4 storage_root V3 | ✅ DONE | Engel yok |
 | **M5 VerifyMerkle** | 🔒 Kapalı | **Bilinçli kapalı** — `M5_VERIFYMERKLE_RAPOR_ARENA5.md` detay |
 | **M6 HSM vendor-native** | 🟡 Config var, donanım yok | Ceremony'ye bağlı |
-| **M7 External audit** | ❌ Açık | Bug bounty ile başla (ADIM2 kararı C) |
+| **M7 External audit** | ❌ Açık | Bug bounty ile başla (Phase 2 kararı C) |
 | M8 BNS Phase 6 | ✅ DONE | Engel yok |
 | M9 Archive drill | 🟡 Docs var | Post-launch |
 | M10 SocialFi/Hub | 🔒 Revert sonrası | Post-launch |
@@ -32,7 +32,7 @@ config'e geçiş. Tören (ceremony) formatında, şeffaf ve doğrulanabilir.
 **ARENA5 kararı (M5 raporu):** M5 kapalı iken launch **yapılabilir** (Seçenek A).
 L1 core, bridge, BLS finality, B.U.D. Faz 1-2+5, BNS tamamen bağımsız.
 
-## 3. ADIM 7 Görev Detayları
+## 3. Phase 7 Görev Detayları
 
 ### 3.1 Görev 7.1: Genesis Keys Ceremony 🔴 P0
 

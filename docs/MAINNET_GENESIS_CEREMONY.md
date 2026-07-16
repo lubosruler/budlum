@@ -35,11 +35,11 @@ dönülemez** şekilde gerçekleştirildiği törendir.
 | 2 | `cargo clippy -- -D warnings` temiz | ⏳ Tören öncesi kontrol |
 | 3 | `cargo fmt --check` temiz | ⏳ Tören öncesi kontrol |
 | 4 | VerifyMerkle M5 raporu okundu | ✅ `M5_VERIFYMERKLE_RAPOR_ARENA5.md` |
-| 5 | ADIM7 planı okundu | ✅ `ADIM7_CEREMONY_PLAN.md` |
+| 5 | Phase 7 planı okundu | ✅ `PHASE7_CEREMONY_PLAN.md` |
 | 6 | Snapshot round-trip test geçti | ⏳ `02dae79` doğrulama |
 | 7 | HSM donanım hazır (veya Ed25519-only kararı) | ⏳ Kullanıcı kararı |
 
-## 3. Adım 1: Validator Key Üretimi
+## 3. Phase 1: Validator Key Üretimi
 
 ### 3.1 Ed25519 Anahtarları (Her Validator İçin)
 
@@ -87,7 +87,7 @@ budlum-core keygen --type ed25519 --output validator_N_ed25519.key
 **Not:** HSM donanımı yoksa, BLS/PQ anahtarları **üretilmez**.
 Mainnet PoA/Ed25519-only ile başlar, BLS/PQ post-launch eklenir.
 
-## 4. Adım 2: Treasury Allocation
+## 4. Phase 2: Treasury Allocation
 
 | Havuz | Adres | Miktar (BUD) | Vesting |
 |-------|-------|-------------|---------|
@@ -99,7 +99,7 @@ Mainnet PoA/Ed25519-only ile başlar, BLS/PQ post-launch eklenir.
 
 **Toplam arz:** 100,000,000,000,000 BUD (100 trilyon)
 
-## 5. Adım 3: Genesis JSON Finalize
+## 5. Phase 3: Genesis JSON Finalize
 
 ```json
 {
@@ -148,7 +148,7 @@ Mainnet PoA/Ed25519-only ile başlar, BLS/PQ post-launch eklenir.
 }
 ```
 
-## 6. Adım 4: Genesis Hash Freeze
+## 6. Phase 4: Genesis Hash Freeze
 
 ```bash
 # Hash hesapla
@@ -165,7 +165,7 @@ echo "Genesis hash: ___GENESIS_HASH___" >> docs/operations/PRODUCTION_RUNBOOK.md
 **⚠️ Bu hash bir kez yazıldıktan sonra DEĞİŞTİRİLEMEZ.**
 Değişiklik = farklı bir zincir = tüm allocation'lar geçersiz.
 
-## 7. Adım 5: Bootnode Kurulumu
+## 7. Phase 5: Bootnode Kurulumu
 
 | # | Sunucu | IP | Multiaddr | PeerID |
 |---|--------|----|-----------|---------|
@@ -179,7 +179,7 @@ Değişiklik = farklı bir zincir = tüm allocation'lar geçersiz.
 | DS1 | `_dnsaddr.mainnet-seed-1.budlum.___` | `dnsaddr=/ip4/___/tcp/4001/p2p/___` |
 | DS2 | `_dnsaddr.mainnet-seed-2.budlum.___` | `dnsaddr=/ip4/___/tcp/4001/p2p/___` |
 
-## 8. Adım 6: İlk Blok (T-0)
+## 8. Phase 6: İlk Blok (T-0)
 
 1. Tüm validator node'ları başlatılır:
    ```bash

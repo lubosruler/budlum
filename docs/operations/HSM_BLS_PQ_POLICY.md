@@ -1,4 +1,4 @@
-# BLS/PQ HSM Policy (ADIM 2 §1.1)
+# BLS/PQ HSM Policy (Phase 2 §1.1)
 
 **Tarih:** 2026-07-15
 **Durum:** PKCS#11 Ed25519 yolu + BLS/PQ mock backend main kod tabanında mevcut; mainnet disk-key yasağı fail-closed kalır. Vendor-native non-extractable BLS/Dilithium HSM mekanizmaları hâlâ ayrı audit/entegrasyon maddesidir.

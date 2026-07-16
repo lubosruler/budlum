@@ -731,7 +731,7 @@ mod chaos_tests {
         let mut pos_com =
             DomainCommitment::from_block(&pos_domain, &pos_block, [2u8; 32], [3u8; 32], 1).unwrap();
         pos_com.event_root = pos_event_tree.root();
-        // Tur 9 (security audit §9): capture the commitment block hash so the
+        // Phase 0.16 (security audit §9): capture the commitment block hash so the
         // bridge-mint forgery gate has a concrete value to bind against.
         let pos_com_block_hash = pos_com.domain_block_hash;
 

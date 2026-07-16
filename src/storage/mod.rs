@@ -4,12 +4,12 @@
 //!
 //! * [`db`] / [`traits`] — the *node-local* key-value store (sled) that
 //!   holds chain state, accounts, blocks, etc. Pre-existing, not touched
-//!   by Tur 14.
+//!   by Phase 0.38.
 //!
 //! * [`content_id`] / [`manifest`] — the *B.U.D. on-chain content-addressing
-//!   primitives* introduced by Tur 14 (Faz 2 + Tur 14.5 §2.1). These are
+//!   primitives* introduced by Phase 0.38 (Faz 2 + Phase 0.39 §2.1). These are
 //!   pure data shapes — no I/O, no admin hooks, no team-server dependency
-//!   (Tur 14.5 plan §0.5).
+//!   (Phase 0.39 plan §0.5).
 //!
 //! The domain-level deal / challenge accounting lives in
 //! `crate::domain::storage_deal::StorageRegistry` (kept under

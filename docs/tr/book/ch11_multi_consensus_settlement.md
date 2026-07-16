@@ -57,7 +57,7 @@ Bu formül, **"Sadece ileriye dönük ve daha büyük nonce"** kuralını işlet
 
 ## 3. Pratik Uygulama: Settlement Motorunu Kodlamak
 
-### Adım 1: Taahhüt Kabulü, Equivocation Kontrolü ve Atomik Kalıcılık
+### Phase 1: Taahhüt Kabulü, Equivocation Kontrolü ve Atomik Kalıcılık
 
 ```rust
 pub fn submit_verified_domain_commitment(
@@ -98,7 +98,7 @@ pub fn submit_verified_domain_commitment(
 }
 ```
 
-### Adım 2: Asenkron Tamponlama (Apply Loop)
+### Phase 2: Asenkron Tamponlama (Apply Loop)
 
 ```rust
 fn apply_pending_commitments(&mut self, domain_id: DomainId) -> Result<Vec<ConsensusDomain>, String> {
@@ -136,7 +136,7 @@ Buradaki kritik production-hardening noktaları şunlardır:
 
 Node yeniden başlatıldığında "commitment var ama height ilerlememiş" gibi yarım kalıcı durum görülmemelidir.
 
-### Adım 3: Doğrulanmış Cross-Domain Bridge Dönüş Yolu
+### Phase 3: Doğrulanmış Cross-Domain Bridge Dönüş Yolu
 
 Bridge artık raw burn/unlock geçişlerini settlement otoritesi olarak kabul etmez. Dönüş transferi hedef domain üzerinde commit edilmiş event ile kanıtlanmalıdır:
 
@@ -147,7 +147,7 @@ Bridge artık raw burn/unlock geçişlerini settlement otoritesi olarak kabul et
 
 RPC istemcileri burn event üretmek için `bud_burnBridgeTransferWithEvent`, doğrulanmış `BridgeBurned` event proof üzerinden unlock etmek için `bud_unlockBridgeTransferVerified` kullanır.
 
-### Adım 4: Domain Operatörleri ve Slashing Evidence Gossip
+### Phase 4: Domain Operatörleri ve Slashing Evidence Gossip
 
 Domain registration artık operatör adresi ve minimum bond taşır; bu da frozen domain'ler için ekonomik ceza bağlantısını kurar. Validator seviyesinde double-sign ise ayrı akar: PoS motoru `SlashingEvidence` üretir, node bunu `NetworkMessage::SlashingEvidence` olarak gossip eder, blok üreticileri bekleyen kanıtları bloğa koyar ve execution katmanı stake slashing'i deterministik uygular.
 

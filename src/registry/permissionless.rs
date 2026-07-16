@@ -177,18 +177,18 @@ pub struct PermissionlessRegistry {
     // as a JSON object key (JSON requires string keys). We therefore (de)serialize
     // this map as a flat sequence of `Registration`s — each already carries its
     // `role` + `account`, so the map is rebuilt losslessly on load. Without this,
-    // snapshot serialization silently produced empty output (Tur 9 bug).
+    // snapshot serialization silently produced empty output (Phase 0.16 bug).
     #[serde(with = "registrations_as_seq")]
     registrations: BTreeMap<(RoleId, Address), Registration>,
     #[serde(default)]
     params: RegistryParams,
-    /// Persistent audit log of actioned slashing reports (Tur 15, Görev 1).
+    /// Persistent audit log of actioned slashing reports (Phase 0.40, Görev 1).
     ///
-    /// Tur 14 slashed equivocators immediately but kept no record, so a restart
+    /// Phase 0.38 slashed equivocators immediately but kept no record, so a restart
     /// or a governance/dispute/audit query lost the evidence. Every report that
     /// the registry actually acts on (`slash_from_report` → `Ok(Some)`) is
     /// appended here. It is `#[serde(default)]` so schema-3 snapshots taken
-    /// before Tur 15 still deserialize (the log simply comes back empty).
+    /// before Phase 0.40 still deserialize (the log simply comes back empty).
     ///
     /// This does NOT open a second slashing path: the log is written *inside*
     /// the one canonical `slash_from_report`, recording what that path already
@@ -345,7 +345,7 @@ impl PermissionlessRegistry {
         )
     }
 
-    /// Tur 14, Faz 1: convenience wrapper for the B.U.D. `STORAGE_OPERATOR`
+    /// Phase 0.38, Faz 1: convenience wrapper for the B.U.D. `STORAGE_OPERATOR`
     /// role. Like every other role, registration is permissionless — any
     /// account can join by staking the `min_stake` floor. There is no
     /// whitelist, no admin gate (master context, CLAUDE.md §2).
@@ -500,7 +500,7 @@ impl PermissionlessRegistry {
         reg.status = MemberStatus::Slashed;
         let remaining_stake = reg.stake;
 
-        // Tur 11.7 / A5: cross-role slash — jail every other registration of
+        // Phase 0.334 / A5: cross-role slash — jail every other registration of
         // the same address so a slashed validator cannot continue as relayer/prover.
         self.slash_cross_role(account, role, condition, slash_ratio_fixed);
 
@@ -587,7 +587,7 @@ impl PermissionlessRegistry {
         &self.slashing_history
     }
 
-    /// Persisted slashing records for a specific offender (Tur 15, Görev 1).
+    /// Persisted slashing records for a specific offender (Phase 0.40, Görev 1).
     /// Includes equivocation (`DoubleSign`), liveness, invalid-vote-spam and any
     /// other actioned report against `offender`.
     pub fn slashing_history_for(&self, offender: &Address) -> Vec<&SlashingRecord> {
@@ -777,7 +777,7 @@ mod tests {
         assert!(reg.is_active(&addr(7), roles::RELAYER));
     }
 
-    /// Tur 11.7 / A5: slashing one role jails the same address in other roles.
+    /// Phase 0.334 / A5: slashing one role jails the same address in other roles.
     #[test]
     fn tur117_cross_role_slash_jails_all_roles() {
         let mut reg = PermissionlessRegistry::new();

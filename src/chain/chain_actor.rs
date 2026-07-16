@@ -860,7 +860,7 @@ impl ChainHandle {
             .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
 
-    /// ADIM3 §0.3: bond stake for STORAGE_OPERATOR (permissionless).
+    /// Phase 3 §0.3: bond stake for STORAGE_OPERATOR (permissionless).
     pub async fn bond_storage_operator(
         &self,
         address: crate::core::address::Address,

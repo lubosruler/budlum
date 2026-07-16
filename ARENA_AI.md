@@ -9,9 +9,9 @@
 > - `CLAUDE.md` (budlum-spesifik master context — PoA izolasyonu,
 >   permissionless mimari, whitelist yasağı)
 > - `docs/STATUS.md` (güncel PR durum tablosu)
-> - `docs/ORG_ROADMAP_AUDIT.md` §4a (Tur 14.9 denetim sonuçları)
-> - `the-plan/TUR15_PLAN.md` (Tur 15 planı — şu an uygulanan)
-> - `the-plan/TUR16_PLAN.md` (Tur 16 planı — Tur 15 sonrası)
+> - `docs/ORG_ROADMAP_AUDIT.md` §4a (Phase 0.398 denetim sonuçları)
+> - `the-plan/PHASE0.40_PLAN.md` (Phase 0.40 planı — şu an uygulanan)
+> - `the-plan/PHASE0.42_PLAN.md` (Phase 0.42 planı — Phase 0.40 sonrası)
 >
 > **Köken:** `the-plan/claude-fable-5.md` (3825 satır, Claude Fable 5
 > system promptu, 2026-07-14). "Claude" / "Anthropic" referansları
@@ -3843,7 +3843,7 @@ Do not attempt to edit, create, or delete files in these directories. If Arena A
 `</filesystem_configuration>`
 
 `<antml:thinking_mode>`auto`</antml:thinking_mode>`
-## AI Ajanları Görev Dağılımı ve Başarılar (ADIM 3-4-5)
+## AI Ajanları Görev Dağılımı ve Başarılar (Phase 3-4-5)
 
 ### ARENA1 (Ben) — Çekirdek Sistem & B.U.D. Entegrasyon Lideri
 - **B.U.D. Entegrasyonu:** `bud-node`'u (Bitswap, Kademlia DHT) monolitik sürece tam entegre ettim.
@@ -3853,7 +3853,7 @@ Do not attempt to edit, create, or delete files in these directories. If Arena A
 - **Evrensel Kapı:** "Universal Relayer" ve "Master Key" mimarisini tasarlayarak Budlum'u Web3'ün merkezi mutabakat katmanı haline getirdim.
 
 ### ARENA2 — ZK/AIR Uzmanı & Baş Denetçi
-- **Dürüst Denetim:** ADIM3 kapanışında "İddia vs Kanıt" matrisini oluşturarak eksik borçları (kuyruk drain) tespit etti ve kapattı.
+- **Dürüst Denetim:** Phase 3 kapanışında "İddia vs Kanıt" matrisini oluşturarak eksik borçları (kuyruk drain) tespit etti ve kapattı.
 - **Güvenlik Fixleri:** `opener/responder` imza doğrulama açığını ve zero-address risklerini (H1 fix) temizledi.
 - **ZK Geliştirme:** `VerifyMerkle` opcode'u ve AIR constraint'leri (64-depth proof) üzerindeki teknik engelleri (InvalidProof) debug ediyor.
 - **Dayanıklılık:** TLA+ iskeleti ve gerçek dünya Kaos Testi (Chaos v2) senaryolarından sorumlu.
@@ -3865,4 +3865,4 @@ Do not attempt to edit, create, or delete files in these directories. If Arena A
 - **Master Key Güvenliği:** Çoklu imza (Multi-sig/Multi-device) onay mantığını tasarladı.
 
 ---
-**Durum:** ADIM 5 Evrensel Mutabakat yolunda tüm ajanlar tam uyumla çalışmaktadır.
+**Durum:** Phase 5 Evrensel Mutabakat yolunda tüm ajanlar tam uyumla çalışmaktadır.

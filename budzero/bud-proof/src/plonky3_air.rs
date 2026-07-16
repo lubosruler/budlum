@@ -86,7 +86,7 @@ pub const COL_POSEIDON_STATE_BASE: usize = 258; // 258..289 — state[r][i] at r
 pub const COL_POSEIDON_X2_BASE: usize = 290; // 290..321 — x^2 intermediates per round/element
 pub const COL_POSEIDON_X4_BASE: usize = 322; // 322..353 — x^4 intermediates per round/element
 
-// Tur 10.5 (security audit Z-A): public-input binding witness columns.
+// Phase 0.31 (security audit Z-A): public-input binding witness columns.
 //
 // Each public input that is not already constrained by the existing
 // AIR (chain_id, initial_state_root, final_state_root, gas_limit,
@@ -104,7 +104,7 @@ pub const COL_EVENT_DIGEST_0: usize = 380; // 380..387 — event_digest accumula
 pub const COL_EXIT_CODE: usize = 388; // 1 column — 0=normal Halt, 1=error (set on Halt row)
 pub const COL_CHAIN_ID: usize = 389; // 1 column — vm.gas_limit sibling; chain_id is bound via first-row public input
 
-// Tur 10.6 (security audit Z-B): Merkle path verification columns.
+// Phase 0.312 (security audit Z-B): Merkle path verification columns.
 //
 // When `merkle_is_expand` is true on a row, the following columns
 // carry the Poseidon accumulator, sibling hash, round index, and
@@ -127,7 +127,7 @@ pub const COL_VM_MERKLE_IS_EXPAND: usize = 395; // 1 column — 1 on rows 1..64 
 pub const COL_MERKLE_POSEIDON_X2_0: usize = 396; // 396..403 — x^2 intermediate per element (8 columns)
 pub const COL_MERKLE_POSEIDON_X4_0: usize = 404; // 404..411 — x^4 intermediate per element (8 columns)
 
-// Tur 10.6 (security audit Z-B), Commit 3: final root check
+// Phase 0.312 (security audit Z-B), Commit 3: final root check
 // witnesses.
 pub const COL_MERKLE_DIFF_INV: usize = 412; // 1 column — diff = current - rs1_val; diff * diff_inv ∈ {0, 1}
 pub const COL_MERKLE_FINAL_FLAG: usize = 413; // 1 column — 1 on the *original* VerifyMerkle step's row (and 0 elsewhere)
@@ -398,7 +398,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
 
         builder.when(is_assert).assert_one(rs1_val.clone());
 
-        // Tur 10.5 (security audit Z-B): the `is_verify_merkle`
+        // Phase 0.31 (security audit Z-B): the `is_verify_merkle`
         // selector is now a *deterministic* function of `COL_OPCODE`.
         // A malicious prover can no longer set `is_verify_merkle = 0`
         // to bypass the constraint on a row where COL_OPCODE = 0x1E;
@@ -408,7 +408,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         // computation) requires the path to be moved into the trace
         // (key + 64 sibling hashes as witness columns + a 64-round
         // Poseidon chain constraint). That work is tracked in
-        // `TUR10.5-PLAN.md` and will land in Tur 10.6.
+        // `PHASE0.30.5-PLAN.md` and will land in Phase 0.312.
         let opcode_verify_merkle: AB::Expr = AB::Expr::from(AB::F::from_u64(0x1E));
         let opcode_at_row: AB::Expr = cur[COL_OPCODE].into();
         // `is_verify_merkle = 1` ⇒ `COL_OPCODE = 0x1E`
@@ -422,7 +422,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             .when(is_verify_merkle.clone())
             .assert_bool(rd_val_new.clone());
 
-        // Tur 10.6 (security audit Z-B): Merkle expansion rows.
+        // Phase 0.312 (security audit Z-B): Merkle expansion rows.
         //
         // When a VerifyMerkle instruction executes, the VM pushes
         // 1 original step (carrying `merkle_key` but with
@@ -479,7 +479,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         // (round=0) the previous row is the original step; for
         // subsequent rows the previous is the previous expansion
         // row. We enforce the transition below.
-        // Tur 13 / Z-B 3.5: merkle_round is 0..63 (not boolean). Bound via
+        // Phase 0.36 / Z-B 3.5: merkle_round is 0..63 (not boolean). Bound via
         // expand→expand transition (+1) and first expansion round=0 leaf bind.
 
         // Sibling and current are u64 limbs; no further constraint
@@ -506,7 +506,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         // is not expansion (which happens at the boundary
         // between two VerifyMerkle calls or at the start/end of
         // the trace).
-        // Tur 13 / Z-B 3.5: key continuity only when staying in / entering
+        // Phase 0.36 / Z-B 3.5: key continuity only when staying in / entering
         // expansion — not when leaving expansion to Halt (next key is 0).
         builder
             .when_transition()
@@ -542,7 +542,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         // 1-round Poseidon constraints). For now we only assert
         // that the current accumulator on the original VerifyMerkle
         // step equals the leaf value (rs2_val), and that the first
-        // Tur 10.6 (security audit Z-B), Commit 3: Poseidon
+        // Phase 0.312 (security audit Z-B), Commit 3: Poseidon
         // single-round transition on every expansion row, and
         // final root check on the original step.
         //
@@ -632,7 +632,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             .when(nxt_is_expand.clone())
             .assert_zero(nxt_merkle_current.clone() - poseidon_output.clone());
 
-        // Tur 10.6 Commit 3, final root check: on the original
+        // Phase 0.312 Commit 3, final root check: on the original
         // VerifyMerkle step, the merkle_current (which the
         // trace_matrix sets to the 64th-round Poseidon output)
         // must equal the claimed root `rs1_val` (claimed root)
@@ -648,7 +648,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         //   rd_val_new == diff * diff_inv
         // on the original step's row (is_verify_merkle = 1,
         // merkle_final_flag = 1).
-        // Tur 13 / Z-B 3.5: equality boolean via inverse witness on the
+        // Phase 0.36 / Z-B 3.5: equality boolean via inverse witness on the
         // *original* VerifyMerkle step only. Expansion rows reuse opcode 0x1E
         // so is_verify_merkle=1 on them too — must gate with (1 - is_expand).
         //   prod = diff * inv ∈ {0,1}
@@ -670,7 +670,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             .when(on_original.clone())
             .assert_zero(rd_val_new.clone() - eq);
 
-        // Tur 10.6 Commit 3 + ARENA2 ADIM4 fix: leaf binding and first-round
+        // Phase 0.312 Commit 3 + ARENA2 Phase 4 fix: leaf binding and first-round
         // index must fire ONLY on the *original* VerifyMerkle step.
         // Expansion rows reuse Opcode::VerifyMerkle so is_verify_merkle=1 on
         // them too; without (1 - is_expand) the constraint wrongly forces
@@ -737,7 +737,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             .when(is_halt.clone())
             .assert_eq(nxt_pc, cur[COL_PC].into());
 
-        // Tur 10 (security audit Z-C): termination constraint.
+        // Phase 0.30 (security audit Z-C): termination constraint.
         //
         // The transition 1 -> 0 for `cpu_active` is allowed ONLY on a Halt
         // row. In normal execution every transition is 1 -> 1; the only
@@ -760,13 +760,13 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         let eight = AB::Expr::from(AB::F::from_u64(8));
         let ten = AB::Expr::from(AB::F::from_u64(10));
         let twelve = AB::Expr::from(AB::F::from_u64(12));
-        // Tur 11.9 / A12: SRead=8, SWrite=12 (must match Vm::gas_cost).
+        // Phase 0.338 / A12: SRead=8, SWrite=12 (must match Vm::gas_cost).
         let gas_cost = is_load.clone() * three.clone()
             + is_store.clone() * three.clone()
             + is_sread.clone() * eight.clone()
             + is_swrite.clone() * twelve.clone()
             + is_poseidon.clone() * ten.clone()
-            // Tur 13: expansion rows reuse opcode 0x1E but must not re-charge gas.
+            // Phase 0.36: expansion rows reuse opcode 0x1E but must not re-charge gas.
             + is_verify_merkle.clone() * (one.clone() - is_expand.clone()) * ten.clone()
             + is_call.clone() * two.clone()
             + is_ret.clone() * two.clone()
@@ -801,7 +801,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             + public_inputs[35].into() * AB::Expr::from(AB::F::from_u64(1 << 32));
         builder.when_last_row().assert_zero(cur_gas - expected_gas);
 
-        // Tur 10.5 (security audit Z-A): bind the remaining public
+        // Phase 0.31 (security audit Z-A): bind the remaining public
         // inputs to trace columns so a malicious prover cannot set
         // them freely.
         //
@@ -859,7 +859,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
                 .assert_zero(cur[COL_TRACE_LEN_CTR].into() - expected_trace_len);
         }
 
-        // Tur 10.5 (security audit Z-A, Aşama 2): event_digest,
+        // Phase 0.31 (security audit Z-A, Aşama 2): event_digest,
         // exit_code, and chain_id.
 
         // (5) event_digest: last real row, COL_EVENT_DIGEST_0..7 == public[40..48]
@@ -870,7 +870,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
                 .assert_zero(cur[COL_EVENT_DIGEST_0 + j].into() - public_inputs[40 + j].into());
         }
 
-        // (5b) event_digest transition (Tur 12.9 fix):
+        // (5b) event_digest transition (Phase 0.358 fix):
         // Prover writes the updated accumulator ON the Log row itself
         // (copy prev, then += log val). Therefore the constraint must
         // use the *next* row's Log flag and rs1 value:

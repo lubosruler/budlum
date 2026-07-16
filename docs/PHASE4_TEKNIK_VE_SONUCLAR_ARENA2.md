@@ -1,4 +1,4 @@
-# ADIM4 — Teknik Durum + Teknik Olmayan Sonuçlar (ARENA2, HEAD 6eedd2d sonrası)
+# Phase 4 — Teknik Durum + Teknik Olmayan Sonuçlar (ARENA2, HEAD 6eedd2d sonrası)
 
 **Tarih:** 2026-07-15 16:45 UTC+3  
 **ARENA2:** Roadmap doğrulayıcı + denetçi  
@@ -13,8 +13,8 @@
 |------|--------|-------|
 | **Org roadmap** budlumdevnet 332 + devnet2 452 | Main 557+ lib test fazlasıyla karşılıyor. VerifiedDomainCommitment only, adapter hardening, parent-linked, strict nonce, Chaos Matrix, PQ BLS+Dilithium hybrid | `src/domain/finality_adapter.rs` cert.verify fix 49b6b46/65d0446, `bridge.rs` sweep O(N), `finality_live_path.rs` |
 | **B.U.D. server** | `budzero/bud-node/src/` store (8635), bitswap (10291), discovery (9966), lib.rs, sharding.rs (XOR, replication_factor) **HAYATTA**. `src/network/node.rs` monolithic `Node{storage_node, shard_manager}` + Bitswap codec + DHT | `ls budzero/bud-node/src/` |
-| **Forge push kaybı** | Kaybolan **sadece** `docs/ADIM3_PLAN_VE_GOREV_DAGILIMI.md` — ARENA2 b43a502'de MAINNET_READINESS + commit log'dan yeniden derleyip kurtardı. B.U.D. server silinmemiş. | `git log b43a502` |
-| **ADIM4 TUR4_PLAN** | 4.1 test gate `proves_verify_merkle_valid_64_depth` #[ignore] InvalidProof — matrix chain (Poseidon 64-depth) YEŞİL, full STARK KIRMIZI. 4.2 prod gate `is_experimental=true` fail-closed kapalı (doğru). 4.3 StorageDeal `merkle_proof: Option<Vec<u8>>` + `storage_root: Option<Hash32>` + depth 64 OK. 4.4 storage_root `GlobalBlockHeader` + `BlockHeader`/`Block` V3 hash OK. | `budzero/bud-isa/src/lib.rs:45`, `bud-proof/src/plonky3_prover.rs:2114` |
+| **Forge push kaybı** | Kaybolan **sadece** `docs/PHASE3_PLAN_VE_GOREV_DAGILIMI.md` — ARENA2 b43a502'de MAINNET_READINESS + commit log'dan yeniden derleyip kurtardı. B.U.D. server silinmemiş. | `git log b43a502` |
+| **Phase 4 PHASE0.06_PLAN** | 4.1 test gate `proves_verify_merkle_valid_64_depth` #[ignore] InvalidProof — matrix chain (Poseidon 64-depth) YEŞİL, full STARK KIRMIZI. 4.2 prod gate `is_experimental=true` fail-closed kapalı (doğru). 4.3 StorageDeal `merkle_proof: Option<Vec<u8>>` + `storage_root: Option<Hash32>` + depth 64 OK. 4.4 storage_root `GlobalBlockHeader` + `BlockHeader`/`Block` V3 hash OK. | `budzero/bud-isa/src/lib.rs:45`, `bud-proof/src/plonky3_prover.rs:2114` |
 | **BNS Faz 6** | Q10 full_impl merge 7482dd7+51dbaf9+2250795: `NameRecord{address, consensus_domain_id, storage_root, storage_domain_id, storage_root_height}` + `BnsResolved` + `registry.register_with_storage / resolve_full / set_storage (owner only)` + Tx `BnsRegister` → Executor → RPC `bns_resolve_full / bns_set_storage` | `src/bns/types.rs` |
 | **CI** | Son 5 commit **FAIL**: 9387fb1 (benim docs commitim de FAIL — sadece docs olmasına rağmen önceki BNS kodundan kalan clippy/fmt hatası), 51dbaf9 FAIL, 2250795 FAIL, 6eedd2d FAIL. Budlum Core + BudZero test/fmt/clippy'den biri patlıyor. Docker smoke de FAIL (beklenen HSM). | GitHub Actions run 29425238817 failure annotation |
 
@@ -35,7 +35,7 @@
 - ❌ **HSM:** Validator anahtarlarını korumak için donanım kasası (HSM) gerekiyor. Şu an BLS/PQ anahtarlarını yazılım + data object olarak saklıyoruz (software fallback). Sen Q6'da “software fallback OK” dedin — devnet için OK, mainnet için vendor-native gerekir.
 
 **Push reddi ne demek? (Senin “demin pushun reddedildi” dediğin)**
-- Teknik: Ben `docs/ADIM4_ARENA2_ANALIZ.md` + STATUS_ONLINE.md commitledim ve pushlamaya çalıştım (`95479c0`). Tam o sırada ARENA3 de `51dbaf9` commitini pushlamıştı. GitHub “senin branchin güncel değil, önce fetch yap” dedi → **rejected (non-fast-forward)**.
+- Teknik: Ben `docs/PHASE4_ARENA2_ANALIZ.md` + STATUS_ONLINE.md commitledim ve pushlamaya çalıştım (`95479c0`). Tam o sırada ARENA3 de `51dbaf9` commitini pushlamıştı. GitHub “senin branchin güncel değil, önce fetch yap” dedi → **rejected (non-fast-forward)**.
 - Teknik olmayan: İki kişi aynı anda aynı dosyayı (STATUS_ONLINE.md) düzenlerse çakışma olur. Bizim kuralımız (Aşama 2): her push öncesi `git fetch origin` + `git log origin/main -3` ile başka AI commit atmış mı kontrol et. Ben ettim, fark ettim, sonra rebase yapıp her iki entry'i koruyarak `9387fb1` olarak tekrar pushladım, bu sefer başarılı oldu.
 
 **Şimdi neden bekleme modundayız? (Aşama 3)**
@@ -51,7 +51,7 @@
   - Orta seviye açık (örneğin RPC rate limit atlatma, DoS): **$50.000**
   - Yüksek seviye açık (örneğin başkasının stake'ini çalma, sahte finality üretme): **$100.000**
 - Neden? Dış denetim firması tutmak 6 ay + $200k. Bug bounty'de sadece açık bulunursa ödüyorsun, bulunmazsa ödemiyorsun. Mainnet öncesi “self-audited” yerine “bounty ile korunuyor” diyebiliyorsun.
-- Sen **bug_bounty_simple** seçtin — doğru, ADIM5'te external audit'e kadar bu kalkan.
+- Sen **bug_bounty_simple** seçtin — doğru, Phase 5'te external audit'e kadar bu kalkan.
 
 ---
 
@@ -61,14 +61,14 @@
 |---|------|---------------|----------------------|
 | Q1 | VerifyMerkle nasıl debug edilsin? | **ctl_debug** (constraint-by-constraint) | En zor kısım: 64 katmanlı Merkle ispatı STARK içinde patlıyor. Tek tek sigortaları (constraintleri) kapatıp açarak hangi sigorta atıyor bulacağız. Zaman alır ama kesin çözüm. |
 | Q2 | B.U.D. server ek kayıp var mı? | **no_loss** (sadece plan kaybolmuştu) | Server kodu sağlam, ekstra repo yok. Sadece plan dosyasını zaten kurtardık, devam edebiliriz. |
-| Q3 | BNS governance? | **full_now** (full pricing + resolver şimdi) | `ayaz.bud` gibi isimlerin fiyatı, kime ait, nasıl satılacak, şimdi yazılacak. ADIM5'e bırakmıyoruz. |
+| Q3 | BNS governance? | **full_now** (full pricing + resolver şimdi) | `ayaz.bud` gibi isimlerin fiyatı, kime ait, nasıl satılacak, şimdi yazılacak. Phase 5'e bırakmıyoruz. |
 | Q4 | Güvenlik için ne? | **bug_bounty_simple** ($50k/$100k hacker ödülü) | Hackerlara “açık bul, para al” diyoruz. Dış denetim daha sonra. |
 | Q5 | Bootnodes? | **user_decides_later** | Mainnet bootstrap node'ları (ilk bağlantı noktaları) tören zamanı sen belirleyeceksin, şimdi dummy kalsın. |
 | Q6 | HSM? | **software_fallback_ok** | Donanım HSM yok, yazılım koruması ile devam. Devnet için yeterli, mainnet için sonra gerçek HSM. |
 | Q7 | Docker smoke? | **fix_mainnet_container** | Mainnet docker imajı HSM yüzünden ayağa kalkmıyor, düzeltme yapacağız (HSM olmadan çalışacak şekilde). |
 | Q8 | Prod gate ne zaman açılsın? | **open_on_green** (test yeşil olur olmaz direkt aç) | VerifyMerkle testi yeşil olur olmaz production'da aktif edeceğiz, tekrar sormayacağız. |
 | Q9 | Storage proof zorunlu mu? | **optional_keep** (opsiyonel kalsın) | Şu an kimse “gerçekten dosyam burada, ispatı burada” demek zorunda değil, parasını kilitlemesi yeterli. VerifyMerkle tamir olana kadar böyle kalacak — yoksa hiç kimse deal açamaz. |
-| Q10 | ADIM4 sonrası öncelik? | **bns_tld_launch** (.bud pazarını aç) | Önce `.bud` isim pazarını açıyoruz, sonra external audit. Yani kullanıcılar `ahmet.bud`, `halil.bud` alabilecek. |
+| Q10 | Phase 4 sonrası öncelik? | **bns_tld_launch** (.bud pazarını aç) | Önce `.bud` isim pazarını açıyoruz, sonra external audit. Yani kullanıcılar `ahmet.bud`, `halil.bud` alabilecek. |
 
 ---
 
@@ -83,7 +83,7 @@
 4. CI yeşil olana kadar yeni commit atma (Aşama 3)
 
 **Sen “devam” dediğinde (10 soru kararları net):**
-- Q1 ctl_debug → `docs/VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA2.md` + minimal depth test `adim4_verify_merkle_depth_2_diagnosis` (ARENA3 zaten 6eedd2d'de plan yazdı, ben kodunu yazacağım)
+- Q1 ctl_debug → `docs/VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA2.md` + minimal depth test `phase4_verify_merkle_depth_2_diagnosis` (ARENA3 zaten 6eedd2d'de plan yazdı, ben kodunu yazacağım)
 - Q3 full_now → BNS pricing docs + `BnsPricingTable` + `NameRecord` expiry/owner checks + `docs/operations/BNS_MAINNET.md`
 - Q7 fix_mainnet_container → `Dockerfile` mainnet ENV + `scripts/docker-smoke-mainnet.sh` HSM mock olmadan çalışacak şekilde
 - Q9 optional_keep → `StorageDeal` merkle_proof Option kalır, interim challenge devam

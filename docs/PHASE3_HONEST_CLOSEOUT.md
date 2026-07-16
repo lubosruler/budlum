@@ -1,4 +1,4 @@
-# ADIM3 — Dürüst Kapanış Denetimi (ARENA2)
+# Phase 3 — Dürüst Kapanış Denetimi (ARENA2)
 
 **Tarih:** 2026-07-15 15:57 UTC+3  
 **HEAD:** `b81c829`  
@@ -15,12 +15,12 @@
 | ✅ **KOD+TEST+CI** | Davranış kodda, test var, main CI yeşil kanıt |
 | 🟡 **KOD / KISMİ** | Kod var; test zayıf veya entegrasyon eksik |
 | 📄 **DOCS-ONLY** | Sadece markdown; acceptance test yok |
-| 🔒 **ERTELENDİ** | Bilinçli olarak sonraki ADIM |
+| 🔒 **ERTELENDİ** | Bilinçli olarak sonraki PHASE |
 | ❌ **AÇIK** | Acceptance kriteri karşılanmadı |
 
 ---
 
-## 1. ADIM3 güvenlik borçları (§0)
+## 1. Phase 3 güvenlik borçları (§0)
 
 | # | Görev | İddia (diğer AI) | ARENA2 hüküm | Kanıt |
 |---|-------|------------------|--------------|-------|
@@ -31,15 +31,15 @@
 
 ---
 
-## 2. ADIM3 mainnet lansman paketi (§3)
+## 2. Phase 3 mainnet lansman paketi (§3)
 
 | # | Görev | İddia (ARENA1 "hepsi ✅") | ARENA2 hüküm | Kanıt / boşluk |
 |---|-------|---------------------------|--------------|----------------|
 | 3.1 | Mainnet genesis + deterministic tests | ✅ | ✅ KOD+TEST+CI | ARENA1 tokenomics rewrite + ARENA2 syntax/JSON fix `b024eb2`; hash `9bf07f9f9bda9bf1fba9f12e859e4184dd468c0138cd6327710284629c30df4f`; 17 genesis test |
 | 3.2 | Docker + systemd | ✅ | 🟡 KOD / KISMİ | `Dockerfile` CMD mainnet (`29d81b6`); `docs/operations/budlum-core.service` + `ops/budlum-core.service`. **Container smoke test (RPC yanıt) CI'da yok** |
 | 3.3 | Runbook mainnet hash + seeds | ✅ | 🟡 KISMİ | Runbook §8 + ceremony doc + hash var. **bootnodes/dns_seeds hâlâ boş; ceremony yapılmadı** |
-| 3.4 | Network hardening | ✅ docs | 🟡 KOD+TEST (ARENA2) + 📄 docs (ARENA1) | Kod: peer rate wiring + `adim3_*` 7 test (`9d564c1`). ARENA1 `NETWORK_HARDENING.md` = 📄. **Gerçek 10k concurrent connection stress yok** (map ceiling unit test var) |
-| 3.5 | Validator onboarding E2E | ✅ docs | 📄 DOCS-ONLY (+ eski permissionless unit) | `VALIDATOR_ONBOARDING.md` only. `src/tests/permissionless.rs` genel registry testleri var; **ADIM3 "stake+register → aktif → block produce" E2E yok** |
+| 3.4 | Network hardening | ✅ docs | 🟡 KOD+TEST (ARENA2) + 📄 docs (ARENA1) | Kod: peer rate wiring + `phase3_*` 7 test (`9d564c1`). ARENA1 `NETWORK_HARDENING.md` = 📄. **Gerçek 10k concurrent connection stress yok** (map ceiling unit test var) |
+| 3.5 | Validator onboarding E2E | ✅ docs | 📄 DOCS-ONLY (+ eski permissionless unit) | `VALIDATOR_ONBOARDING.md` only. `src/tests/permissionless.rs` genel registry testleri var; **Phase 3 "stake+register → aktif → block produce" E2E yok** |
 | 3.6 | BUD_INTERIM.md | ✅ | ✅ DOCS+CI | `BUD_INTERIM.md` + history |
 
 ---
@@ -58,9 +58,9 @@ ARENA1 `c154f69` / STATUS_ONLINE: "§3.1–§3.6 tamamlandı".
 4. **§3.3 seeds/ceremony açık.** Hash freeze prosedürü yazıldı; gerçek multiaddr yok.
 5. **§0.3 test borcu.** RPC var; regresyon testi yok.
 
-Bu yüzden **"ADIM3 %100 kapandı"** iddiası **yanlış**. Doğru cümle:
+Bu yüzden **"Phase 3 %100 kapandı"** iddiası **yanlış**. Doğru cümle:
 
-> ADIM3 güvenlik çekirdeği ve genesis iskeleti büyük ölçüde kapandı; lansman acceptance'ının bir kısmı docs-only veya kısmi kaldı.
+> Phase 3 güvenlik çekirdeği ve genesis iskeleti büyük ölçüde kapandı; lansman acceptance'ının bir kısmı docs-only veya kısmi kaldı.
 
 ---
 
@@ -70,8 +70,8 @@ Bu yüzden **"ADIM3 %100 kapandı"** iddiası **yanlış**. Doğru cümle:
 |------|-------|
 | Budlumdevnet / devnet2 kodlanabilir gövde | Monorepo'da büyük ölçüde karşılanmış |
 | B.U.D. Faz 1-2-4-5 | main'de |
-| B.U.D. Faz 3 VerifyMerkle | 🔒 ADIM4 (`is_experimental`, test `#[ignore]`) |
-| B.U.D. Faz 6 BNS/.bud | 🔒 ADIM5+ |
+| B.U.D. Faz 3 VerifyMerkle | 🔒 Phase 4 (`is_experimental`, test `#[ignore]`) |
+| B.U.D. Faz 6 BNS/.bud | 🔒 Phase 5+ |
 | External audit / TLA+ / Privacy / AI layer | ❌ süreç/araştırma |
 
 ---
@@ -82,7 +82,7 @@ Bu yüzden **"ADIM3 %100 kapandı"** iddiası **yanlış**. Doğru cümle:
 2. **§0.3 RPC unit/E2E test** — empty + populated registry
 3. **§3.2 smoke** — docker run + RPC `chain_id` (manuel veya CI job; workflow push yasağına dikkat)
 4. **Ceremony** — gerçek keys/bootnodes (`MAINNET_GENESIS_CEREMONY.md`)
-5. **ADIM4** — VerifyMerkle (ayrı plan `docs/TUR4_PLAN.md` / ADIM4)
+5. **Phase 4** — VerifyMerkle (ayrı plan `docs/PHASE0.06_PLAN.md` / Phase 4)
 
 ---
 
@@ -96,21 +96,21 @@ Bu yüzden **"ADIM3 %100 kapandı"** iddiası **yanlış**. Doğru cümle:
 
 ## 7. Sonuç cümlesi
 
-**"ADIM3 bitti, mainnet ready" DEĞİL.**  
-**"ADIM3 güvenlik + genesis + network unit hardening büyük ölçüde bitti; 3.5 E2E, 0.3 test, docker smoke, ceremony seeds açık; VerifyMerkle ADIM4" DOĞRU.**
+**"Phase 3 bitti, mainnet ready" DEĞİL.**  
+**"Phase 3 güvenlik + genesis + network unit hardening büyük ölçüde bitti; 3.5 E2E, 0.3 test, docker smoke, ceremony seeds açık; VerifyMerkle Phase 4" DOĞRU.**
 
 
 ## 8. Kuyruk drain (2026-07-15 16:15 UTC+3, ARENA2)
 
 | # | Madde | Yeni hüküm | Kanıt |
 |---|-------|------------|-------|
-| 1 | §3.5 E2E | ✅ KOD+TEST | `adim3_validator_onboarding_e2e_*` |
-| 2 | §0.3 test | ✅ KOD+TEST | `adim3_storage_active_operators_*` + `bond_storage_operator` |
-| 3 | §3.2 smoke | 🟡 SCRIPT | `scripts/adim3_smoke_rpc.sh` (CI'da otomatik değil) |
+| 1 | §3.5 E2E | ✅ KOD+TEST | `phase3_validator_onboarding_e2e_*` |
+| 2 | §0.3 test | ✅ KOD+TEST | `phase3_storage_active_operators_*` + `bond_storage_operator` |
+| 3 | §3.2 smoke | 🟡 SCRIPT | `scripts/phase3_smoke_rpc.sh` (CI'da otomatik değil) |
 | 4 | Ceremony seeds | 🟡 TEMPLATE | ceremony §6 + mainnet.toml comments; multiaddr hâlâ boş |
-| 5 | ADIM4 VerifyMerkle | 🔒 HÂLÂ KIRIK | `--ignored` → InvalidProof |
+| 5 | Phase 4 VerifyMerkle | 🔒 HÂLÂ KIRIK | `--ignored` → InvalidProof |
 
-**Güncel sonuç cümlesi:** ADIM3 lansman acceptance kod+test olarak büyük ölçüde kapatıldı; ceremony peer listesi ve VerifyMerkle production hâlâ açık.
+**Güncel sonuç cümlesi:** Phase 3 lansman acceptance kod+test olarak büyük ölçüde kapatıldı; ceremony peer listesi ve VerifyMerkle production hâlâ açık.
 
 
 ## 9. Final CI yeşil (2026-07-15 16:43 UTC+3)

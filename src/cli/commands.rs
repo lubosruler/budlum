@@ -262,7 +262,7 @@ impl Default for NodeConfig {
             config: None,
             metrics_port: 9090,
             rpc_enabled: true,
-            // Tur 7 (security audit §5 wiring): secure-by-default for
+            // Phase 0.12 (security audit §5 wiring): secure-by-default for
             // NodeConfig::default(). The previous `false` here meant
             // `main.rs:557`'s `RpcSecurityConfig::from_env(config.rpc_auth_required, ...)`
             // silently opened a public, unauthenticated RPC at startup
@@ -843,7 +843,7 @@ impl NodeConfig {
                     eprintln!("CRITICAL SECURITY FAILURE: PKCS#11 PIN environment variable '{}' is missing or empty.", pin_env);
                     std::process::exit(1);
                 }
-                // ADIM 2 §1.1: PKCS#11 must cover the consensus Ed25519 signer
+                // Phase 2 §1.1: PKCS#11 must cover the consensus Ed25519 signer
                 // and the BLS + Dilithium/PQ materials. Disk-backed
                 // ValidatorKeys embed those secrets in plaintext and remain
                 // forbidden on mainnet.

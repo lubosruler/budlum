@@ -1,5 +1,5 @@
 //! Integration test for the bridge lock → mint → burn → unlock happy path
-//! (Tur 6, security audit §3). After the `bud_lockBridgeTransfer` RPC was
+//! (Phase 0.10, security audit §3). After the `bud_lockBridgeTransfer` RPC was
 //! removed (it allowed an unauthenticated caller to lock any `asset_id`
 //! forever), the canonical bridge lifecycle is exercised here through
 //! the *internal* `Blockchain::lock_bridge_transfer` system path.
@@ -45,7 +45,7 @@ fn bridge_lock_mint_burn_unlock_lifecycle() {
     let recipient = addr(12);
 
     // Step 3: lock via the internal path (the only path that exists
-    // after Tur 6 — RPC is closed).
+    // after Phase 0.10 — RPC is closed).
     let (_transfer, lock_event) = bc
         .lock_bridge_transfer(1, 2, 20, 0, asset_id(), owner, recipient, 100, 1000)
         .expect("internal lock must succeed");
@@ -173,7 +173,7 @@ fn bridge_sweep_is_height_aware_and_idempotent() {
     );
 }
 
-/// Tur 9 (security audit §9): bridge mint MUST reject calls that pass
+/// Phase 0.16 (security audit §9): bridge mint MUST reject calls that pass
 /// `expected_block_hash = None`. Without an explicit block-hash bound,
 /// a caller could pick ANY commitment matching (domain_id, height,
 /// sequence) — including stale or finality-unconfirmed ones — and

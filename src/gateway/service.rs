@@ -1,7 +1,7 @@
 use crate::chain::chain_actor::ChainHandle;
 use crate::storage::db::Storage;
 
-/// ADIM 6 §6.1: B.U.D. Universal Gateway.
+/// Phase 6 §6.1: B.U.D. Universal Gateway.
 /// Resolves a BNS name (.bud) to content stored in B.U.D.
 
 pub struct BudGateway {

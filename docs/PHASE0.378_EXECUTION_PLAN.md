@@ -1,11 +1,11 @@
-# TUR 13.9 & ADIM 1 — TECHNICAL EXECUTION PLAN & KAPANIŞ PAKETLERİ
+# Phase 0.378 & Phase 1 — TECHNICAL EXECUTION PLAN & KAPANIŞ PAKETLERİ
 
 **Tarih:** 2026-07-14  
 **Kaynak Şartname:** `DEVIR_RAPORU_YENI.md` §7 / §8 / §11  
 **Hedef Depo:** `github.com/lubosruler/budlum` (`main` branşı)  
 **Hazırlayan:** Arena AI / ARENA3 (Lubo)
 
-> Bu yürütme planı, Tur 13.9 & ADIM 1 kapsamında tanımlanan 7 teknik çalışma
+> Bu yürütme planı, Phase 0.378 & Phase 1 kapsamında tanımlanan 7 teknik çalışma
 > paketinin (`Paket A` - `Paket G`) tam ve kanıtlanabilir uygulamasını, kod
 > konumlarını, testlerini ve CI kabul kriterlerini belgeler.
 
@@ -15,7 +15,7 @@
 
 ### Paket A — Tam Kaynak ve Roadmap Matrisi
 - **Amaç:** `the-plan` envanteri ve Budlum/BudZero yol haritası maddelerinin kanıtlı kapanışı.
-- **Uygulama & Konum:** `docs/THE_PLAN_SOURCE_MANIFEST.md` ve `docs/TUR13_9_GAP_MATRIX.md` üretildi.
+- **Uygulama & Konum:** `docs/THE_PLAN_SOURCE_MANIFEST.md` ve `docs/PHASE0.378_GAP_MATRIX.md` üretildi.
 - **Doğrulama:** Matristeki tüm commit SHA'ları, semboller (`StorageAttestationFinalityAdapter`, `VerifyMerkle`, vb.) ve 509 yeşil test (`cargo test --lib`).
 
 ### Paket B — CI Ratchet & Monorepo Kalite Kapıları
@@ -39,7 +39,7 @@
 ### Paket C — BLS/PQ Anahtar Güvenliği & Capability Sınırı
 - **Amaç:** Ed25519 PKCS#11 HSM imzalayıcı ile BLS/PQ capability sınırını netleştirmek.
 - **Uygulama & Konum:** `src/consensus/poa/`, `src/core/block.rs` (`sign_with_signer`), `src/chain/finality.rs`.
-- **Politika:** Disk secret anahtarlar (`BLS + Dilithium5`) mainnet yapılandırmalarında yasaktır; tam HSM koruması olmaması durumunda (`Tur 15.1`) fail-closed davranış sergilenir.
+- **Politika:** Disk secret anahtarlar (`BLS + Dilithium5`) mainnet yapılandırmalarında yasaktır; tam HSM koruması olmaması durumunda (`Phase 0.402`) fail-closed davranış sergilenir.
 
 ### Paket D — Finality Canlı Yol Denetimi & Adversarial Kapsam
 - **Amaç:** Prevote → Quorum → Precommit → Certificate → Broadcast → Apply döngüsünün tam testi.
@@ -49,7 +49,7 @@
 ### Paket E — ConsensusStateV2 Staged Migration
 - **Amaç:** Blok zinciri durum ve mutabakat yapısında schema yükseltme (migration) ve geri alma (rollback) politikası.
 - **Uygulama & Konum:** `src/chain/snapshot.rs` (`Snapshot V2`), `ops/backup_restore_drill.sh`.
-- **Politika:** Yedek almadan upgrade denemesi reddedilir; minimum migration hook Tur 15.4 borcu olarak fail-closed korunur.
+- **Politika:** Yedek almadan upgrade denemesi reddedilir; minimum migration hook Phase 0.408 borcu olarak fail-closed korunur.
 
 ### Paket F — Audit / Formal Verification / Research Teslim Paketi
 - **Amaç:** Yapılmamış denetimi "audited" göstermemek, dış denetçinin başlayabileceği profesyonel paket sunmak.
@@ -67,8 +67,8 @@
 
 - [x] `the-plan` tracked dosyalarının tamamı manifestte yer alıyor (`docs/THE_PLAN_SOURCE_MANIFEST.md`).
 - [x] Okunmamış/ayrıştırılmamış dosya yok; blocker varsa açıkça kayıtlı (`docs/THE_PLAN_SOURCE_MANIFEST.md`).
-- [x] Budlum roadmap'in her maddesi kanıtlı bir kapanış durumuna sahip (`docs/TUR13_9_GAP_MATRIX.md`).
-- [x] BudZero roadmap'in her maddesi kanıtlı bir kapanış durumuna sahip (`docs/TUR13_9_GAP_MATRIX.md`).
+- [x] Budlum roadmap'in her maddesi kanıtlı bir kapanış durumuna sahip (`docs/PHASE0.378_GAP_MATRIX.md`).
+- [x] BudZero roadmap'in her maddesi kanıtlı bir kapanış durumuna sahip (`docs/PHASE0.378_GAP_MATRIX.md`).
 - [x] Mevcut CI kapılarından hiçbiri kaldırılmadı veya yumuşatılmadı (`ci.yml` ratcheted).
 - [x] Yeni CI kapıları dokümante edildi ve iki workspace'te çalışıyor (`budlum` & `budzero`).
 - [x] BLS/PQ anahtar politikası kod ve runtime gerçeğiyle aynı (`Paket C`).
@@ -78,6 +78,6 @@
 - [x] README profesyonel, güncel ve commitlerle izlenebilir (`README.md`).
 - [x] User/dev/enterprise PoA matrisi yeniden doğrulandı (`docs/PERSONAS.md`).
 - [x] `VerifyMerkle` gate gerçeğe uygun (`tur119_verify_merkle_disabled_in_production`).
-- [x] B.U.D. ADIM 1 iskeleti olarak çalışır durumda ve 509 testle doğrulandı.
-- [x] `TUR13_9_RAPOR.md` ve `ADIM1_RAPOR.md` üretildi.
+- [x] B.U.D. Phase 1 iskeleti olarak çalışır durumda ve 509 testle doğrulandı.
+- [x] `PHASE0.378_RAPOR.md` ve `PHASE1_RAPOR.md` üretildi.
 - [x] Devir raporu final commit ve CI sonuçlarıyla güncellendi.

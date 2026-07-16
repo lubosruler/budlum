@@ -6,7 +6,7 @@ Bu bölüm, BudZKVM'in Faz 0 (Stabilizasyon) aşamasında yapılan 5 kritik iyil
 
 ---
 
-## Adım 0.1: Bağımlılık Yönetimi ve Serileştirme (Bincode → Postcard)
+## Phase 0.1: Bağımlılık Yönetimi ve Serileştirme (Bincode → Postcard)
 
 ### Problem
 
@@ -36,7 +36,7 @@ ZKVM'lerde proof taşıma katmanı matematiksel güvenlik kadar önemlidir. Seri
 
 ---
 
-## Adım 0.2: Comparison (Karşılaştırma) Opcode'ları için AIR Constraint'leri
+## Phase 0.2: Comparison (Karşılaştırma) Opcode'ları için AIR Constraint'leri
 
 ### Problem
 
@@ -72,7 +72,7 @@ Sonlu cisimler üzerinde inequality (eşitsizlik) kontrolü her zaman bit decomp
 
 ---
 
-## Adım 0.3: Bitwise Opcode'ları için AIR Constraint'leri
+## Phase 0.3: Bitwise Opcode'ları için AIR Constraint'leri
 
 ### Problem
 
@@ -96,7 +96,7 @@ Bitwise işlemler için en verimli yaklaşım, operand'ların bit decomposition'
 
 ---
 
-## Adım 0.4: Poseidon Hash Implementasyonu
+## Phase 0.4: Poseidon Hash Implementasyonu
 
 ### Problem
 
@@ -138,7 +138,7 @@ ZK dostu hash fonksiyonu seçerken:
 
 ---
 
-## Adım 0.5: Storage (SRead/SWrite) için Soundness
+## Phase 0.5: Storage (SRead/SWrite) için Soundness
 
 ### Problem
 
@@ -227,7 +227,7 @@ Toplam: 51 test, 0 failure
 
 ---
 
-## Adım 0.6: VerifyMerkle Opcode'u için Gerçek Implementasyon
+## Phase 0.6: VerifyMerkle Opcode'u için Gerçek Implementasyon
 
 ### Problem
 

@@ -256,17 +256,17 @@ mod tests {
         assert_eq!(vm.events, vec![30]);
     }
 
-    // === TUR 8: PATTERN MATCHING (match expressions) ========================
+    // === Phase 0.14: PATTERN MATCHING (match expressions) ========================
 
     /// `match` on an integer scrutinee dispatches to the correct arm.
     /// 0 → 100, 1 → 200, anything else → 999.
     ///
-    /// Tur 8 limitation: `match` is only allowed as an expression
+    /// Phase 0.14 limitation: `match` is only allowed as an expression
     /// statement (its result register is not yet surfaced as a
     /// value to `let`/`return` bindings). This is a deliberate
     /// boundary — surfacing a value requires a dedicated
     /// "result register" convention that conflicts with the
-    /// current `r31` HEAP_PTR reservation; it is deferred to Tur 9.
+    /// current `r31` HEAP_PTR reservation; it is deferred to Phase 0.16.
     /// For now the test asserts the dispatch + jump-chain codegen
     /// by emitting different events per arm inside a block.
     #[test]
@@ -322,7 +322,7 @@ mod tests {
     }
 
     /// The wildcard arm (`_`) is required for exhaustive matching
-    /// (semantic-checked Tur 9); the parser only requires syntactic
+    /// (semantic-checked Phase 0.16); the parser only requires syntactic
     /// validity. Verifies the parser rejects patterns that are not
     /// integer literals or `_`.
     #[test]

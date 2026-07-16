@@ -1,6 +1,6 @@
 # B.U.D. Interim Retrieval Challenge — Teknik ve Ekonomik Açıklama
 
-**Hazırlayan:** ARENA1 (ADIM3 §3.6)
+**Hazırlayan:** ARENA1 (Phase 3 §3.6)
 **Tarih:** 2026-07-15
 **Durum:** Kullanıcı onayı bekliyor
 
@@ -65,10 +65,10 @@ Gerçek kriptografik Proof-of-Storage için aşağıdakiler gereklidir:
 | BudZKVM | ✅ Mevcut | — |
 | VerifyMerkle opcode | ⚠️ DEVRE DIŞI | Z-B 64-depth proof gate |
 | STARK proof üretimi | ⚠️ Yavaş | Performance optimization gerekli |
-| `StorageAttestationFinalityAdapter` | ✅ Tamamlandı | ADIM3 §0.1 |
+| `StorageAttestationFinalityAdapter` | ✅ Tamamlandı | Phase 3 §0.1 |
 | Faz 3 entegrasyonu | ❌ Kapalı | VerifyMerkle production'a bağlı |
 
-### 3.2 Z-B Gate (ADIM2 Karar 2.1-B)
+### 3.2 Z-B Gate (Phase 2 Karar 2.1-B)
 
 `VerifyMerkle` opcode'u şu anda **production'da devre dışıdır**:
 
@@ -80,7 +80,7 @@ VerifyMerkle { ... } => {
 }
 ```
 
-**Karar:** ADIM2'de Z-B Commit 3.5 tamamlanıp gate açılacak. Tahmini: 2-3 hafta.
+**Karar:** Phase 2'de Z-B Commit 3.5 tamamlanıp gate açılacak. Tahmini: 2-3 hafta.
 
 ---
 
@@ -126,7 +126,7 @@ Interim challenge, **ekonomik incentives** ile çalışır:
    - Faz 3 açıldığında, mevcut operatörler zaten "depoluyorlar"
    - Sadece PoS kanıtı eklemeleri gerekecek
 
-**Uzun vadeli (ADIM4 sonrası):**
+**Uzun vadeli (Phase 4 sonrası):**
 
 Gerçek PoS ile tam kriptografik kanıt:
 - Veri gerçekten saklanıyor (Merkle proof)
@@ -147,7 +147,7 @@ Ana README veya dokümantasyon şöyle bir not içermeli:
 > - Operatörler yatırılan bond üzerinden cezalandırılır
 > - Yanlış yanıt veya deadline aşımı = bond slashing
 > 
-> Gerçek kriptografik Proof-of-Storage (STARK tabanlı) **ADIM4**'te aktif olacaktır.
+> Gerçek kriptografik Proof-of-Storage (STARK tabanlı) **Phase 4**'te aktif olacaktır.
 
 ### 5.2 Operatörler İçin
 
@@ -160,14 +160,14 @@ Ana README veya dokümantasyon şöyle bir not içermeli:
 │   interim retrieval challenge ile çalışmaktadır.                 │
 │                                                                 │
 │   Gerçek kriptografik PoS kanıtı (VerifyMerkle STARK)         │
-│   ADIM4'te eklenecektir.                                        │
+│   Phase 4'te eklenecektir.                                        │
 │                                                                 │
 │   Şu an için:                                                   │
 │   • Her challenge'a doğru byte_range_hash sunmalısınız         │
 │   • Deadline'leri kaçırmayın (slashing riski)                  │
 │   • Depolama performansınız challenge başarı oranınızla ölçülür│
 │                                                                 │
-│   ADIM4 sonrası:                                                │
+│   Phase 4 sonrası:                                                │
 │   • Ek Merkle proof sunmanız gerekecek                         │
 │   • PoS kanıtınız zincir dışı doğrulanabilecek                │
 └─────────────────────────────────────────────────────────────────┘
@@ -227,8 +227,8 @@ pub enum StorageEconomicsEvent {
 
 | Tarih | Karar | Açıklama |
 |-------|-------|----------|
-| 2026-07-15 | ADIM2 §2.3 = **Seçenek A** | B.U.D. mainnet'e dahil, interim challenge ile başla |
-| 2026-07-15 | ADIM4 = **VerifyMerkle Gate Açılışı** | Faz 3 entegrasyonu için |
+| 2026-07-15 | Phase 2 §2.3 = **Seçenek A** | B.U.D. mainnet'e dahil, interim challenge ile başla |
+| 2026-07-15 | Phase 4 = **VerifyMerkle Gate Açılışı** | Faz 3 entegrasyonu için |
 
 ---
 
@@ -237,13 +237,13 @@ pub enum StorageEconomicsEvent {
 - [ ] Bu belge kullanıcı onayı aldıktan sonra `docs/BUD_INTERIM.md` olarak repo'ya eklenecek
 - [ ] README'de mainnet storage durumu notu eklenecek
 - [ ] Operatör runbook (§3.3) güncellenecek
-- [ ] ADIM4 planında VerifyMerkle gate açılışı takip edilecek
+- [ ] Phase 4 planında VerifyMerkle gate açılışı takip edilecek
 
 ---
 
 ## 9. İlgili Belgeler
 
-- `docs/MAINNET_READINESS.md` — ADIM2/ADIM3 planı
+- `docs/MAINNET_READINESS.md` — Phase 2/Phase 3 planı
 - `src/domain/storage_deal.rs` — Retrieval challenge veri yapıları
 - `src/rpc/api.rs` — Storage RPC surface
 - `budzero/bud-isa/src/lib.rs` — VerifyMerkle opcode (devre dışı)

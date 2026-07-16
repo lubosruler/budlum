@@ -1,4 +1,4 @@
-# deny.toml — Budlum Core supply-chain kapısı (ADIM 8.2 / Faz 1)
+# deny.toml — Budlum Core supply-chain kapısı (Phase 8.2 / Faz 1)
 #
 # Bu dosya `cargo deny check` ile CI'da zorunlu kapıdır (strict mod:
 # ilk günden fail kapısı; gevşetme YOK). BudZero tarafındaki karşılığı

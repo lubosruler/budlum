@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/generate-sbom.sh — Rust SBOM üretici (Tur 15 §1.7)
+# scripts/generate-sbom.sh — Rust SBOM üretici (Phase 0.40 §1.7)
 #
 # Bu script CycloneDX formatında SBOM (Software Bill of Materials)
 # üretir. ch12 §3.7 mainnet blocker kapsamında; harici audit
@@ -68,7 +68,7 @@ TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "./scripts/generate-sbom.sh"
     echo "\`\`\`"
     echo ""
-    echo "Bu rapor Tur 15 §1.7 kapsamında otomatik üretilir."
+    echo "Bu rapor Phase 0.40 §1.7 kapsamında otomatik üretilir."
 } > "$DOC"
 
 echo "[generate-sbom] SBOM: $SBOM_FILE ($SBOM_SIZE byte, $COMPONENT_COUNT bileşen)"

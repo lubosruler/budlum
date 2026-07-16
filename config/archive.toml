@@ -1,4 +1,4 @@
-# Tur 13.5 archive-node profile: full history, verified rotating backups,
+# Phase 0.37 archive-node profile: full history, verified rotating backups,
 # public read RPC. Do not enable pruning on this role.
 
 [network]

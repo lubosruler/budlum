@@ -1,4 +1,4 @@
-//! B.U.D. content manifest (Tur 14.5 §2.1, vision §8.2).
+//! B.U.D. content manifest (Phase 0.39 §2.1, vision §8.2).
 //!
 //! A `ContentManifest` is the on-chain commitment to a sharded piece of
 //! content. The actual chunking algorithm (erasure coding, Reed-Solomon,
@@ -6,9 +6,9 @@
 //! per-shard `ContentId`s and a deterministic `manifest_id` derived from
 //! them. This matches the existing project rule "the chain carries the
 //! proof/address of data, not the data itself" (BudZKVM STARK proof
-//! analogy, Tur 14 plan §3.1).
+//! analogy, Phase 0.38 plan §3.1).
 //!
-//! Per the data-sovereignty rule (Tur 14.5 plan §0.5): the manifest is
+//! Per the data-sovereignty rule (Phase 0.39 plan §0.5): the manifest is
 //! fully reconstructable from public on-chain state by any independent
 //! node. No "Budlum Inc. indexer" service is required.
 

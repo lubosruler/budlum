@@ -105,13 +105,13 @@ pub trait BudlumApi {
         domain: crate::domain::DomainId,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
-    // === TUR 6 SECURITY FIX (Güvenlik Denetimi §3) =========================
+    // === Phase 0.10 SECURITY FIX (Güvenlik Denetimi §3) =========================
     // `bud_lockBridgeTransfer` RPC'den KALDIRILDI. Yeni: hiçbir koşulda
     // kimlik doğrulamasız (imza/kanıt olmadan) bridge lock oluşturulamaz.
     // Bridge lock'lar artık yalnızca:
     //   1. Internal `Blockchain::lock_bridge_transfer` çağrıları (system
     //      path) — bu yorum, kod tabanındaki tek kalıntıdır.
-    //   2. (Tur 7+ planı) `lock_bridge_transfer_with_proof` API'si
+    //   2. (Phase 0.12+ planı) `lock_bridge_transfer_with_proof` API'si
     //      (`verify_domain_event_proof` benzeri kanıt zorunlu).
     //
     // Mevcut implementasyon `Blockchain::lock_bridge_transfer`'da kalır
@@ -231,7 +231,7 @@ pub trait BudlumApi {
         report: crate::registry::SlashingReport,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
-    /// Tur 9.5 (security audit §4): submit a QC fault proof.
+    /// Phase 0.17 (security audit §4): submit a QC fault proof.
     /// Permissionless: anyone can challenge a QC blob they suspect
     /// contains an invalid Dilithium attestation. The proof must
     /// pass the consensus-side Merkle-inclusion + cryptographic
@@ -253,16 +253,16 @@ pub trait BudlumApi {
     #[method(name = "bud_nodeInfo")]
     async fn node_info(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
 
-    // === TUR 14 — B.U.D. Storage RPC surface ============================
+    // === Phase 0.38 — B.U.D. Storage RPC surface ============================
     // The 7 RPCs below are the public, permissionless query/mutation surface
-    // for the storage domain. Per the data-sovereignty rule (Tur 14.5 plan
+    // for the storage domain. Per the data-sovereignty rule (Phase 0.39 plan
     // §0.5) every endpoint is callable by any account on a standard node
     // — no team-gated "official indexer" or admin-only RPC exists.
     //
     // IMPORTANT: `bud_storageAnswerChallenge` accepts a `range_hash` only;
     // it does NOT carry shard bytes. The chain does not store the bytes
     // (only the ContentId/manifest commitments), and the retrieval
-    // challenge is *interim* (not full Proof-of-Storage — see Tur 14.5
+    // challenge is *interim* (not full Proof-of-Storage — see Phase 0.39
     // §2.5 / vision §9.1). Off-chain verifiers must recompute the
     // expected range hash from the public shard bytes.
 
@@ -356,7 +356,7 @@ pub trait BudlumApi {
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Query active storage operators (STORAGE_OPERATOR RoleId=5).
-    /// ADIM3 §0.3 — previously documented as ghost RPC, now implemented.
+    /// Phase 3 §0.3 — previously documented as ghost RPC, now implemented.
     /// Returns active `PermissionlessRegistry` members filtered by storage operator role.
     #[method(name = "bud_storageActiveOperators")]
     async fn storage_active_operators(&self) -> Result<serde_json::Value, ErrorObjectOwned>;

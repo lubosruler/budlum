@@ -4,7 +4,7 @@ use crate::domain::types::Hash32;
 use serde::{Deserialize, Serialize};
 
 /// Global settlement block header — anchors all domain roots, bridge state,
-/// and (as of ADIM 2 / B.U.D. Faz 4) the aggregated storage proof root.
+/// and (as of Phase 2 / B.U.D. Faz 4) the aggregated storage proof root.
 ///
 /// **B.U.D. Faz 4 (vision §8.4):** `storage_root` is `Some(hash)` when the
 /// block contains at least one verified `StorageProofResponse` from the

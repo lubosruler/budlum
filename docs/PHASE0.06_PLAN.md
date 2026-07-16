@@ -1,9 +1,9 @@
-# ADIM 4 — B.U.D. Faz 3: VerifyMerkle Production Açılışı
+# Phase 4 — B.U.D. Faz 3: VerifyMerkle Production Açılışı
 
-> **ADIM 4 = Tur 17 (devam edecek Terminoloji: "ADIM" kullanılacak)**
+> **Phase 4 = Phase 0.44 (devam edecek Terminoloji: "PHASE" kullanılacak)**
 > **Hazırlayan:** ARENA1
 > **Tarih:** 2026-07-15
-> **Ön koşul:** ADIM3 tamamlandı, VerifyMerkle Z-B gate açılışı
+> **Ön koşul:** Phase 3 tamamlandı, VerifyMerkle Z-B gate açılışı
 
 ---
 
@@ -39,14 +39,14 @@ pub fn is_experimental(&self) -> bool {
 
 ### 0.3 Ön Koşullar
 
-ADIM4'e başlamak için gerekenler:
+Phase 4'e başlamak için gerekenler:
 - [ ] `proves_verify_merkle_valid_64_depth` testi geçmeli
 - [ ] AIR constraint'ler Goldilocks field'da doğru hesaplanmalı
 - [ ] Prover trace matrix'te expansion row witness'ları doğrulanmalı
 
 ---
 
-## 1. ADIM4 Hedefleri
+## 1. Phase 4 Hedefleri
 
 ### 1.1 Ana Hedef
 
@@ -274,13 +274,13 @@ pub fn wrapping_add(a: u64, b: u64) -> u64 {
 
 ---
 
-## 7. Sonraki Adımlar (ADIM5)
+## 7. Sonraki Adımlar (Phase 5)
 
-ADIM4 tamamlandıktan sonra (Kullanıcı Kararı: Tüm öncelikler paralel):
-- **ADIM5.1:** External audit + final hardening
-- **ADIM5.2:** Bug Bounty (Immunefi) açılışı
-- **ADIM5.3:** TLA+ Formal Verification (Mantıksal İspat)
-- **ADIM5.4:** Disaster Recovery (Yedekten Dönme) Tatbikatı
+Phase 4 tamamlandıktan sonra (Kullanıcı Kararı: Tüm öncelikler paralel):
+- **Phase 5.1:** External audit + final hardening
+- **Phase 5.2:** Bug Bounty (Immunefi) açılışı
+- **Phase 5.3:** TLA+ Formal Verification (Mantıksal İspat)
+- **Phase 5.4:** Disaster Recovery (Yedekten Dönme) Tatbikatı
 
 ---
 
@@ -299,7 +299,7 @@ ADIM4 tamamlandıktan sonra (Kullanıcı Kararı: Tüm öncelikler paralel):
 Her görev için atomik commit:
 
 ```
-feat(zk): ADIM4 — [kısa açıklama]
+feat(zk): Phase 4 — [kısa açıklama]
 
 Açıklama...
 

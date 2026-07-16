@@ -1,16 +1,16 @@
-//! B.U.D. storage deals and retrieval challenges (Tur 14.5 §2.2 - §2.6,
+//! B.U.D. storage deals and retrieval challenges (Phase 0.39 §2.2 - §2.6,
 //! vision §8.5).
 //!
 //! **READ THIS BEFORE TOUCHING THIS FILE.**
 //!
 //! The `RetrievalChallenge` mechanism is **not** a real Proof-of-Storage
-//! (Faz 3). It is an *interim retrieval challenge* (Tur 14.5 plan §2.5):
+//! (Faz 3). It is an *interim retrieval challenge* (Phase 0.39 plan §2.5):
 //! an operator can pass the challenge by holding only the requested byte
 //! range, not the full chunk. A real proof-of-storage requires the
 //! BudZKVM `VerifyMerkle` opcode going to Production and the
 //! STARK-aggregated `StorageFinalityAdapter` from vision §8.3, both
 //! blocked on the Z-B 64-depth proof gate (per `docs/DEVIR_RAPORU.md`
-//! "Tur 13.5 — BudZero proof time/size baseline bench" + Tur 13.9
+//! "Phase 0.37 — BudZero proof time/size baseline bench" + Phase 0.378
 //! "BLS/PQ HSM" debt). Treat slashing-from-missed-challenge as a
 //!
 //! "this operator is unresponsive" signal, NOT as a "this operator is
@@ -19,7 +19,7 @@
 //! that explicitly records a `Missed` and a `slashed_bond` is recorded
 //! for audit, never silently burned.
 //!
-//! Data-sovereignty rule (Tur 14.5 plan §0.5): anyone (any account, no
+//! Data-sovereignty rule (Phase 0.39 plan §0.5): anyone (any account, no
 //! role required) may open a `RetrievalChallenge` and may submit a
 //! `StorageDeal`. There is no team-gated "official monitor" role.
 
@@ -39,7 +39,7 @@ use serde::{Deserialize, Serialize};
 /// from the caller's stake) from the request (which is the raw caller
 /// intent).
 ///
-/// **Security (ADIM3 §0.2):** `opener_signature` is mandatory on Mainnet.
+/// **Security (Phase 3 §0.2):** `opener_signature` is mandatory on Mainnet.
 /// The RPC layer verifies that the `opener` address has signed the
 /// challenge intent; without this, any caller could self-report any
 /// address as the opener, making the `opener_bond` anti-spam gate
@@ -97,7 +97,7 @@ fn default_merkle_depth() -> u8 {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StorageDeal {
-    // === B.U.D. Faz 3: Merkle Proof (ADIM4) ===
+    // === B.U.D. Faz 3: Merkle Proof (Phase 4) ===
 
     // 64-depth Merkle proof serialized as [leaf || siblings || path_bits].
     // Present when `verify_merkle = Some(...)`.
@@ -144,7 +144,7 @@ impl StorageDeal {
 /// account — no role required. `byte_start`/`byte_end` describe the
 /// sub-range of the shard the operator must hash to answer.
 ///
-/// **WARNING (Tur 14.5 §2.5):** answering this challenge only proves
+/// **WARNING (Phase 0.39 §2.5):** answering this challenge only proves
 /// the operator holds the requested byte range, not the whole shard.
 /// See module-level docs and the README/CLAUDE.md cross-link.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -170,7 +170,7 @@ pub struct RetrievalChallenge {
 /// chain does not hold the shard bytes; verification is done by
 /// whoever inspects the response off-chain.
 ///
-/// **Security (ADIM3 §0.2):** `responder_signature` is mandatory on Mainnet.
+/// **Security (Phase 3 §0.2):** `responder_signature` is mandatory on Mainnet.
 /// The RPC layer verifies that the `responder` (the deal's operator)
 /// has signed the response intent; without this, any caller could
 /// self-report the operator address and answer a challenge on their
@@ -188,7 +188,7 @@ pub struct RetrievalResponse {
 }
 
 /// The outcome of a finalized challenge. `Missed` is the only path that
-/// can transition a deal to `Slashed` (Tur 14.5 §2.5).
+/// can transition a deal to `Slashed` (Phase 0.39 §2.5).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ChallengeOutcome {
     /// Operator answered on time with a hash that matches the requested
@@ -376,13 +376,13 @@ impl StorageRegistry {
         end_epoch: u64,
         economics: StorageEconomicsParams,
         domain_params: &StorageDomainParams,
-        // === B.U.D. Faz 3: Merkle Proof (ADIM4) ===
+        // === B.U.D. Faz 3: Merkle Proof (Phase 4) ===
         // Optional in Faz 2 (interim); required in Faz 3 once VerifyMerkle gate opens.
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<Hash32>,
     ) -> Result<u64, StorageError> {
         // NOTE: merkle_proof and storage_root are optional in Faz 2 (interim).
-        // In Faz 3 (ADIM4), they will be required.
+        // In Faz 3 (Phase 4), they will be required.
         if start_epoch >= end_epoch {
             return Err(StorageError::InvalidEpochRange {
                 start: start_epoch,
@@ -522,7 +522,7 @@ impl StorageRegistry {
         // `StorageRegistry` therefore accepts ANY `range_hash` at this
         // layer and tags the result `Answered` if the response arrived
         // on time. Off-chain verifiers and the next audit pass
-        // (Tur 15) can re-validate `range_hash` against the public
+        // (Phase 0.40) can re-validate `range_hash` against the public
         // `RetrievalResponse`. This keeps the on-chain surface small
         // and explicit: a `Mismatched` outcome is reserved for the
         // future when shard bytes (or a ZK proof) are on-chain.

@@ -1,5 +1,5 @@
-// Tur 4: devnet eski FinalityProof API bekliyor, upstream ile uyumsuz.
-// Tur 5+ yeni API ile yeniden yazılacak.
+// Phase 0.06: devnet eski FinalityProof API bekliyor, upstream ile uyumsuz.
+// Phase 0.08+ yeni API ile yeniden yazılacak.
 #![cfg(false)]
 #[cfg(test)]
 mod settlement_prod_tests {
@@ -63,7 +63,7 @@ mod settlement_prod_tests {
         .unwrap()
     }
 
-    // Tur 6: build a PoW proof bound to a specific commitment (declared head
+    // Phase 0.10: build a PoW proof bound to a specific commitment (declared head
     // hash + internally-consistent cumulative work).
     fn pow_proof_for(commitment: &DomainCommitment, confirmations: u64) -> FinalityProof {
         FinalityProof::PoW {
@@ -74,7 +74,7 @@ mod settlement_prod_tests {
         }
     }
 
-    // Tur 6: build a valid BFT proof (real BLS cert + snapshot) bound to a
+    // Phase 0.10: build a valid BFT proof (real BLS cert + snapshot) bound to a
     // commitment, mirroring the PoS pattern. Returns a fully-verifiable proof.
     fn bft_proof_for(commitment: &DomainCommitment) -> FinalityProof {
         use crate::chain::finality::{
@@ -131,7 +131,7 @@ mod settlement_prod_tests {
         }
     }
 
-    // Tur 7: build a PoA proof with REAL ed25519 authority signatures over a
+    // Phase 0.12: build a PoA proof with REAL ed25519 authority signatures over a
     // commitment. `total` authorities are generated; the first `signers` of them
     // actually sign. Returns (authorities, proof). Authorities are deterministic
     // ed25519 keypairs whose public key == address (chain-wide convention).
@@ -434,7 +434,7 @@ mod settlement_prod_tests {
 
     #[test]
     fn verified_pow_commitment_rejects_unbound_or_inconsistent_work() {
-        // Tur 6 hardening: a PoW proof with inflated confirmations but no matching
+        // Phase 0.10 hardening: a PoW proof with inflated confirmations but no matching
         // declared work / head hash must be rejected.
         let mut blockchain = test_chain();
         let pow = default_domain(1, ConsensusKind::PoW, 1337, "pow-confirmation-depth", 4);
@@ -511,7 +511,7 @@ mod settlement_prod_tests {
 
     #[test]
     fn poa_finality_rejects_forged_signatures() {
-        // Tur 7: claiming quorum with INVALID signatures must be rejected — the
+        // Phase 0.12: claiming quorum with INVALID signatures must be rejected — the
         // old self-reported signer_count path is gone.
         let mut blockchain = test_chain();
         let poa = domain(31, ConsensusKind::PoA);
@@ -750,7 +750,7 @@ mod settlement_prod_tests {
         tree.push(lock_event.clone());
         let mut commitment = commitment_for(&pow, 55, 0, 4);
         commitment.event_root = tree.root();
-        // Tur 9 (security audit §9): capture the block hash before
+        // Phase 0.16 (security audit §9): capture the block hash before
         // submission so the bridge-mint forgery gate can bind the mint
         // to a specific commitment block.
         let commitment_block_hash = commitment.domain_block_hash;
@@ -1049,7 +1049,7 @@ mod settlement_prod_tests {
 
     #[test]
     fn bft_finality_accepts_real_certificate() {
-        // Tur 6: positive regression — a genuine BLS commit certificate over the
+        // Phase 0.10: positive regression — a genuine BLS commit certificate over the
         // validator set finalizes.
         let mut bc = test_chain();
         let dom = bft_domain(10);
@@ -1065,7 +1065,7 @@ mod settlement_prod_tests {
 
     #[test]
     fn bft_finality_rejects_forged_signer_count() {
-        // Tur 6: a proof claiming quorum but carrying an INVALID aggregate
+        // Phase 0.10: a proof claiming quorum but carrying an INVALID aggregate
         // signature (forged/empty) must be rejected by cert.verify — the old
         // self-reported signer_count path is gone.
         let mut bc = test_chain();
@@ -1175,7 +1175,7 @@ mod settlement_prod_tests {
         );
     }
 
-    // NOTE (Tur 5): the former `zk_finality_accepts_valid_proof_hashes` test was
+    // NOTE (Phase 0.08): the former `zk_finality_accepts_valid_proof_hashes` test was
     // deleted here. It "passed" only because ZkFinalityAdapter used to finalise
     // ZK commitments with fake `[1;32]/[2;32]/[3;32]` hashes and no real
     // verification. A genuine, STARK-proof-backed acceptance test now lives in
@@ -1183,7 +1183,7 @@ mod settlement_prod_tests {
 
     #[test]
     fn zk_finality_rejects_when_no_accepted_proof() {
-        // Tur 5 (Option B): a ZK finality request must reference an accepted,
+        // Phase 0.08 (Option B): a ZK finality request must reference an accepted,
         // cryptographically-verified proof in the ProofClaimRegistry. With no
         // such proof submitted, finality is rejected.
         let mut bc = test_chain();
@@ -1869,7 +1869,7 @@ mod settlement_prod_tests {
     }
 }
 
-/// Tur 5 (Step 3): ZK finality now flows through the ProofClaimRegistry using a
+/// Phase 0.08 (Step 3): ZK finality now flows through the ProofClaimRegistry using a
 /// REAL STARK proof (produced by `execution::zkvm::prove_bytecode`) — replacing
 /// the deleted fake-hash acceptance test.
 #[cfg(test)]

@@ -35,7 +35,7 @@ pub use crate::core::transaction::Transaction;
 mod bls_keypair_integrity_test {
     use bls12_381::{G1Affine, G2Affine};
 
-    /// Tur 9.5 (security audit §5): confirm that the compressed
+    /// Phase 0.17 (security audit §5): confirm that the compressed
     /// identity points are NOT accepted by `from_compressed` (so
     /// the BLS verifier is not vulnerable to a "zero public key"
     /// trivial forgery). BLS12-381 uses a special encoding for the

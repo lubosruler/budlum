@@ -1,4 +1,4 @@
-# Dependency Audit Raporu (ADIM 2 §1.7)
+# Dependency Audit Raporu (Phase 2 §1.7)
 
 **Güncelleme:** 2026-07-15  
 **Araç:** `cargo-audit` (https://github.com/rustsec/rustsec)  

@@ -1,5 +1,5 @@
 //! B.U.D. (Broad Universal Database) end-to-end + ekip-bağımsızlık
-//! invariantları (Tur 14 + Tur 14.5, vision §3 + §0.5).
+//! invariantları (Phase 0.38 + Phase 0.39, vision §3 + §0.5).
 //!
 //! Bu dosya iki bölümden oluşur:
 //!
@@ -13,7 +13,7 @@
 //! 2. **`team_independence_invariants` modülü** — 9 invariant:
 //!    whitelist YOK, admin/pause hook YOK, "Budlum ekibi servisi"
 //!    bağımlılığı YOK, permissionless challenge, farklı hesaplar aynı
-//!    shard için yarışabilir, vb. (Tur 14.5 plan §4 + §0.5).
+//!    shard için yarışabilir, vb. (Phase 0.39 plan §4 + §0.5).
 
 use crate::core::address::Address;
 use crate::domain::storage_deal::{
@@ -65,7 +65,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
     let operator_b = addr(0xB2);
     let watcher_c = addr(0xC3);
 
-    // Adım 1: operatör A 1. shard için deal açar.
+    // Phase 1: operatör A 1. shard için deal açar.
     let mut reg = StorageRegistry::new();
     let manifest = good_manifest();
     let shard_id = manifest.shards[0].shard_id;
@@ -87,7 +87,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
         )
         .expect("A deal-open");
 
-    // Adım 2: operatör B aynı shard için 1. replica deal'ı açar (replikasyon).
+    // Phase 2: operatör B aynı shard için 1. replica deal'ı açar (replikasyon).
     let deal_b = reg
         .open_deal(
             42,
@@ -105,7 +105,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
         .expect("B deal-open");
     assert_ne!(deal_a, deal_b);
 
-    // Adım 3: izleyici C (herhangi bir hesap, role yok, whitelist yok)
+    // Phase 3: izleyici C (herhangi bir hesap, role yok, whitelist yok)
     // operatör A'nın deal'ına karşı retrieval challenge açar.
     let req = RetrievalChallengeRequest {
         deal_id: deal_a,
@@ -130,7 +130,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
         .expect("C challenge-open");
     assert_eq!(reg.all_challenges().len(), 1);
 
-    // Adım 4: operatör A zamanında cevap verir. Hash'in gerçekten eşleşip
+    // Phase 4: operatör A zamanında cevap verir. Hash'in gerçekten eşleşip
     // eşleşmediği off-chain doğrulanır — zincir yalnızca zaman + kimlik +
     // yapı kontrol eder (interim sınırlama, plan §2.5).
     let dummy_hash = ContentId::of_subrange(b"x", 0, 0);
@@ -141,7 +141,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
     assert_eq!(result.slashed_bond, 0);
     assert_eq!(reg.get_deal(deal_a).unwrap().status, DealStatus::Active);
 
-    // Adım 5: operatör B'nin deal'ı etkilenmedi (sadece A'ya karşı
+    // Phase 5: operatör B'nin deal'ı etkilenmedi (sadece A'ya karşı
     // challenge açılmıştı).
     assert_eq!(reg.get_deal(deal_b).unwrap().status, DealStatus::Active);
 }
@@ -229,7 +229,7 @@ fn e2e_deal_queries_return_replica_set() {
 }
 
 // =========================================================================
-//  2. EKİP-BAĞIMSIZLIK İNVARIANTLARI (Tur 14.5 plan §0.5, §4)
+//  2. EKİP-BAĞIMSIZLIK İNVARIANTLARI (Phase 0.39 plan §0.5, §4)
 // =========================================================================
 //
 // Bu 9 invariant, B.U.D.'un "Budlum ekibinin bir servisine bağımlı

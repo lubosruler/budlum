@@ -283,7 +283,7 @@ impl Codegen {
                 self.patch_jump(jump_to_end_idx, (end_idx as i32) - (jump_to_end_idx as i32));
             }
             Stmt::Match { scrutinee, arms } => {
-                // Tur 8: pattern matching codegen. ZK-circuit-friendly
+                // Phase 0.14: pattern matching codegen. ZK-circuit-friendly
                 // linear jump chain — at most one arm body executes per
                 // match, so the prover's trace records exactly one
                 // branch (no non-determinism).
@@ -355,7 +355,7 @@ impl Codegen {
                 // Patch every arm's end-jump to the instruction after
                 // the last arm body. This is the natural "match result"
                 // site — the caller is expected to use the produced
-                // register if the match ever grows a value (Tur 9+).
+                // register if the match ever grows a value (Phase 0.16+).
                 let end_idx = self.instructions.len();
                 for idx in end_jump_indices {
                     self.patch_jump(idx, (end_idx as i32) - (idx as i32));

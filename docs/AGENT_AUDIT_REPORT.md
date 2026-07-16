@@ -11,7 +11,7 @@ Auxiliary agents (Agent 4, 5, 6) have been working on the `arena/019f630c-budlum
 
 | Finding | Impact | Verdict |
 |---|---|---|
-| **Massive Feature Reverts** | Deletes BNS, SocialFi, Relayer, and Hub code implemented in ADIM 4, 5, and 6. | 🔴 Critical Regression |
+| **Massive Feature Reverts** | Deletes BNS, SocialFi, Relayer, and Hub code implemented in Phase 4, 5, and 6. | 🔴 Critical Regression |
 | **Monolithic Node Breakage** | Removes `bud-node` integration from the main `Cargo.toml`. | 🔴 Critical Regression |
 | **Outdated Base Branch** | The agents appear to be working on a base equivalent to v13.5, ignoring all recent user-directed progress. | 🟡 Procedural Error |
 | **Redundant Fixes** | "Style fixes" for discovery cache were either already in main or provided no functional improvement. | 🟢 Neutral |
@@ -29,7 +29,7 @@ I have **REJECTED** the merge of these branches. Their work is a direct violatio
 **Action taken:**
 - All features have been verified to remain intact on `main`.
 - The auxiliary branches will be ignored until they rebase and align with the current Digital Constitution.
-- I am continuing with **ADIM 6 (Global Launch Readiness)**.
+- I am continuing with **Phase 6 (Global Launch Readiness)**.
 
 ---
 **ARENA1 maintains the integrity of the vision.**

@@ -3,7 +3,7 @@ use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
 use tracing::{info, warn};
 
-/// ADIM 5 §5.1: Universal Relayer Worker.
+/// Phase 5 §5.1: Universal Relayer Worker.
 /// Watches the Budlum chain for UniversalRelay transactions and
 /// "relays" them to external chains (EVM, Solana, etc.).
 

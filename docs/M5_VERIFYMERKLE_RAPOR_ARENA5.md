@@ -1,10 +1,10 @@
-# M5 VerifyMerkle Z-B Gate — ADIM7 Etki Analizi
+# M5 VerifyMerkle Z-B Gate — Phase 7 Etki Analizi
 
 **Hazırlayan:** ARENA5  
 **Tarih:** 2026-07-15  
 **Branch:** `arena/019f63ce-budlum`  
 **HEAD referans:** `origin/main` = `dc3325e`  
-**Durum:** Rapor — ADIM7 Mainnet Launch Ceremony karar desteği
+**Durum:** Rapor — Phase 7 Mainnet Launch Ceremony karar desteği
 
 ---
 
@@ -58,7 +58,7 @@ budzero/bud-proof/src/plonky3_prover.rs:1749+
 | **B.U.D. Faz 1-2 + Faz 5** | `ContentId` (Poseidon hash) + `StorageDeal` ekonomisi, VerifyMerkle'dan **bağımsız** |
 | **BNS/.bud Phase 6** | İsim çözümleme + storage_root binding, VerifyMerkle'dan **bağımsız** |
 | **RPC/P2P/Snapshot/Metrics** | Tüm altyapı, VerifyMerkle'dan **bağımsız** |
-| **ADIM5 Universal Relayer** | Cross-chain relay, VerifyMerkle'dan **bağımsız** |
+| **Phase 5 Universal Relayer** | Cross-chain relay, VerifyMerkle'dan **bağımsız** |
 
 ### 3.2 Etkilenen (Kısıtlı veya Kapalı Kalacak)
 
@@ -120,7 +120,7 @@ M5 kapalı iken launch yapılırsa, aşağıdaki iddialar **geçersiz** olur:
 |-------|----------------|
 | **M5 kapalı launch** | ✅ **Önerilen** (Seçenek A) |
 | Koşul | Dürüst dokümantasyon + fail-closed gate + post-launch activation planı |
-| Zamanlama | ADIM7 ceremony, M5'ten **bağımsız** planlanır |
+| Zamanlama | Phase 7 ceremony, M5'ten **bağımsız** planlanır |
 | Activation | VerifyMerkle 64-depth yeşil → soft-fork PR → `is_experimental()` kaldır → Faz 3 aktif |
 
 ## 6. Kanıt Komutları

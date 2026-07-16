@@ -1,4 +1,4 @@
-# STATUS — ADIM 2 Güncel Denetim Notu (2026-07-15)
+# STATUS — Phase 2 Güncel Denetim Notu (2026-07-15)
 
 **Aktif çalışma dalı:** `arena/019f630c-budlum`  
 **Kapsam:** Kullanıcının güncel görev listesi: §1.1 BLS/PQ HSM policy/tooling,
@@ -6,7 +6,7 @@
 External audit checklist, §1.6 README roadmap kapanış tablosu, §1.7 Fuzzing +
 dependency audit + SBOM.
 
-## ADIM 2 §1.1 ve §1.3-§1.7 kapanış durumu
+## Phase 2 §1.1 ve §1.3-§1.7 kapanış durumu
 
 | Görev | Durum | Kanıt |
 |------|-------|-------|
@@ -14,7 +14,7 @@ dependency audit + SBOM.
 | §1.3 Finality live-path son taraması | ✅ PR kapsamına alındı | `src/tests/finality_live_path.rs`, `docs/operations/FINALITY_LIVE_PATH.md` |
 | §1.4 ConsensusStateV2 migration iskeleti | ✅ PR kapsamına alındı | `StateSnapshotV2::from_bytes()` schema window, `--migrate-v2` backup gate, `docs/operations/MIGRATION_V2.md` |
 | §1.5 External audit checklist | ✅ Güncellendi | `docs/AUDIT_CHECKLIST.md` — audit yapılmadı iddiası korunuyor |
-| §1.6 README roadmap kapanış tablosu | ✅ Güncellendi | `README.md` Research Roadmap Status tablosu ADIM 2 §1.3-§1.7 durumlarını yansıtıyor |
+| §1.6 README roadmap kapanış tablosu | ✅ Güncellendi | `README.md` Research Roadmap Status tablosu Phase 2 §1.3-§1.7 durumlarını yansıtıyor |
 | §1.7 Fuzzing + dependency audit + SBOM | ✅ Tooling/prosedür hazır | `fuzz/`, `scripts/audit-deps.sh`, `scripts/generate-sbom.sh`, `docs/operations/DEPENDENCY_AUDIT.md`, `docs/operations/SBOM.md` |
 
 **Doğrulama notu:** Bu sandbox oturumunda `cargo`/`rustc` bulunmadığı için yerel
@@ -37,14 +37,14 @@ PR #10 üzerine eklenen sonraki görev: storage economics gerçek muhasebe yüze
 
 # Durum Raporu — Statik denetim kayıtları (AI birliği şeması)
 
-**Son güncelleme:** 2026-07-14 (`main` branch üzerine ADIM 1 senkronizasyonu)
-**HEAD:** `e20c414` (Merge PR #6 → `39e30c7` ADIM 1 / B.U.D. iskeleti)
+**Son güncelleme:** 2026-07-14 (`main` branch üzerine Phase 1 senkronizasyonu)
+**HEAD:** `e20c414` (Merge PR #6 → `39e30c7` Phase 1 / B.U.D. iskeleti)
 **Branch:** `main` (ve aktif çalışma dalı: `arena/019f5f77-budlum`)
-**Aktif Aşama:** **ADIM 1** (eski adı: Tur 14 & Tur 14.5 `B.U.D. Broad Universal Database` Faz 1-2 ve Faz 5 deal iskeleti)
+**Aktif Aşama:** **Phase 1** (eski adı: Phase 0.38 & Phase 0.39 `B.U.D. Broad Universal Database` Faz 1-2 ve Faz 5 deal iskeleti)
 **Aktif iş akışı:** `docs/STATUS_ONLINE.md` (kanal) + `docs/AI_BIRLIGI.md` (şema + tarih)
 
-> **⚠️ TERMİNOLOJİ GÜNCELLEMESİ (ADIM 1):**
-> 2026-07-14 tarihli kullanıcı talimatıyla "Tur" (`Tur 14`, `Tur 15` vb.) isimlendirmesi kaldırılmış, ilk ana aşamamız resmi olarak **ADIM 1** (`ADIM 1 = eski Tur 14 + Tur 14.5`) olmuştur. Ayrıca `github.com/budlum-xyz` organizasyonundaki tüm yol haritası maddelerinin (`Budlum`, `BudZero`, `B.U.D.`, `budlum.com`) `lubosruler/budlum` depomuzda eksiksiz karşılandığı doğrulanmıştır.
+> **⚠️ TERMİNOLOJİ GÜNCELLEMESİ (Phase 1):**
+> 2026-07-14 tarihli kullanıcı talimatıyla "Tur" (`Phase 0.38`, `Phase 0.40` vb.) isimlendirmesi kaldırılmış, ilk ana aşamamız resmi olarak **Phase 1** (`Phase 1 = eski Phase 0.38 + Phase 0.39`) olmuştur. Ayrıca `github.com/budlum-xyz` organizasyonundaki tüm yol haritası maddelerinin (`Budlum`, `BudZero`, `B.U.D.`, `budlum.com`) `lubosruler/budlum` depomuzda eksiksiz karşılandığı doğrulanmıştır.
 
 > **Bu dosya artık "tek-ajan devir raporu" DEĞİL — "statik denetim kayıtları" dosyasıdır.**
 > Aktif konuşma/iletişim için: `docs/STATUS_ONLINE.md`.
@@ -55,14 +55,14 @@ PR #10 üzerine eklenen sonraki görev: storage economics gerçek muhasebe yüze
 
 ---
 
-## 1. ADIM 1 (Eski PR #6 / Tur 14) Durumu (gerçek, `main` HEAD `39e30c7` → `e20c414`)
+## 1. Phase 1 (Eski PR #6 / Phase 0.38) Durumu (gerçek, `main` HEAD `39e30c7` → `e20c414`)
 
 | Alan | Değer |
 |------|-------|
-| Başlık | `ADIM 1 (eski Tur 14): B.U.D. (Broad Universal Database) Faz 1-2 ve Faz 5 İskeleti` |
+| Başlık | `Phase 1 (eski Phase 0.38): B.U.D. (Broad Universal Database) Faz 1-2 ve Faz 5 İskeleti` |
 | Branch | `main` (Merge: `e20c414` / PR HEAD: `39e30c7`) |
 | HEAD | `39e30c7` (tur14-rpc-e2e → 7 storage RPC + 3-aktör E2E + 9 ekip-bağımsızlık invariant) |
-| Durum | ✅ `main` dalına merge edildi (`e20c414`) ve ADIM 1 temelini oluşturdu |
+| Durum | ✅ `main` dalına merge edildi (`e20c414`) ve Phase 1 temelini oluşturdu |
 | Diff | `ARENA_AI.md (3853)` + `docs/*` + `fuzz/` + `scripts/` + Rust: `src/domain/storage_params.rs, src/domain/storage_deal.rs, src/storage/content_id.rs, src/storage/manifest.rs, src/rpc/server.rs, src/rpc/api.rs, src/tests/bud_e2e.rs` + `src/domain/types.rs, src/domain/registry.rs, src/domain/mod.rs, src/registry/role.rs, src/registry/permissionless.rs, src/storage/mod.rs, src/tests/mod.rs` + `CLAUDE.md, README.md` |
 | CI | `gh pr checks 6` ile son tur kontrol edilecek (HEAD `39e30c7` push sonrası) |
 
@@ -74,29 +74,29 @@ PR #6'nın **gerçek içeriği** (HEAD `39e30c7`, 8 commit):
 4. `6cd32de` (tur15-recovery): 4 kayıp PR'ın dosyaları kurtarıldı.
 5. `976e46d` (tur15-pr-4): finality_live_path.rs eklendi → CI fail 27s.
 6. `a776a39` (tur15-pr-4-revert): finality testi geri çekildi.
-7. `ffb66e9` (tur14-faz1-faz5): **Tur 14 Rust iskeleti** — ConsensusKind::StorageAttestation + StorageDomainParams + STORAGE_OPERATOR + ContentId + ContentManifest + StorageDeal + StorageRegistry (~1500 satır Rust).
+7. `ffb66e9` (tur14-faz1-faz5): **Phase 0.38 Rust iskeleti** — ConsensusKind::StorageAttestation + StorageDomainParams + STORAGE_OPERATOR + ContentId + ContentManifest + StorageDeal + StorageRegistry (~1500 satır Rust).
 8. `39e30c7` (tur14-rpc-e2e): **7 storage RPC + 3-aktör E2E + 9 ekip-bağımsızlık invariant** (~750 satır Rust + 50 satır docs).
 
 ---
 
-## 2. Üst bağlam (Tur 13 → Tur 16)
+## 2. Üst bağlam (Phase 0.36 → Phase 0.42)
 
 | Tur | Kapsam | Durum |
 |-----|--------|-------|
-| Tur 13.5 | L1 + BudZero + operasyon | ✅ merged (PR #5) |
-| Tur 14 | B.U.D. Faz 1-2 iskeleti | ✅ **PR #6'da tamamlandı** (HEAD `39e30c7`) |
-| Tur 14.5 | B.U.D. Faz 5 deal/challenge ekonomisi | ✅ **PR #6'da tamamlandı** |
-| Tur 14.9 | Denetim | ✅ `docs/ORG_ROADMAP_AUDIT.md` §4a güncel, 17 madde tabloda |
-| **Tur 15** | Mainnet önkoşulları (tek tur) | ⏳ devam ediyor — §1.3 finality (pr-4 revert edildi), §1.4 ConsensusStateV2, §1.1 BLS/PQ HSM, §1.2 B.U.D. Faz 1-2 (zaten Tur 14'te tamamlandı) |
-| Tur 16 | Mainnet launch (2 alt-tur) | plan (`docs/TUR16_PLAN.md`, 112 satır) |
+| Phase 0.37 | L1 + BudZero + operasyon | ✅ merged (PR #5) |
+| Phase 0.38 | B.U.D. Faz 1-2 iskeleti | ✅ **PR #6'da tamamlandı** (HEAD `39e30c7`) |
+| Phase 0.39 | B.U.D. Faz 5 deal/challenge ekonomisi | ✅ **PR #6'da tamamlandı** |
+| Phase 0.398 | Denetim | ✅ `docs/ORG_ROADMAP_AUDIT.md` §4a güncel, 17 madde tabloda |
+| **Phase 0.40** | Mainnet önkoşulları (tek tur) | ⏳ devam ediyor — §1.3 finality (pr-4 revert edildi), §1.4 ConsensusStateV2, §1.1 BLS/PQ HSM, §1.2 B.U.D. Faz 1-2 (zaten Phase 0.38'te tamamlandı) |
+| Phase 0.42 | Mainnet launch (2 alt-tur) | plan (`docs/PHASE0.42_PLAN.md`, 112 satır) |
 
 ---
 
-## 3. Tur 15 PR durum tablosu (güncel, kanıtlanmış)
+## 3. Phase 0.40 PR durum tablosu (güncel, kanıtlanmış)
 
-Kaynak plan: `the-plan/TUR15_PLAN.md`. **7 ana iş paketi.**
+Kaynak plan: `the-plan/PHASE0.40_PLAN.md`. **7 ana iş paketi.**
 
-| PR | Tur 15 § | Başlık | Risk | Durum (HEAD `39e30c7`) | HEAD | CI |
+| PR | Phase 0.40 § | Başlık | Risk | Durum (HEAD `39e30c7`) | HEAD | CI |
 |----|----------|--------|------|------------------------|------|----|
 | pr-3.6 | — | ARENA_AI.md (Claude Fable 5 ilk adaptasyon) | 🟡 | ✅ hayatta | `c5d05be` | yeşil |
 | pr-3.7 | — | ARENA_AI.md (şirket adı temizlik) | 🟢 | ✅ hayatta | `981414d` | yeşil |
@@ -107,7 +107,7 @@ Kaynak plan: `the-plan/TUR15_PLAN.md`. **7 ana iş paketi.**
 | pr-4 | §1.3 | Finality live-path test genişletmesi | 🟡 | ⏳ revert edildi (`a776a39`), yeniden yazılacak | `a776a39` (revert) | — |
 | pr-5 | §1.4 | ConsensusStateV2 migration iskeleti | 🟡 | ⏳ | — | — |
 | pr-6 | §1.1 | BLS/PQ HSM (mock backend) | 🔴 | ⏳ | — | — |
-| pr-7 | §1.2 | B.U.D. Faz 1-2 (StorageAttestation) | 🔴 | ✅ **Tur 14'te tamamlandı** (`ffb66e9` + `39e30c7`) | `39e30c7` | — |
+| pr-7 | §1.2 | B.U.D. Faz 1-2 (StorageAttestation) | 🔴 | ✅ **Phase 0.38'te tamamlandı** (`ffb66e9` + `39e30c7`) | `39e30c7` | — |
 
 **Tamamlanan:** 7/7 pr (pr-3.6, pr-3.7, pr-1, pr-2, pr-3, pr-3.5, **pr-7**).
 **Kalan:** 3 (pr-4 finality, pr-5 migration, pr-6 BLS/PQ HSM).
@@ -121,7 +121,7 @@ Bu oturumda 4 ana hata yapıldı. Her birinin **neden** ve **çözüm** önerisi
 
 ### 4.1 Önceki ajanın bilgilerini sorgulamadan kabul etme
 
-**Hata:** Önceki ajan özetinde "f286e54 main'de merged", "346 satır storage_deal.rs", "bud_e2e.rs 536 satır orphan" gibi **kanıtlanamaz** bilgiler vardı. Sorgulamadan kabul ettim, audit'e yanlış referanslar yazdım, "Tur 14 sıfırdan başlatılmalı" gibi dramatik yorumlar yaptım.
+**Hata:** Önceki ajan özetinde "f286e54 main'de merged", "346 satır storage_deal.rs", "bud_e2e.rs 536 satır orphan" gibi **kanıtlanamaz** bilgiler vardı. Sorgulamadan kabul ettim, audit'e yanlış referanslar yazdım, "Phase 0.38 sıfırdan başlatılmalı" gibi dramatik yorumlar yaptım.
 
 **Kanıt:** `git cat-file -t f286e54` → "Not a valid object name". Yani f286e54 hiç var olmamış.
 
@@ -132,7 +132,7 @@ Bu oturumda 4 ana hata yapıldı. Her birinin **neden** ve **çözüm** önerisi
 
 ### 4.2 Force-push zincirinde commit kaybı
 
-**Hata:** Bu oturumda 11 commit atıldı, 9'u force-push ile silindi. Shallow clone + remote stale + `--force-with-lease` reddedilmesi + manuel `--force` kullanımı zincirinde 9 commit (tur15-pr-1, pr-2, pr-3, pr-3.5, + Tur 14.9/Tur 16 audit zinciri) kalıcı olarak kayboldu.
+**Hata:** Bu oturumda 11 commit atıldı, 9'u force-push ile silindi. Shallow clone + remote stale + `--force-with-lease` reddedilmesi + manuel `--force` kullanımı zincirinde 9 commit (tur15-pr-1, pr-2, pr-3, pr-3.5, + Phase 0.398/Phase 0.42 audit zinciri) kalıcı olarak kayboldu.
 
 **Kanıt:** GitHub Events API 29 push event gösteriyor, ama sadece son 2 HEAD (`c5d05be`, `981414d`) hayatta.
 
@@ -151,7 +151,7 @@ Bu oturumda 4 ana hata yapıldı. Her birinin **neden** ve **çözüm** önerisi
 - Bot token kısıtlarını bil. `workflows` permission YOK → workflow dosyalarını **commit etme, kullanıcıya "manuel PR at" notu bırak** (`AI_BIRLIGI.md` §6.2).
 - Herhangi bir kısıtla karşılaşınca **hemen kullanıcıya bildir**, sessizce alternatif yol seçme.
 
-### 4.4 Tur 14.9 audit'inde "kanıtlanamaz" bilgi kullanma
+### 4.4 Phase 0.398 audit'inde "kanıtlanamaz" bilgi kullanma
 
 **Hata:** 9a350b9 commit'inde 9 yanlış referans (PR #6 8943fcf, f286e54 main'de merged, 346 satır storage_deal.rs, 32 satır manifest.rs, 536 satır bud_e2e.rs, blockchain.rs:540,885, permissionless.rs:396-403, vizyon paylaşılmadı) vardı. Önceki ajanın yazdığı, ben sorgulamadan kabul ettiğim bilgiler. Sadece 7350b0a ile "kanıtlanmış bilgi" düzeltmesi yaptım, 9a350b9 tamamen revert edildi (`6a88d98`).
 
@@ -168,7 +168,7 @@ Bu oturumda 4 ana hata yapıldı. Her birinin **neden** ve **çözüm** önerisi
 |-------|---|--------------|
 | Vizyon §3 vs §8.1 (Custom vs StorageAttestation) | §1.2 | ✅ **StorageAttestation** (yeni enum varyantı) |
 | BLS/PQ HSM kapsamı (tam vs mock) | §1.1 | ✅ **Mock backend** (~600 satır) |
-| B.U.D. mainnet launch'a dahil mi | Tur 15 sonu | ⏳ Tur 15 §1.2 bittikten sonra |
+| B.U.D. mainnet launch'a dahil mi | Phase 0.40 sonu | ⏳ Phase 0.40 §1.2 bittikten sonra |
 
 ---
 
@@ -179,10 +179,10 @@ Bu oturumda 4 ana hata yapıldı. Her birinin **neden** ve **çözüm** önerisi
 3. `budlum/STATUS.md` (bu dosya) — statik denetim (üçüncü oku).
 4. `budlum/ARENA_AI.md` (3853 satır) — genel AI yönergesi.
 5. `budlum/CLAUDE.md` — budlum-spesifik master context.
-6. `budlum/docs/ORG_ROADMAP_AUDIT.md` §4a — Tur 14.9 denetim (güncel).
-7. `budlum/docs/TUR16_PLAN.md` (~112 satır) — Tur 16 master plan.
+6. `budlum/docs/ORG_ROADMAP_AUDIT.md` §4a — Phase 0.398 denetim (güncel).
+7. `budlum/docs/PHASE0.42_PLAN.md` (~112 satır) — Phase 0.42 master plan.
 8. `budlum/docs/operations/DEPENDENCY_AUDIT.md` + `SBOM.md` — CI entegrasyon prosedürü.
-9. `the-plan/TUR14_PLAN.md` (129 satır) + `TUR14_5_PLAN.md` (267 satır) — referans planlar.
+9. `the-plan/PHASE0.38_PLAN.md` (129 satır) + `PHASE0.39_PLAN.md` (267 satır) — referans planlar.
 10. `the-plan/claude-fable-5.md` (3825 satır) — ARENA_AI.md kökeni.
 11. `budlum-xyz/B.U.D./BUD_Merkeziyetsiz_Depolama_Vizyonu.md` (495 satır, 12 bölüm) — vizyon.
 
@@ -200,21 +200,21 @@ gh pr checks 6
 
 ## 7. Sonraki adım
 
-PR #4 (§1.3 Finality live-path test genişletmesi) → §1.4 ConsensusStateV2 → §1.1 BLS/PQ HSM. **B.U.D. Faz 1-2 (pr-7) zaten tamamlandı (`ffb66e9` + `39e30c7`); Tur 15 §1.2 "mainnet launch'a dahil mi" sorusu Tur 15 kapanışında değerlendirilecek.**
+PR #4 (§1.3 Finality live-path test genişletmesi) → §1.4 ConsensusStateV2 → §1.1 BLS/PQ HSM. **B.U.D. Faz 1-2 (pr-7) zaten tamamlandı (`ffb66e9` + `39e30c7`); Phase 0.40 §1.2 "mainnet launch'a dahil mi" sorusu Phase 0.40 kapanışında değerlendirilecek.**
 
 Handoff: `docs/STATUS_ONLINE.md` üzerinden diğer AI ile anlık konuşma.
 
 
 ---
 
-# STATUS — ADIM 3 Güncel Denetim Notu (2026-07-15, ARENA2)
+# STATUS — Phase 3 Güncel Denetim Notu (2026-07-15, ARENA2)
 
 **HEAD:** `44fe0f0`  
 **CI:** ✅ success (Budlum Core + BudZero, run 29390549071)  
-**Aktif aşama:** **ADIM 3** — Mainnet v1 lansman hazırlığı + B.U.D. güvenlik/escrow kapanışları  
-**Plan dosyası:** `docs/ADIM3_PLAN_VE_GOREV_DAGILIMI.md` (force-push sonrası yeniden derlendi)
+**Aktif aşama:** **Phase 3** — Mainnet v1 lansman hazırlığı + B.U.D. güvenlik/escrow kapanışları  
+**Plan dosyası:** `docs/PHASE3_PLAN_VE_GOREV_DAGILIMI.md` (force-push sonrası yeniden derlendi)
 
-## ADIM3 kapanış matrisi
+## Phase 3 kapanış matrisi
 
 | Görev | Durum | Kanıt |
 |------|-------|-------|
@@ -225,8 +225,8 @@ Handoff: `docs/STATUS_ONLINE.md` üzerinden diğer AI ile anlık konuşma.
 | §3.6 BUD_INTERIM.md | ✅ | `5321c28` |
 | Faz 5 escrow + RPC registry sync | ✅ | `f2b8075` + `44fe0f0` |
 | §3.1–3.5 mainnet launch paketi | 🟡/❌ açık | MAINNET_READINESS |
-| Faz 3 VerifyMerkle | 🔒 ADIM4 | production gate |
-| Faz 6 BNS/.bud | 🔒 ADIM5+ | — |
+| Faz 3 VerifyMerkle | 🔒 Phase 4 | production gate |
+| Faz 6 BNS/.bud | 🔒 Phase 5+ | — |
 
 ## Org roadmap dürüst özet
 
@@ -243,7 +243,7 @@ Budlumdevnet / Budlumdevnet2 / B.U.D. / BudZero yol haritasının **kodlanabilir
 
 ---
 
-## ADIM3 §3.1 kapanış (2026-07-15)
+## Phase 3 §3.1 kapanış (2026-07-15)
 
 | Alan | Değer |
 |------|-------|
@@ -255,21 +255,21 @@ Budlumdevnet / Budlumdevnet2 / B.U.D. / BudZero yol haritasının **kodlanabilir
 
 ---
 
-## ADIM3 §3.4 kapanış (2026-07-15, ARENA2)
+## Phase 3 §3.4 kapanış (2026-07-15, ARENA2)
 
 | Alan | Değer |
 |------|-------|
 | P2P | `peer_rate_limit_per_minute` → PeerManager token bucket (önceden bağlı değildi) |
 | RPC | 10k tracked-client ceiling stress + expiry eviction tests |
 | Ceremony | `docs/operations/MAINNET_GENESIS_CEREMONY.md` |
-| Test filtresi | `cargo test --lib adim3_` (7 test) |
+| Test filtresi | `cargo test --lib phase3_` (7 test) |
 
 
 ---
 
-# Dürüst ADIM3 closeout (ARENA2, 2026-07-15 15:57 UTC+3)
+# Dürüst Phase 3 closeout (ARENA2, 2026-07-15 15:57 UTC+3)
 
-**HEAD:** `b81c829` · **Detay:** `docs/ADIM3_HONEST_CLOSEOUT.md`
+**HEAD:** `b81c829` · **Detay:** `docs/PHASE3_HONEST_CLOSEOUT.md`
 
 | Görev | Hüküm |
 |------|-------|
@@ -283,9 +283,9 @@ Budlumdevnet / Budlumdevnet2 / B.U.D. / BudZero yol haritasının **kodlanabilir
 | §3.4 network | 🟡 unit tests+wiring (ARENA2); ARENA1 docs-only |
 | §3.5 validator E2E | 📄 docs-only |
 | §3.6 BUD_INTERIM | ✅ |
-| VerifyMerkle / BNS | 🔒 ADIM4/5 |
+| VerifyMerkle / BNS | 🔒 Phase 4/5 |
 
-**Sonuç:** ADIM3 %100 kapalı değil. Mainnet "audited ready" değil.
+**Sonuç:** Phase 3 %100 kapalı değil. Mainnet "audited ready" değil.
 
 
 ---

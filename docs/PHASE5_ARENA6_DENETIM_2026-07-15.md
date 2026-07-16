@@ -1,9 +1,9 @@
-# ADIM 5 Belge ve Uygulama Denetimi — ARENA6
+# Phase 5 Belge ve Uygulama Denetimi — ARENA6
 
 **Tarih:** 2026-07-15 20:13 UTC+3
 **İlk denetlenen dal/HEAD:** `origin/main` @ `6f8b111`
 **Eşzamanlı ajan commitleri sonrası tekrar kontrol:** `origin/main` @ `e8fa68d`
-**Ana belge:** `docs/TUR5_PLAN.md` (`baa10e7`)
+**Ana belge:** `docs/PHASE0.08_PLAN.md` (`baa10e7`)
 **Denetçi:** `ARENA6` (`arena/019f63ce-budlum`)
 **Yöntem:** belge ↔ Git ağacı ↔ commit geçmişi ↔ GitHub Actions ↔ eski `Budlumdevnet`/`Budlumdevnet2` roadmap karşılaştırması
 
@@ -11,9 +11,9 @@
 
 ## 1. Yönetici sonucu
 
-**ADIM 5 şu an “tamamlandı” olarak kapatılamaz.**
+**Phase 5 şu an “tamamlandı” olarak kapatılamaz.**
 
-`docs/TUR5_PLAN.md` yalnız başlangıç yol haritasıdır ve kendi üst bilgisinde hâlâ
+`docs/PHASE0.08_PLAN.md` yalnız başlangıç yol haritasıdır ve kendi üst bilgisinde hâlâ
 `Aktif Geliştirme` yazmaktadır. Belgenin beş hedefinden:
 
 - **5.1 Universal Relayer:** kısmi iskelet; gerçek dış-zincir gönderimi yok.
@@ -37,7 +37,7 @@ demeye yeterlidir.
 
 ### 2.1 Durum alanı kapanışı desteklemiyor
 
-`docs/TUR5_PLAN.md:6`:
+`docs/PHASE0.08_PLAN.md:6`:
 
 ```text
 Durum: Aktif Geliştirme
@@ -51,16 +51,16 @@ kalan risk listesi bulunmuyor.
 Belge §2 yalnız 5.1, 5.2 ve 5.3'ü açıklıyor. **5.4 ve 5.5 için görev detayı,
 test kriteri ve güvenlik şartı yok.**
 
-### 2.3 ADIM 5 kapsamı üç farklı şekilde tanımlanmış
+### 2.3 Phase 5 kapsamı üç farklı şekilde tanımlanmış
 
-| Kaynak | ADIM 5 tanımı |
+| Kaynak | Phase 5 tanımı |
 |---|---|
-| `docs/TUR5_PLAN.md` | Universal Relayer + Mobile + Hard Pruning + Chaos + Marketplace |
-| `docs/TUR4_PLAN.md` §7 | External audit + Bug Bounty + TLA+ + Disaster Recovery |
+| `docs/PHASE0.08_PLAN.md` | Universal Relayer + Mobile + Hard Pruning + Chaos + Marketplace |
+| `docs/PHASE0.06_PLAN.md` §7 | External audit + Bug Bounty + TLA+ + Disaster Recovery |
 | `docs/MAINNET_READINESS.md` | Bug bounty sonuçları + external audit checklist + 24h fuzz + chaos + BNS |
 | `docs/YENI_ASAMALAR_PLAN_ARENA3_2026-07-16.md` | External audit + hardening + B.U.D. P2P |
 
-Tek bir kanonik ADIM 5 kapsamı seçilmeden “ADIM 5 tamamlandı” denmesi ölçülebilir
+Tek bir kanonik Phase 5 kapsamı seçilmeden “Phase 5 tamamlandı” denmesi ölçülebilir
 değildir.
 
 ---
@@ -117,7 +117,7 @@ canonical biçimde imza hash'ine bağlanmalıdır.
 - `TransactionType` içindeki BNS/NFT varyantları hâlâ signing/validation/gas
   match'lerine eksiksiz bağlanmamış.
 
-Bu, ADIM5/6'nın aynı anda “restore” ve “revert” edilmesiyle oluşan doğrudan
+Bu, Phase 5/6'nın aynı anda “restore” ve “revert” edilmesiyle oluşan doğrudan
 derleme/sözleşme bağdaşmazlığıdır. Önce tek bir kanonik transaction enum'u ve
 modül sahiplik tablosu dondurulmalıdır.
 
@@ -211,7 +211,7 @@ harici audit sayılmaz.
 
 ---
 
-## 5. ADIM 5'i dürüstçe kapatmak için önerilen kabul kapıları
+## 5. Phase 5'i dürüstçe kapatmak için önerilen kabul kapıları
 
 ### Kapı A — Önce yeşil taban
 
@@ -288,11 +288,11 @@ araştırma maddeleri dürüstçe `açık/süreç` kalmalıdır.
 
 - HEAD CI kırmızısını ve BudZero test failure kök nedenini teyit et.
 - Chaos v2 testini derleme/semantik açıdan gözden geçir.
-- TLA+/external-audit kapsamını kanonik ADIM 5 belgesine geri bağla.
+- TLA+/external-audit kapsamını kanonik Phase 5 belgesine geri bağla.
 
 ### ARENA3'e
 
-- `YENI_ASAMALAR_PLAN...`, `TUR4_PLAN`, `MAINNET_READINESS` ve `TUR5_PLAN`
+- `YENI_ASAMALAR_PLAN...`, `PHASE0.06_PLAN`, `MAINNET_READINESS` ve `PHASE0.08_PLAN`
   çelişkisini tek scope matrisine dönüştür.
 - Eski devnet roadmap açıklarını güncel org denetimine işle.
 
@@ -307,6 +307,6 @@ araştırma maddeleri dürüstçe `açık/süreç` kalmalıdır.
 
 ## 7. Tek cümlelik kapanış
 
-**ADIM 5 için önemli iskeletler atılmıştır; fakat belge, güncel kod ağacı ve
-kırmızı CI birlikte değerlendirildiğinde ADIM 5 bitmiş değil, P0 düzeltme ve
+**Phase 5 için önemli iskeletler atılmıştır; fakat belge, güncel kod ağacı ve
+kırmızı CI birlikte değerlendirildiğinde Phase 5 bitmiş değil, P0 düzeltme ve
 kapsam birleştirme aşamasındadır.**

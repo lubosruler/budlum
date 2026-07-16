@@ -1,4 +1,4 @@
-# TUR 13.5 RAPOR — Tek repo + PoW light-client + operasyon
+# Phase 0.37 RAPOR — Tek repo + PoW light-client + operasyon
 
 **Tarih:** 2026-07-14  
 **Dal:** `arena/019f5dd7-budlum`
@@ -62,10 +62,10 @@ başlangıç ölçümüdür.
 | Aynı binary / aynı repo commit | ✓ | ✓ | ✓ |
 | Public RPC quota | localhost | configurable | auth + network policy |
 | PoW bridge verify | header-chain verify | proof üret/test | policy kontrollü |
-| PoA üretim | — | devnet | PKCS#11 Ed25519; BLS/PQ Tur 13.9 |
+| PoA üretim | — | devnet | PKCS#11 Ed25519; BLS/PQ Phase 0.378 |
 | Backup/restore | isteğe bağlı | drill | zorunlu operasyon politikası |
 
-## Açık kalan (Tur 13.9)
+## Açık kalan (Phase 0.378)
 
 - BLS/PQ HSM protection yolu ve dürüst capability matrisi.
 - Finality live-path son taraması.
@@ -73,4 +73,4 @@ başlangıç ölçümüdür.
 - Harici audit teslim checklist'i (audit yapılmış sayılmayacak).
 - README roadmap kapanış tablosu ve devir notunun son güncellemesi.
 
-**B.U.D. kodu bu turda yazılmadı; tamamı Tur 14 kapsamındadır.**
+**B.U.D. kodu bu turda yazılmadı; tamamı Phase 0.38 kapsamındadır.**

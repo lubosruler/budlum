@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-07-15  
 **Sürüm:** v0.3-dev (Controlled Public-Devnet Candidate)  
-**Hazırlayan:** Arena AI / ARENA3 (Lubo / Tur 13.9 Paket F)
+**Hazırlayan:** Arena AI / ARENA3 (Lubo / Phase 0.378 Paket F)
 
 > **Önemli Uarı:** Bu belge, `DEVIR_RAPORU_YENI.md` §7 Paket F gereğince
 > bağımsız dış denetçilerin (`External Security Audit`) incelemesine esas olmak
@@ -70,8 +70,8 @@ Budlum L1 (`budlum-core`) ve BudZero (`budzero/` BudZKVM + STARK motoru),
 
 ## 4. Bilinen Sınırlar ve Dış Denetim Borçları (Known Limitations)
 
-Aşağıdaki mimari yetenekler **Tur 15** kapsamında tamamlanacak olup, mevcut `v0.3-dev` sürümünde bilinçli olarak kapalı veya araştırma aşamasındadır:
+Aşağıdaki mimari yetenekler **Phase 0.40** kapsamında tamamlanacak olup, mevcut `v0.3-dev` sürümünde bilinçli olarak kapalı veya araştırma aşamasındadır:
 
-1. **BLS / PQ Dilithium5 Donanım HSM Sürücüsü (`Tur 15.1`):** Ed25519 için PKCS#11 sürücüsü aktiftir; BLS/PQ için donanım entegrasyonu tamamlanana kadar disk yasağı fail-closed devrededir.
-2. **`ConsensusStateV2` Canlı Şema Göçü (`Tur 15.4`):** Şema kancaları (`snapshot.rs`) hazırdır; canlı zincir üzerinde dinamik state transform hook'ları Tur 15.4 borcudur.
-3. **Sürekli Fuzzing Altyapısı (`Tur 15.7`):** `cargo-audit` ve `SBOM` üretimi mevcuttur; sürekli (`continuous`) OZZ/AFL fuzzing hedeflenmektedir.
+1. **BLS / PQ Dilithium5 Donanım HSM Sürücüsü (`Phase 0.402`):** Ed25519 için PKCS#11 sürücüsü aktiftir; BLS/PQ için donanım entegrasyonu tamamlanana kadar disk yasağı fail-closed devrededir.
+2. **`ConsensusStateV2` Canlı Şema Göçü (`Phase 0.408`):** Şema kancaları (`snapshot.rs`) hazırdır; canlı zincir üzerinde dinamik state transform hook'ları Phase 0.408 borcudur.
+3. **Sürekli Fuzzing Altyapısı (`Phase 0.414`):** `cargo-audit` ve `SBOM` üretimi mevcuttur; sürekli (`continuous`) OZZ/AFL fuzzing hedeflenmektedir.

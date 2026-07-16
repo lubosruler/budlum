@@ -1,8 +1,8 @@
-# Arena devir raporu — Tur 13 / 13.5 sonrası
+# Arena devir raporu — Phase 0.36 / 13.5 sonrası
 
 **Güncelleme:** 2026-07-14  
 **Sabit çalışma dalı:** `arena/019f5dd7-budlum`  
-**Başlangıç commit'i:** `03c3bf5` (Tur 13)
+**Başlangıç commit'i:** `03c3bf5` (Phase 0.36)
 
 ## Proje kararı
 
@@ -10,21 +10,21 @@ Budlum L1 ile BudZero/BudZKVM artık tek repository'de çalışır. Kanonik yol:
 
 - L1: repository root (`budlum-core`)
 - ZK workspace: `budzero/`
-- B.U.D.: Tur 14; Tur 13 serisine kod olarak karıştırılmayacak
+- B.U.D.: Phase 0.38; Phase 0.36 serisine kod olarak karıştırılmayacak
 
 Eski `lubosruler/BudZero` yalnız tarihsel kaynak kabul edilir. Yeni ajan sibling
 checkout veya commit pin'i geri getirmemelidir.
 
-## Tur 13 özeti (devralınan)
+## Phase 0.36 özeti (devralınan)
 
 - User / developer / enterprise PoA persona config'leri.
-- Org roadmap denetimi ve B.U.D. Tur 14 ayrımı.
+- Org roadmap denetimi ve B.U.D. Phase 0.38 ayrımı.
 - BudZero Z-B ilerlemesi; `VerifyMerkle` Production gate **açılmadı** çünkü
   pozitif 64-depth proof hâlâ yeşil değil.
 
-## Tur 13.5 özeti
+## Phase 0.37 özeti
 
-Ayrıntı: [`TUR13_5_RAPOR.md`](TUR13_5_RAPOR.md).
+Ayrıntı: [`PHASE0.37_RAPOR.md`](PHASE0.37_RAPOR.md).
 
 - BudZero tam kaynak ağacı `budzero/` altına taşındı; CI/Docker tek checkout.
 - Gerçek bounded PoW header-chain adapter'ı; legacy declared proof mint-gated.
@@ -44,7 +44,7 @@ Ayrıntı: [`TUR13_5_RAPOR.md`](TUR13_5_RAPOR.md).
 4. Mainnet disk `ValidatorKeys` yasağını BLS/PQ HSM yolu gerçekten gelmeden
    kaldırma.
 5. Harici audit yapılmadan README'de “audited/mainnet ready” yazma.
-6. B.U.D. storage fazlarını Tur 13.9'a çekme; Tur 14 kararı sabit.
+6. B.U.D. storage fazlarını Phase 0.378'a çekme; Phase 0.38 kararı sabit.
 
 ## Sonraki tur: 13.9
 
@@ -55,14 +55,14 @@ Ayrıntı: [`TUR13_5_RAPOR.md`](TUR13_5_RAPOR.md).
 5. Org Budlum+BudZero roadmap kapanış matrisi; araştırma satırları dürüstçe açık.
 6. Bu dosyayı test/CI/commit/PR sonuçlarıyla güncelle.
 
-## Tur 14 özeti (B.U.D. Faz 1-2 iskeleti)
+## Phase 0.38 özeti (B.U.D. Faz 1-2 iskeleti)
 
 **Sabit çalışma dalı:** `arena/019f5f77-budlum`  
 **PR:** #6 (açık, CI yeşil — `gh pr checks 6` 2026-07-14)  
-**Kaynak planlar:** `the-plan/TUR14_PLAN.md`, `the-plan/TUR14_5_PLAN.md`  
+**Kaynak planlar:** `the-plan/PHASE0.38_PLAN.md`, `the-plan/PHASE0.39_PLAN.md`  
 **Kaynak vizyon:** `budlum-xyz/B.U.D./BUD_Merkeziyetsiz_Depolama_Vizyonu.md`
-(495 satır, 12 bölüm — Tur 14 planı yazılırken vizyon **mevcut değildi**;
-Tur 15 planı yazılırken vizyon **referans alınmalı**).
+(495 satır, 12 bölüm — Phase 0.38 planı yazılırken vizyon **mevcut değildi**;
+Phase 0.40 planı yazılırken vizyon **referans alınmalı**).
 
 **PR #6 kapsamı (gerçek):**
 
@@ -80,7 +80,7 @@ Tur 15 planı yazılırken vizyon **referans alınmalı**).
 **PR #6 diff:** `docs/ORG_ROADMAP_AUDIT.md` §4a güncellemesinden ibaret
 (+152/-9 satır). Kod tabanı değişmedi.
 
-**Vizyonun karar bekleyen noktaları (Tur 15 planında netleşmeli):**
+**Vizyonun karar bekleyen noktaları (Phase 0.40 planında netleşmeli):**
 
 - §3 vs §8.1 çelişkisi: `ConsensusKind::Custom("StorageProofOfReplication")`
   (enum'a yeni varyant eklemez) **veya**
@@ -88,9 +88,9 @@ Tur 15 planı yazılırken vizyon **referans alınmalı**).
 - Faz 1 = muhasebe (kanıt yok), Faz 3 = `VerifyMerkle` Z-B gate'ine bağımlı,
   Faz 4 = `GlobalBlockHeader.storage_root`, Faz 5 = ekonomi, Faz 6 = BNS/.bud.
 
-## Tur 14.5 özeti (mevcut durum)
+## Phase 0.39 özeti (mevcut durum)
 
-**Plan:** `the-plan/TUR14_5_PLAN.md` (mevcut, referans).  
+**Plan:** `the-plan/PHASE0.39_PLAN.md` (mevcut, referans).  
 **Kod:** PR'a girmedi (PR #6 sadece audit güncellemesi içeriyor).
 
 Planlanan kapsam (referans, uygulanmamış):
@@ -110,7 +110,7 @@ Planlanan kapsam (referans, uygulanmamış):
 - 3-aktör E2E testi (`src/tests/bud_e2e.rs`) + ekip-bağımsızlık
   invariantları (9 test).
 
-## Tur 14.9 özeti (denetim turu)
+## Phase 0.398 özeti (denetim turu)
 
 **Kapsam:** Kod yazılmadı, sadece denetim yapıldı.
 
@@ -118,26 +118,26 @@ Planlanan kapsam (referans, uygulanmamış):
 
 - PR #6 CI yeşil (Budlum Core + BudZero, son run `29343443725`).
 - `budlum-xyz/B.U.D.` vizyon dokümanı paylaşılmış (495 satır).
-- Tur 14 planı vizyon olmadan yazılmış (plan §6'da açıkça belirtilmiş).
+- Phase 0.38 planı vizyon olmadan yazılmış (plan §6'da açıkça belirtilmiş).
 - `permissionless.rs` PoA izolasyon testi sağlam (88-104 satırları).
 - `budlum.com` URL koda girmedi.
 - StorageRegistry admin/pause/freeze/force hook'u yok (çünkü
   Storage kodu yok).
 
-**Açık bulgular (Tur 14.9 kapanışı):**
+**Açık bulgular (Phase 0.398 kapanışı):**
 
-1. Tur 14 (Faz 1-2) Rust implementasyonu PR #6'ya girmedi.
-2. Tur 14 planı vizyon olmadan yazılmış; Tur 15 planı vizyonu referans
+1. Phase 0.38 (Faz 1-2) Rust implementasyonu PR #6'ya girmedi.
+2. Phase 0.38 planı vizyon olmadan yazılmış; Phase 0.40 planı vizyonu referans
    almalı.
-3. Vizyon §3 vs §8.1 kararı (Custom mı, yeni varyant mı) Tur 15'te
+3. Vizyon §3 vs §8.1 kararı (Custom mı, yeni varyant mı) Phase 0.40'te
    netleşmeli.
-4. Tur 13.9 maddeleri hâlâ açık.
+4. Phase 0.378 maddeleri hâlâ açık.
 5. PR #6 §4a tablosunda 10 yanlış commit referansı (bu audit'te düzeltildi).
-6. `docs/DEVIR_RAPORU.md` Tur 14 + 14.5 + 14.9 bölümleri eksikti (bu
+6. `docs/DEVIR_RAPORU.md` Phase 0.38 + 14.5 + 14.9 bölümleri eksikti (bu
    güncelleme ile tamamlandı).
 
-**Sonraki tur önerisi (Tur 15):** Tur 14'ü sıfırdan başlatmak için
-önce iki karar netleşmeli (Custom vs StorageAttestation + Tur 13.9
+**Sonraki tur önerisi (Phase 0.40):** Phase 0.38'ü sıfırdan başlatmak için
+önce iki karar netleşmeli (Custom vs StorageAttestation + Phase 0.378
 paralel borç). Vizyon artık referans alınabilir.
 
 ## Doğrulama komutları

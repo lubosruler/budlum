@@ -149,7 +149,7 @@ impl Instruction {
     pub fn decode_for_profile(val: u64, profile: IsaProfile) -> Result<Self, DecodeError> {
         let inst = Self::decode_any(val)?;
         if inst.opcode.is_experimental() {
-            // Production always rejects experimental opcodes (Tur 11.9 / A13).
+            // Production always rejects experimental opcodes (Phase 0.338 / A13).
             // Testing/Experimental profiles allow them so unit/ZK harnesses can
             // exercise VerifyMerkle while mainnet decode stays closed.
             if profile == IsaProfile::Production {
@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn tur119_verify_merkle_disabled_in_production() {
         // Fail-closed: Production must reject VerifyMerkle until
-        // proves_verify_merkle_valid_64_depth is green (ARENA2 ADIM4).
+        // proves_verify_merkle_valid_64_depth is green (ARENA2 Phase 4).
         let raw = Instruction {
             opcode: Opcode::VerifyMerkle,
             rd: 1,

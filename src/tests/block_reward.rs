@@ -86,7 +86,7 @@ fn test_block_reward_hard_supply_cap() {
 
 #[test]
 fn test_epoch_based_stake_yield_distribution() {
-    // Tur 25 Görev 2: anlamlı ödül eşiği. Default tokenomics (5% APY, 10s slot,
+    // Phase 0.60 Görev 2: anlamlı ödül eşiği. Default tokenomics (5% APY, 10s slot,
     // 32 slots/epoch) ile küçük stake'ler (1k) .max(1) tabanına yuvarlanır —
     // bu, gerçek formülün dürüst sonucu. Test, "minimum stake bile en az 1
     // BUD alır" invariant'ını doğrular (anlamlı ödülün alt sınırı).

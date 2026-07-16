@@ -20,7 +20,7 @@ pub struct PeerScore {
     pub score: i32,
     pub banned_until: Option<Instant>,
     /// Absolute ban expiry (unix seconds). Survives restart; `banned_until`
-    /// is recomputed from this on reload (Tur 11.7 / A4).
+    /// is recomputed from this on reload (Phase 0.334 / A4).
     pub ban_expires_unix: Option<u64>,
     pub invalid_blocks: u32,
     pub invalid_txs: u32,
@@ -77,7 +77,7 @@ impl PeerScore {
         self.consume_token_with_rate(MSG_REFILL_RATE)
     }
 
-    /// Refill using an explicit tokens/sec rate (ADIM3 §3.4 network profile).
+    /// Refill using an explicit tokens/sec rate (Phase 3 §3.4 network profile).
     pub fn consume_token_with_rate(&mut self, refill_rate: f64) -> bool {
         let now = Instant::now();
         let elapsed = now.duration_since(self.rate_last_refill).as_secs_f64();
@@ -116,7 +116,7 @@ impl Default for PeerManager {
 }
 
 impl PeerManager {
-    /// Default burst refill (~5 msg/s) with 10k tracked-peer ceiling (ADIM3 §3.4).
+    /// Default burst refill (~5 msg/s) with 10k tracked-peer ceiling (Phase 3 §3.4).
     pub fn new() -> Self {
         PeerManager {
             peers: HashMap::new(),
@@ -125,7 +125,7 @@ impl PeerManager {
         }
     }
 
-    /// ADIM3 §3.4: apply network security profile to P2P rate limiting.
+    /// Phase 3 §3.4: apply network security profile to P2P rate limiting.
     /// `peer_rate_limit_per_minute` becomes tokens/second = limit/60.
     pub fn apply_security_config(&mut self, security: crate::core::chain_config::SecurityConfig) {
         let per_min = security.peer_rate_limit_per_minute.max(1);
@@ -149,7 +149,7 @@ impl PeerManager {
         self.peers.entry(*peer_id).or_default()
     }
     pub fn check_rate_limit(&mut self, peer_id: &PeerId) -> bool {
-        // ADIM3 §3.4: refuse to grow the score map without bound (memory DoS).
+        // Phase 3 §3.4: refuse to grow the score map without bound (memory DoS).
         if !self.peers.contains_key(peer_id) && self.peers.len() >= self.max_tracked_peers {
             return false;
         }
@@ -315,7 +315,7 @@ impl PeerManager {
     }
 
     /// Snapshot of still-active bans with absolute expiry (unix seconds).
-    /// Tur 11.7 / A4: remaining duration is reconstructed on reload.
+    /// Phase 0.334 / A4: remaining duration is reconstructed on reload.
     pub fn get_persisted_banned_peers(&self) -> Vec<PersistedBan> {
         let now = Instant::now();
         let now_unix = unix_now_secs();
@@ -360,7 +360,7 @@ impl PeerManager {
         }
     }
 
-    /// Legacy helper: reload peer IDs with a *full* ban window (pre-Tur-11.7 format).
+    /// Legacy helper: reload peer IDs with a *full* ban window (pre-Phase 0.334 format).
     pub fn reload_banned_peers_legacy(&mut self, peer_ids: &[String]) {
         let bans: Vec<PersistedBan> = peer_ids
             .iter()
@@ -373,7 +373,7 @@ impl PeerManager {
     }
 }
 
-/// Durable ban record (Tur 11.7 / A4).
+/// Durable ban record (Phase 0.334 / A4).
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PersistedBan {
     pub peer_id: String,
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!(manager.get_score(&peer), MAX_SCORE);
     }
 
-    /// Tur 11.7 / A4: reload uses absolute expiry, not a fresh full BAN_DURATION.
+    /// Phase 0.334 / A4: reload uses absolute expiry, not a fresh full BAN_DURATION.
     #[test]
     fn tur117_ban_reload_preserves_remaining() {
         let mut manager = PeerManager::new();
@@ -472,7 +472,7 @@ mod tests {
         assert_eq!(persisted[0].expires_unix, expires);
     }
 
-    /// Tur 11.7 / A4: already-expired absolute timestamps are not re-banned.
+    /// Phase 0.334 / A4: already-expired absolute timestamps are not re-banned.
     #[test]
     fn tur117_expired_ban_not_reloaded() {
         let mut manager = PeerManager::new();
@@ -485,9 +485,9 @@ mod tests {
         assert!(manager.get_persisted_banned_peers().is_empty());
     }
 
-    /// ADIM3 §3.4: SecurityConfig.peer_rate_limit_per_minute wires into refill rate.
+    /// Phase 3 §3.4: SecurityConfig.peer_rate_limit_per_minute wires into refill rate.
     #[test]
-    fn adim3_peer_rate_limit_security_profile() {
+    fn phase3_peer_rate_limit_security_profile() {
         use crate::core::chain_config::Network;
 
         let mut manager = PeerManager::new();
@@ -506,9 +506,9 @@ mod tests {
         assert!((dev.msg_refill_rate() - (1000.0 / 60.0)).abs() < 1e-9);
     }
 
-    /// ADIM3 §3.4: tracked peer map has a hard ceiling (memory DoS guard).
+    /// Phase 3 §3.4: tracked peer map has a hard ceiling (memory DoS guard).
     #[test]
-    fn adim3_peer_manager_tracked_peer_ceiling() {
+    fn phase3_peer_manager_tracked_peer_ceiling() {
         let mut manager = PeerManager::new();
         manager.max_tracked_peers = 8;
 
@@ -534,9 +534,9 @@ mod tests {
         assert_eq!(manager.tracked_peer_count(), 8);
     }
 
-    /// ADIM3 §3.4: burst exhaustion then rejection (token bucket).
+    /// Phase 3 §3.4: burst exhaustion then rejection (token bucket).
     #[test]
-    fn adim3_peer_rate_limit_burst_exhaustion() {
+    fn phase3_peer_rate_limit_burst_exhaustion() {
         let mut manager = PeerManager::new();
         // Near-zero refill so burst cannot recover mid-test.
         manager.msg_refill_rate = 0.0;

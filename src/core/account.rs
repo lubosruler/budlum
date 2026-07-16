@@ -7,7 +7,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 pub const MIN_TX_FEE: u64 = 1;
-/// Tur 11.7 / A8: protocol bounds for governance fee/reward proposals.
+/// Phase 0.334 / A8: protocol bounds for governance fee/reward proposals.
 pub const MAX_BASE_FEE: u64 = 1_000_000;
 pub const MIN_BLOCK_REWARD: u64 = 0;
 pub const MAX_BLOCK_REWARD: u64 = 10_000 * crate::tokenomics::BUD_UNIT;
@@ -127,14 +127,14 @@ pub struct AccountState {
     pub message_root: [u8; 32],
     pub settlement_root: [u8; 32],
     pub global_header_summary: [u8; 32],
-    /// Permissionless registry (Tur 5): stake-based membership for
+    /// Permissionless registry (Phase 0.08): stake-based membership for
     /// validator/relayer/prover roles. `PermissionlessRegistry::new()`
     /// gives a deterministic empty state for tests and fresh chains.
     pub registry: crate::registry::PermissionlessRegistry,
-    /// Liveness tracker (Tur 5): per-epoch participation counters used
+    /// Liveness tracker (Phase 0.08): per-epoch participation counters used
     /// to detect absent validators and trigger liveness slashing.
     pub liveness: crate::registry::LivenessTracker,
-    /// Invalid-vote tracker (Tur 5): counts consensus-rule violations
+    /// Invalid-vote tracker (Phase 0.08): counts consensus-rule violations
     /// per validator per epoch so we can slash or jail on spam.
     pub invalid_votes: crate::registry::InvalidVoteTracker,
 }
@@ -266,11 +266,11 @@ impl AccountState {
         for (addr, v) in &snapshot.validators {
             validators.insert(*addr, v.clone());
         }
-        // Tur 9: restore previously-unpersisted state. The tokenomics burn block
+        // Phase 0.16: restore previously-unpersisted state. The tokenomics burn block
         // (timed_burn + burn_reserve_address + team_vesting) is restored
         // ATOMICALLY from a single struct so the burn counter can never be
         // restored without its reserve address (which would risk double-burning).
-        // Snapshots taken before Tur 9 (or before Tur 5) leave the field as
+        // Snapshots taken before Phase 0.16 (or before Phase 0.08) leave the field as
         // `None`; in that case the burn block is initialised fresh and the
         // double-burn guard starts from zero years burned.
         let burn_block = snapshot.tokenomics_burn.clone();
@@ -314,7 +314,7 @@ impl AccountState {
             message_root: snapshot.message_root,
             settlement_root: snapshot.settlement_root,
             global_header_summary: snapshot.global_header_summary,
-            // Tur 5: restore permissionless registry + liveness + invalid-vote
+            // Phase 0.08: restore permissionless registry + liveness + invalid-vote
             // tracker from snapshot when present, otherwise start empty (the
             // snapshot may pre-date the registry, e.g. v1 chains).
             registry: snapshot.registry.clone().unwrap_or_default(),
@@ -332,13 +332,13 @@ impl AccountState {
     pub fn add_validator(&mut self, address: Address, stake: u64) {
         let validator = Validator::new(address, stake);
         self.validators.insert(address, validator);
-        // Tur 5: every new validator is auto-registered in the permissionless
+        // Phase 0.08: every new validator is auto-registered in the permissionless
         // registry. Staking == registration (no separate manual step).
         self.sync_validator_registration(&address);
         self.keys_dirty = true;
     }
 
-    /// Tur 5: keep the on-chain validator's bonded stake in lock-step with
+    /// Phase 0.08: keep the on-chain validator's bonded stake in lock-step with
     /// its `PermissionlessRegistry` membership. Called from `add_validator`
     /// and from the `Stake` / `Unstake` transaction paths.
     pub fn sync_validator_registration(&mut self, address: &Address) {
@@ -351,7 +351,7 @@ impl AccountState {
         );
     }
 
-    /// Tur 5: bond `amount` from the account's spendable balance into the
+    /// Phase 0.08: bond `amount` from the account's spendable balance into the
     /// relayer role. The bond remains locked but slashable until the relayer
     /// begins unbonding.
     pub fn bond_relayer(
@@ -387,7 +387,7 @@ impl AccountState {
         Ok(amount)
     }
 
-    /// Tur 5: bond `amount` from the account's spendable balance into the
+    /// Phase 0.08: bond `amount` from the account's spendable balance into the
     /// prover role. Unlike the relayer role, prover registration is NOT a
     /// submission gate (proofs are self-verifying) — it only controls
     /// whether a successful proof earns its submitter a reward.
@@ -420,7 +420,7 @@ impl AccountState {
         Ok(amount)
     }
 
-    /// ADIM3 §0.3: bond `amount` into the STORAGE_OPERATOR role (permissionless).
+    /// Phase 3 §0.3: bond `amount` into the STORAGE_OPERATOR role (permissionless).
     /// Used for B.U.D. operator reward eligibility and `bud_storageActiveOperators`.
     pub fn bond_storage_operator(
         &mut self,
@@ -451,7 +451,7 @@ impl AccountState {
         Ok(amount)
     }
 
-    /// Tur 5: run one epoch's liveness check on the state-level
+    /// Phase 0.08: run one epoch's liveness check on the state-level
     /// `LivenessTracker`. Returns the canonical `SlashingReport`s produced
     /// this epoch. `participated` is the set of validators that showed the
     /// expected participation; everyone else in `validators` is treated as
@@ -531,7 +531,7 @@ impl AccountState {
         if tx.from == Address::zero() {
             return Ok(());
         }
-        // Tur 11 / A1: cheap checks before expensive signature verification (DoS).
+        // Phase 0.32 / A1: cheap checks before expensive signature verification (DoS).
         if tx.nonce != expected_nonce {
             return Err(format!(
                 "Invalid nonce: expected {}, got {}",
@@ -629,12 +629,12 @@ impl AccountState {
         let jail_epochs = 7;
         validator.jail_until = self.epoch_index.saturating_add(jail_epochs);
 
-        // Tur 5: mirror the slash into the permissionless registry so the two
+        // Phase 0.08: mirror the slash into the permissionless registry so the two
         // views stay consistent. The registry's `is_active` predicate is what
         // the rest of the node (consensus, RPC) checks, so an account that
         // was slashed at the account-state layer must also become inactive in
         // the registry — otherwise the same offence would be paid-for twice.
-        // Tur 12 / BUG #6: apply_slashing feeds double-sign evidence — label
+        // Phase 0.34 / BUG #6: apply_slashing feeds double-sign evidence — label
         // the registry mirror as DoubleSign, not LivenessFault (audit trail).
         let _ = self.registry.slash(
             *address,
@@ -705,7 +705,7 @@ impl AccountState {
 
         self.process_unbonding();
 
-        // Process relayer escrow releases (Tur 21)
+        // Process relayer escrow releases (Phase 0.52)
 
         // DP1: Distribute epoch-based stake yield to active non-jailed validators
         // We calculate and distribute rewards proportional to stake using `calculate_epoch_reward` from TokenomicsParams.
@@ -754,7 +754,7 @@ impl AccountState {
             }
         }
 
-        // $BUD timed reserve burn (Tur 8b): this is the canonical epoch-transition
+        // $BUD timed reserve burn (Phase 0.14b): this is the canonical epoch-transition
         // point, so execute any due annual burns here. Idempotent per year and a
         // no-op unless a burn-reserve account is configured (tokenomics enabled).
         if let Some(reserve) = self.burn_reserve_address {
@@ -773,7 +773,7 @@ impl AccountState {
         use crate::core::governance::ProposalType;
         match &proposal.p_type {
             ProposalType::ChangeBaseFee(new_fee) => {
-                // Tur 11.7 / A8: clamp to protocol bounds (never accept unbounded fee).
+                // Phase 0.334 / A8: clamp to protocol bounds (never accept unbounded fee).
                 if *new_fee < MIN_TX_FEE || *new_fee > MAX_BASE_FEE {
                     tracing::warn!(
                         "Rejecting ChangeBaseFee {}: outside [{}, {}]",
@@ -810,7 +810,7 @@ impl AccountState {
                 }
             }
             ProposalType::ParameterUpdate(key, value) => {
-                // Tur 11.7 / A8: wire ParameterUpdate into RegistryParams with bounds.
+                // Phase 0.334 / A8: wire ParameterUpdate into RegistryParams with bounds.
                 match self.apply_registry_parameter_update(key, value) {
                     Ok(()) => tracing::info!(
                         "Executing Governance: Parameter {} updated to {}",
@@ -1301,7 +1301,7 @@ mod tests {
         assert!(!released.active);
     }
 
-    // === TUR 25 SUPPLY-CAP INTEGER-ONLY TESTİ ===
+    // === Phase 0.60 SUPPLY-CAP INTEGER-ONLY TESTİ ===
     #[test]
     fn supply_cap_scaling_is_integer_only_and_respects_limit() {
         let mut state = AccountState::new();
@@ -1336,7 +1336,7 @@ mod tests {
         }
     }
 
-    /// Tur 11 / A1: nonce mismatch must fail with a nonce error even when the
+    /// Phase 0.32 / A1: nonce mismatch must fail with a nonce error even when the
     /// signature is valid — proves cheap checks still run and still gate.
     #[test]
     fn tur11_wrong_nonce_rejected_before_accepting_valid_sig() {
@@ -1356,7 +1356,7 @@ mod tests {
         );
     }
 
-    /// Tur 11 / A1: invalid signature is still rejected after cheap checks pass.
+    /// Phase 0.32 / A1: invalid signature is still rejected after cheap checks pass.
     #[test]
     fn tur11_invalid_signature_still_rejected() {
         let alice_kp = KeyPair::generate().unwrap();
@@ -1377,7 +1377,7 @@ mod tests {
         );
     }
 
-    /// Tur 11.7 / A8: out-of-range base fee proposals are rejected.
+    /// Phase 0.334 / A8: out-of-range base fee proposals are rejected.
     #[test]
     fn tur117_change_base_fee_bounds() {
         use crate::core::governance::{Proposal, ProposalType};
@@ -1414,7 +1414,7 @@ mod tests {
         assert_eq!(state.base_fee, 42);
     }
 
-    /// Tur 11.7 / A8: ParameterUpdate binds to RegistryParams with validation.
+    /// Phase 0.334 / A8: ParameterUpdate binds to RegistryParams with validation.
     #[test]
     fn tur117_parameter_update_registry_bounds() {
         use crate::core::governance::{Proposal, ProposalType};
@@ -1456,7 +1456,7 @@ mod tests {
         assert_eq!(state.registry.params().unbonding_epochs, old_u);
     }
 
-    /// Tur 11.7 / A8: block reward cannot exceed protocol max.
+    /// Phase 0.334 / A8: block reward cannot exceed protocol max.
     #[test]
     fn tur117_change_block_reward_bounds() {
         use crate::core::governance::{Proposal, ProposalType};

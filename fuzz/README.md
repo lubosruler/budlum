@@ -1,4 +1,4 @@
-# Fuzzing (ADIM 2 §1.7)
+# Fuzzing (Phase 2 §1.7)
 
 > **Durum:** Setup tamamlandı. Uzun fuzz run CI'da çalıştırılmaz; build/check ve
 > manuel run harici audit/mainnet hazırlığında kullanılır.
@@ -46,7 +46,7 @@ ZKVM odaklı seed corpus dosyaları `fuzz/corpus/zkvm/` altındadır. Yeni seed
 ## CI entegrasyonu sınırı
 
 Bu repo için GitHub App token'ında workflow güncelleme yetkisi bulunmadığı
-önceki oturumlarda doğrulandı. Bu nedenle ADIM 2 §1.7 kapsamında `.github/workflows`
+önceki oturumlarda doğrulandı. Bu nedenle Phase 2 §1.7 kapsamında `.github/workflows`
 değiştirilmez; fuzz target seti ve scriptler repo içinde teslim edilir. Uzun fuzz
 run'lar release/audit öncesi manuel veya ayrı yetkili CI job'ı ile çalıştırılır.
 

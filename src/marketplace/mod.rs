@@ -3,7 +3,7 @@ use crate::storage::content_id::ContentId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-/// ADIM 5 §5.5: AI Data Marketplace — Economic layer for user-to-AI data sales.
+/// Phase 5 §5.5: AI Data Marketplace — Economic layer for user-to-AI data sales.
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DataOffer {

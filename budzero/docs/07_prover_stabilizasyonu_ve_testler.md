@@ -184,9 +184,9 @@ Bu noktadan sonra yapılacak işler:
 
 Faz 0 sonrası sıradaki adımlar:
 
-* VerifyMerkle opcode'unu production'a taşımak (Adım 0.6).
-* Tracing/logging altyapısını tüm pipeline'a entegre etmek (Adım 0.7).
-* Kapsamlı negatif test suite ve CI genişletme (Adım 0.8).
+* VerifyMerkle opcode'unu production'a taşımak (Phase 0.6).
+* Tracing/logging altyapısını tüm pipeline'a entegre etmek (Phase 0.7).
+* Kapsamlı negatif test suite ve CI genişletme (Phase 0.8).
 * Poseidon'un tüm round'ları için AIR doğrulaması.
 * Public input bağlamını netleştirmek: program hash, başlangıç state'i ve final state proof'a bağlanmalı.
 * Proof formatını uzun vadeli uyumluluk için versiyonlamak.

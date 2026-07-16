@@ -1,7 +1,7 @@
 # VerifyMerkle Z-B Gate — Constraint-by-Constraint Debug (ARENA3, devam)
 
 **Tarih:** 2026-07-16 01:00 UTC+3
-**HEAD:** `2250795` (BNS full_integration) + `9387fb1` (ARENA2 ADIM4 devralma)
+**HEAD:** `2250795` (BNS full_integration) + `9387fb1` (ARENA2 Phase 4 devralma)
 **Denetçi:** ARENA3 (ISA + security) + ARENA2 (ZK/AIR)
 **Talimat:** Q verifymerkle_debug = constraint_by_constraint (10-soru anket v2) + Q bns_storage_flow = full_integration
 
@@ -13,7 +13,7 @@
 |---------|-------|-------|
 | `bud-isa` `is_experimental` | `true` (kapalı) — Q2 enable_prod ARENA2 tarafından fail-closed revert (4aa5079) | `budzero/bud-isa/src/lib.rs:42` `matches!(VerifyMerkle)` |
 | `proves_verify_merkle_valid_64_depth` | `#[ignore]` InvalidProof | `budzero/bud-proof/src/plonky3_prover.rs:1981` |
-| `adim4_diagnose_verify_merkle_matrix_chain` | ✅ YEŞİL | ARENA2: 64-depth Poseidon zinciri + leaf + final root witness STARK olmadan yeşil |
+| `phase4_diagnose_verify_merkle_matrix_chain` | ✅ YEŞİL | ARENA2: 64-depth Poseidon zinciri + leaf + final root witness STARK olmadan yeşil |
 | AIR leaf-bind / first-round | ✅ Fixlendi | `on_original = is_vm * (1-is_expand)` gate |
 | VM expansion next_pc | ✅ Fixlendi | ara satırlar `next_pc=pc`, son expand `pc+1` |
 | Gas + register_events + aux is_real_op + program LogUp | ✅ Fixlendi | expand sentetik satırlar skip/gate |
@@ -30,7 +30,7 @@ Kullanıcı kararı: her AIR constraint'i tek tek devre dışı bırakıp hangi 
 
 | # | Constraint | Dosya:Satır | Açıklama | Test |
 |---|------------|-------------|----------|------|
-| 1 | `merkle_current` transition (Poseidon output) | `plonky3_air.rs:633` `nxt_merkle_current == poseidon_output` | Poseidon permutation round sonrası current | `adim4_diagnose_...` yeşil |
+| 1 | `merkle_current` transition (Poseidon output) | `plonky3_air.rs:633` `nxt_merkle_current == poseidon_output` | Poseidon permutation round sonrası current | `phase4_diagnose_...` yeşil |
 | 2 | Final root check | `plonky3_air.rs:645` `merkle_current - rs1_val` (original step) | 64th round output == expected root | Yeşil (matrix) |
 | 3 | Leaf binding | `plonky3_air.rs:685` `nxt_merkle_current == rs2_val` (first expansion) | First expand merkle_current = leaf | Yeşil |
 | 4 | Bit handling (sibling order) | `plonky3_air.rs:565-568` `s0/s1` bit check | `merkle_current*(1-bit) + sibling*bit` vs etc | ? |
@@ -43,8 +43,8 @@ Kullanıcı kararı: her AIR constraint'i tek tek devre dışı bırakıp hangi 
 
 ### 2.2 İzolasyon Planı
 
-1. **Adım 1:** Tüm AIR constraint'leri devre dışı bırak, sadece `adim4_diagnose_verify_merkle_matrix_chain` (witness only) yeşil mi kontrol et → yeşil (zaten)
-2. **Adım 2:** Constraint'leri teker teker aktif et:
+1. **Phase 1:** Tüm AIR constraint'leri devre dışı bırak, sadece `phase4_diagnose_verify_merkle_matrix_chain` (witness only) yeşil mi kontrol et → yeşil (zaten)
+2. **Phase 2:** Constraint'leri teker teker aktif et:
    - Önce sadece `merkle_current` transition (1) → prove
    - Sonra final root (2) → prove
    - Sonra leaf binding (3) → prove
@@ -72,7 +72,7 @@ Veya test içinde:
 ```rust
 #[test]
 #[ignore]
-fn adim4_verify_merkle_1_depth() {
+fn phase4_verify_merkle_1_depth() {
     // key=0, sibling=[1], leaf=0xBEEF, depth=1
     // Sadece 1 round, expansion row sayısı az, degree düşük
 }
@@ -89,7 +89,7 @@ fn adim4_verify_merkle_1_depth() {
 - `ChainCommand::BnsResolveFull` + `BnsSetStorage` + `ChainHandle::bns_resolve_full` + `bns_set_storage`
 - `BudlumApi`: `bud_bnsResolveFull` (address + storage_root) + `bud_bnsSetStorage` (owner only)
 - `TransactionType::BnsRegister` + Executor + RPC `bud_bnsResolve`/`bud_bnsPrepareRegister`
-- Tests: `test_bns_full_impl_storage_binding` + `set_storage_owner_only` + `adim3_validator_onboarding_e2e_*`
+- Tests: `test_bns_full_impl_storage_binding` + `set_storage_owner_only` + `phase3_validator_onboarding_e2e_*`
 
 **Sıradaki:**
 - `bud_bnsResolveFull` → `ContentManifest` → `ContentId` → `bud_storageGetDealsByManifest` → Bitswap fetch via `bud-node` `ContentDiscovery` + `BudBitswap`
@@ -120,7 +120,7 @@ fn adim4_verify_merkle_1_depth() {
 
 - **Hat A ZK:** ARENA2 constraint-by-constraint debug (bu dokümanda plan) + ARENA3 is_experimental gate (test yeşil olunca tekrar açma)
 - **Hat B BNS:** BNS → storage fetch full integration RPC glue (bns_resolve_full + discovery)
-- **Hat C Audit:** ADIM5 external audit checklist + bug bounty + TLA+ iskeleti
+- **Hat C Audit:** Phase 5 external audit checklist + bug bounty + TLA+ iskeleti
 
 **Kanıt:** `git log origin/main --oneline -5` → 2250795 BNS full_integration, 9387fb1 ARENA2 devralma, 51dbaf9 10 soru, 7482dd7 BNS full_impl merge
 **Engel:** STARK InvalidProof kök neden (aux CTL). Force-push YASAK.

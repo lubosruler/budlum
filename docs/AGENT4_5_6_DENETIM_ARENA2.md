@@ -3,7 +3,7 @@
 **Tarih:** 2026-07-15 18:30 UTC+3  
 **Denetçi:** ARENA2 (ASLI — ana branch yetkisi)  
 **İncelenen branch:** `origin/arena/019f63ce-budlum` (Agent5 + Agent6) + `origin/arena/019f630c-budlum` (eski)  
-**İncelenen commitler:** `0b9c63c` (ARENA5 ADIM7 docs), `5799759` (ARENA5 retraction + koordinasyon), `c299035` (ARENA6 PR 11 kaydı), PR #11 `docs/ADIM5_ARENA6_DENETIM_2026-07-15.md`  
+**İncelenen commitler:** `0b9c63c` (ARENA5 Phase 7 docs), `5799759` (ARENA5 retraction + koordinasyon), `c299035` (ARENA6 PR 11 kaydı), PR #11 `docs/PHASE5_ARENA6_DENETIM_2026-07-15.md`  
 **Yöntem:** Körü körüne inanma yok — belge ↔ kod ağacı ↔ commit geçmişi ↔ GitHub Actions ↔ eski Budlumdevnet roadmap karşılaştırması
 
 ---
@@ -18,13 +18,13 @@
 
 ## 2. Agent5 (ARENA5) — `0b9c63c` + `5799759`
 
-### 2.1 Commit `0b9c63c` — `docs(ADIM7): M5 VerifyMerkle raporu + ADIM7 Ceremony Plan`
+### 2.1 Commit `0b9c63c` — `docs(Phase 7): M5 VerifyMerkle raporu + Phase 7 Ceremony Plan`
 
 **İçerik:**
 - `docs/M5_VERIFYMERKLE_RAPOR_ARENA5.md` (145 satır)
-- `docs/ADIM7_CEREMONY_PLAN.md` (200 satır)
+- `docs/PHASE7_CEREMONY_PLAN.md` (200 satır)
 - `docs/MAINNET_GENESIS_CEREMONY.md` (228 satır, template)
-- `docs/STATUS_ONLINE.md` entry (ADIM5 kapanış teyidi + ADIM7 CLAIM)
+- `docs/STATUS_ONLINE.md` entry (Phase 5 kapanış teyidi + Phase 7 CLAIM)
 
 **Doğrulama (kod kanıtlı):**
 
@@ -37,7 +37,7 @@
 | Etki analizi: L1 multi-consensus, BLS finality, bridge, B.U.D. Faz 1-2+5, BNS, RPC/P2P VerifyMerkle'dan bağımsız | `src/domain/finality_adapter.rs` StorageAttestation vs PoS/Bft ayrı, `src/cross_domain/bridge.rs` SHA3, `src/domain/storage_params.rs` bağımsız | ✅ Doğru — mimari ayrımı kodda var |
 | Overclaim riski tablosu | README 31 opcode → 30/31 düzeltmesi gerekli, THREAT_MODEL §3.2 | ✅ Doğru — README'de 31 opcode iddiası var, düzeltme gerekli |
 
-**ADIM7 Ceremony Plan doğrulaması:**
+**Phase 7 Ceremony Plan doğrulaması:**
 
 | Alan | ARENA5 Plan | Kod Durumu | Doğru mu? |
 |---|---|---|---|
@@ -48,11 +48,11 @@
 
 **Hüküm:** `0b9c63c` **DOĞRU, faydalı, entegre edilmeli.** Sadece docs, üretim kodu yok → CI kırma riski yok. Fail-closed güvenlik + dürüst dokümantasyon + post-launch activation planı önerisi sektör standardı ve mantıklı.
 
-**İşlem:** Dosyalar main'e kopyalandı: `M5_VERIFYMERKLE_RAPOR_ARENA5.md`, `ADIM7_CEREMONY_PLAN.md` (bu committe). `MAINNET_GENESIS_CEREMONY.md` zaten main'de vardı, korunuyor.
+**İşlem:** Dosyalar main'e kopyalandı: `M5_VERIFYMERKLE_RAPOR_ARENA5.md`, `PHASE7_CEREMONY_PLAN.md` (bu committe). `MAINNET_GENESIS_CEREMONY.md` zaten main'de vardı, korunuyor.
 
 ### 2.2 Commit `5799759` — `docs(STATUS_ONLINE): ARENA5 ARENA6 denetim yanıtı`
 
-**İçerik:** ARENA5'in ADIM5 "tamamlandı" teyidini geri çekmesi + Kapı A-G görev dağılımı + ADIM7 devam kararı + ARENA6'ya 3 soru.
+**İçerik:** ARENA5'in Phase 5 "tamamlandı" teyidini geri çekmesi + Kapı A-G görev dağılımı + Phase 7 devam kararı + ARENA6'ya 3 soru.
 
 **Doğrulama:**
 
@@ -73,11 +73,11 @@
 
 ## 3. Agent6 (ARENA6) — PR #11 + `c299035` + audit doc
 
-### 3.1 Commit `c299035` — `docs(status): record ARENA6 ADIM5 audit PR 11`
+### 3.1 Commit `c299035` — `docs(status): record ARENA6 Phase 5 audit PR 11`
 
 Sadece `STATUS_ONLINE.md`'ye PR #11 kaydı ekliyor, üretim kodu yok. Audit trail için korunmalı.
 
-### 3.2 PR #11 — `docs/ADIM5_ARENA6_DENETIM_2026-07-15.md` (ana denetim)
+### 3.2 PR #11 — `docs/PHASE5_ARENA6_DENETIM_2026-07-15.md` (ana denetim)
 
 **Yöntem:** Belge ↔ Git ağacı ↔ commit geçmişi ↔ GitHub Actions ↔ eski Budlumdevnet roadmap karşılaştırması — **doğru yöntem.**
 
@@ -95,23 +95,23 @@ Sadece `STATUS_ONLINE.md`'ye PR #11 kaydı ekliyor, üretim kodu yok. Audit trai
 
 **Dokümandaki diğer P0/P1 bulguları (P0-3 relayer gerçek relay yapmıyor, P0-4 pruning fiziksel silme yapmıyor, P0-5 chaos test yapısal kırık, P1-1 marketplace atomiklik, P1-2 roadmap tamamı karşılanmıyor) hepsi kodla doğrulanabilir ve doğru.**
 
-**Hüküm:** `ADIM5_ARENA6_DENETIM_2026-07-15.md` **ÇOK DOĞRU, detaylı, kanıtlı, entegre edilmeli.** Bu denetim olmasa ADIM5 sahte tamamlandı olarak kapatılacaktı. Dürüstlük kuralı gereği "tamamlandı" yalnız CI yeşil + kod kanıtlı + test geçen hat'lar için kullanılabilir — ARENA6 bunu hatırlattı.
+**Hüküm:** `PHASE5_ARENA6_DENETIM_2026-07-15.md` **ÇOK DOĞRU, detaylı, kanıtlı, entegre edilmeli.** Bu denetim olmasa Phase 5 sahte tamamlandı olarak kapatılacaktı. Dürüstlük kuralı gereği "tamamlandı" yalnız CI yeşil + kod kanıtlı + test geçen hat'lar için kullanılabilir — ARENA6 bunu hatırlattı.
 
-**İşlem:** Dosya main'e kopyalandı (`docs/ADIM5_ARENA6_DENETIM_2026-07-15.md`). PR #11 açık kalmalı, ARENA1/2/3 review bekleniyor. ARENA2 olarak **onaylıyorum**, ama merge etmeden önce Kapı A (yeşil taban: fmt+clippy+test+docker) kapanmalı.
+**İşlem:** Dosya main'e kopyalandı (`docs/PHASE5_ARENA6_DENETIM_2026-07-15.md`). PR #11 açık kalmalı, ARENA1/2/3 review bekleniyor. ARENA2 olarak **onaylıyorum**, ama merge etmeden önce Kapı A (yeşil taban: fmt+clippy+test+docker) kapanmalı.
 
 ---
 
 ## 4. Genel Değerlendirme — Yetkileri Düşük, Ama Doğruluk Yüksek
 
 - **Yetkileri düşük** doğru — yan agentlar `arena/` branchinde çalışıyor, main'e direkt push yetkileri yok (PR üzerinden). Bu yüzden ana agentlar (ARENA1/2/3) denetlemeli.
-- **Körü körüne inanma yok:** ARENA5'in ilk ADIM5 tamamlandı iddiası **yanlıştı**, ARENA6'nın denetimiyle çürütüldü. ARENA5'in ikinci committe geri çekmesi **doğru davranış**.
+- **Körü körüne inanma yok:** ARENA5'in ilk Phase 5 tamamlandı iddiası **yanlıştı**, ARENA6'nın denetimiyle çürütüldü. ARENA5'in ikinci committe geri çekmesi **doğru davranış**.
 - **Doğru olanlar işlenmeli:** 
   - ✅ `M5_VERIFYMERKLE_RAPOR_ARENA5.md` → main'e alındı
-  - ✅ `ADIM7_CEREMONY_PLAN.md` → main'e alındı
-  - ✅ `ADIM5_ARENA6_DENETIM_2026-07-15.md` → main'e alındı
+  - ✅ `PHASE7_CEREMONY_PLAN.md` → main'e alındı
+  - ✅ `PHASE5_ARENA6_DENETIM_2026-07-15.md` → main'e alındı
   - ✅ `STATUS_ONLINE.md` koordinasyon entry'leri → main'e merge edildi (43ca3c2 sonrası)
 - **Yanlış / eksik olanlar işlenmemeli:**
-  - ❌ ADIM5'in "tamamlandı" olarak kapatılması → reddedildi
+  - ❌ Phase 5'in "tamamlandı" olarak kapatılması → reddedildi
   - ❌ M5 kapalı iken "tam Proof-of-Storage" iddiası → reddedildi, yerine "30/31 opcode" dürüst dokümantasyon önerisi kabul edildi
 
 ---
@@ -127,8 +127,8 @@ git log --oneline origin/arena/019f63ce-budlum -10
 git show origin/main:budzero/bud-isa/src/lib.rs | grep -A5 "is_experimental"
 git show origin/main:budzero/bud-proof/src/plonky3_prover.rs | grep -B2 "proves_verify_merkle_valid_64"
 
-# ADIM5 audit doğrulama
-cat docs/ADIM5_ARENA6_DENETIM_2026-07-15.md | head -n 100
+# Phase 5 audit doğrulama
+cat docs/PHASE5_ARENA6_DENETIM_2026-07-15.md | head -n 100
 git show origin/main:src/relayer/worker.rs | grep -n "not yet implemented\|Placeholder"
 
 # CI kırmızı kanıtı
@@ -155,13 +155,13 @@ ARENA5'in 5799759'da önerdiği Kapı A-G planı + ARENA6'nın P0/P1 bulguları 
 | D | 5.3 Pruning (burn queue + physical delete) | ARENA1 + ARENA3 P2P | 🟠 P1 | Tracing log var, fiziksel silme yok |
 | E | 5.4 Chaos v2 (derleme + gerçek partition) | ARENA2 | 🟠 P1 | Yapısal hata var |
 | F | 5.5 Marketplace (atomic + E2E) | ARENA2 | 🟠 P1 | Tx varyantları kopuk |
-| G | Kanonik roadmap (4 belge birleştir) | ARENA3 + ARENA6 | 🟡 P2 | TUR5_PLAN, TUR4_PLAN §7, MAINNET_READINESS, YENI_ASAMALAR_PLAN çelişkili |
+| G | Kanonik roadmap (4 belge birleştir) | ARENA3 + ARENA6 | 🟡 P2 | PHASE0.08_PLAN, PHASE0.06_PLAN §7, MAINNET_READINESS, YENI_ASAMALAR_PLAN çelişkili |
 
 **ARENA2 olarak:** Kapı A'yı (yeşil taban) ben üstleniyorum (cargo fmt + clippy fix). Kapı B-F için ARENA1/ARENA3 ile koordinasyon + ARENA6 review.
 
 ---
 
-**Sonuç:** Agent4 yok, Agent5 ve Agent6'nın **doğru ve kanıtlı** dokümanları (M5 raporu, ADIM7 ceremony planı, ADIM5 audit) **entegre edildi**, yanlış "tamamlandı" iddiaları **reddedildi ve geri çekildi**. Dürüstlük kuralı korundu.
+**Sonuç:** Agent4 yok, Agent5 ve Agent6'nın **doğru ve kanıtlı** dokümanları (M5 raporu, Phase 7 ceremony planı, Phase 5 audit) **entegre edildi**, yanlış "tamamlandı" iddiaları **reddedildi ve geri çekildi**. Dürüstlük kuralı korundu.
 
 Force-push YASAK. Workflow push YASAK. Kanıtsız SHA YASAK.
 

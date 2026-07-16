@@ -83,12 +83,12 @@ KABUL KRİTERLERİ:
 
 ## 4. Notlar
 
-- Tur 13.5 monorepo düzeninde bu workspace `budlum-core` tarafından `bud-isa`,
+- Phase 0.37 monorepo düzeninde bu workspace `budlum-core` tarafından `bud-isa`,
   `bud-vm`, `bud-proof` in-tree path crate'leri olarak tüketilir. Harici
   sibling checkout veya commit pin'i kullanma.
 - `budlum-core` tarafında permissionless registry ve kanonik `SlashingReport`
   evidence formatı uygulanmıştır (bkz. `budlum-core/src/registry/`).
-- **Permissionless prover entegrasyonu TAMAMLANDI** (Tur 4, bkz.
+- **Permissionless prover entegrasyonu TAMAMLANDI** (Phase 0.06, bkz.
   `budlum-core/src/prover/mod.rs`): Model B (tam açık gönderim). Kanıt
   `CrossDomainMessage` (kind=Custom("zk-proof")) ile core'a gider; core `bud_proof`
   ile NATIVE STARK doğrular; kayıt (`roles::PROVER`) sadece ödül için opsiyonel.

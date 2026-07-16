@@ -49,7 +49,7 @@
 - **RPC katmanı:** `RpcServer.storage: Arc<Mutex<StorageRegistry>>` — RPC-driven, process ömrü boyunca yaşar, vision §8.1 "accounting only"
 - **Chain katmanı:** `Blockchain.storage_registry: StorageRegistry` — on-chain, block production'da challenge issuance / slashing için kullanılır
 - **Senkronizasyon:** `storage_open_deal` hem chain hem RPC registry'ye senkronize ediyor (44fe0f0 fix), ama race condition riski var. `TODO(ARENA2): unify two registries into a single source of truth` (rpc/server.rs:1410)
-- **Kullanıcı kararı:** Q registry_unify = keep_dual — dual kalsın, sync yeterli. **Kabul**, ADIM4'te single source (chain) önerisi.
+- **Kullanıcı kararı:** Q registry_unify = keep_dual — dual kalsın, sync yeterli. **Kabul**, Phase 4'te single source (chain) önerisi.
 
 ### 2.2 storage_root Çoğul Tanımı — GlobalBlockHeader vs Block vs BNS
 
@@ -104,8 +104,8 @@
 | M3 | Ceremony seeds/bootnodes dummy | Template var, gerçek multiaddr yok | Kullanıcı + ARENA2 |
 | M5 | VerifyMerkle gate kapalı | `is_experimental=true`, `proves_verify_merkle_valid_64_depth` #[ignore] InvalidProof, matrix chain green ama full STARK red — aux CTL / Program LogUp şüpheli | ARENA2+ARENA3 (constraint-by-constraint) |
 | M6 | HSM vendor-native | Software fallback, hardware native yok | ARENA1/audit |
-| M7 | External audit/TLA+/Privacy/AI | Checklist/process only | ADIM5 |
-| M8 | BNS/.bud | Phase 6 full_impl done, ama fetch content → Bitswap glue tam değil | ADIM5+ |
+| M7 | External audit/TLA+/Privacy/AI | Checklist/process only | Phase 5 |
+| M8 | BNS/.bud | Phase 6 full_impl done, ama fetch content → Bitswap glue tam değil | Phase 5+ |
 | M9 | Archive drill CI | Doküman var, CI job yok (workflow push yasak, manuel) | ARENA2 |
 
 ---
@@ -115,7 +115,7 @@
 - [x] H1 `unwrap_or_default` → require+non-zero (ab984ea)
 - [x] TransactionType signing_hash + is_valid + gas + executor BnsSetStorage uyumu (bu rapor)
 - [x] BNS full_impl storage_root binding + lifecycle + fetch content RPC (2250795 + 0d6e9f0 + 1fefcc9)
-- [x] Docker smoke workflow (751d241) + scripts/adim3_smoke_rpc.sh + docker-smoke-mainnet.sh
+- [x] Docker smoke workflow (751d241) + scripts/phase3_smoke_rpc.sh + docker-smoke-mainnet.sh
 - [x] Genesis JSON + hash testleri (e012803 + 2364e00 + b024eb2)
 - [x] BlockHeader + GlobalBlockHeader storage_root V3 (4cf710d + 59bca30)
 - [x] BNS Phase 6 full_impl (0017e97 + d294111 + 7482dd7 + 61c3f2f)
@@ -126,9 +126,9 @@
 
 Boş kod olarak `todo!()` yok, `unimplemented!()` yok. `let _ = ` 70+ yerde var, çoğu storage/mempool error swallowing — en azından `tracing::warn!` eklenebilir, ama kritik değil. Bağdaşmamış yapı olarak **dual StorageRegistry** ve **BNS content_id vs storage_root çift alan** ve **TransactionType vs Executor uyumsuzluğu** vardı — sonuncusu bu raporla fixlendi, ilk ikisi bilinçli (keep_dual, full_impl) olarak dokümante ve kullanıcı onaylı.
 
-Mainnet için kalan kritik blocker: **VerifyMerkle Z-B gate + ceremony + HSM vendor-native + external audit**. ADIM3 büyük ölçüde kapandı, ADIM4 VerifyMerkle + BNS fetch glue + ADIM5 audit.
+Mainnet için kalan kritik blocker: **VerifyMerkle Z-B gate + ceremony + HSM vendor-native + external audit**. Phase 3 büyük ölçüde kapandı, Phase 4 VerifyMerkle + BNS fetch glue + Phase 5 audit.
 
-**Kanıt:** grep çıktıları yukarıda, `git log origin/main --oneline -10` → 0d6e9f0, 67da984 socialfi, 6eedd2d ZK debug, 2250795 BNS full_integration, 9387fb1 ADIM4 devralma
+**Kanıt:** grep çıktıları yukarıda, `git log origin/main --oneline -10` → 0d6e9f0, 67da984 socialfi, 6eedd2d ZK debug, 2250795 BNS full_integration, 9387fb1 Phase 4 devralma
 **Engel:** Yok. Force-push YASAK.
 
 Co-authored-by: ARENA3

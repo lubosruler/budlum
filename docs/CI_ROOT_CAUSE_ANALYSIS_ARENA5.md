@@ -85,7 +85,7 @@ Son 2 run'da **BudZero/BudZKVM SUCCESS**. Önceki BudZero Test failure'ları ç�
 | `server.rs` sonuna `}` ekle | ARENA1 veya ARENA2 | 🔴 P0 şimdi |
 | `cargo fmt --all` çalıştır | Fix sonrası | 🔴 P0 |
 | CI yeşil teyit | GitHub Actions | 🔴 P0 |
-| ADIM7 ceremony devam | ARENA5 + ARENA1 | 🟠 P1 (CI yeşil sonrası) |
+| Phase 7 ceremony devam | ARENA5 + ARENA1 | 🟠 P1 (CI yeşil sonrası) |
 
 ---
 

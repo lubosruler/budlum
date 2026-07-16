@@ -30,7 +30,7 @@ pub struct GenesisConfig {
 
     pub timestamp: u128,
 
-    /// Optional $BUD tokenomics (Tur 8/8b). When `Some`, genesis additionally
+    /// Optional $BUD tokenomics (Phase 0.14/8b). When `Some`, genesis additionally
     /// seeds the $BUD distribution accounts (Community/Liquidity/Ecosystem/Team/
     /// BurnReserve) and configures the on-chain burn-reserve address + team
     /// vesting schedule. Default `None` — plain genesis is unchanged.
@@ -74,7 +74,7 @@ impl GenesisConfig {
         self
     }
 
-    /// Enable $BUD tokenomics for this genesis (Tur 8b): the $BUD distribution
+    /// Enable $BUD tokenomics for this genesis (Phase 0.14b): the $BUD distribution
     /// accounts are seeded and the burn-reserve address + team vesting are
     /// configured on the resulting state. Uses reserved tokenomics addresses.
     /// Default genesis is unchanged unless this is explicitly called.
@@ -130,7 +130,7 @@ impl GenesisConfig {
     pub fn build_state(&self) -> AccountState {
         let mut state = AccountState::new();
         state.base_fee = self.base_fee;
-        // `block_reward` now lives under `state.tokenomics` (Tur 2 tokenomics
+        // `block_reward` now lives under `state.tokenomics` (Phase 0.02 tokenomics
         // refactor). The top-level `state.block_reward` field was removed.
         state.tokenomics.block_reward = self.block_reward;
 
@@ -143,7 +143,7 @@ impl GenesisConfig {
             state.add_validator(*validator, validator_stake);
         }
 
-        // $BUD tokenomics (Tur 8b): seed the distribution accounts and configure
+        // $BUD tokenomics (Phase 0.14b): seed the distribution accounts and configure
         // the on-chain burn-reserve address + team vesting so the timed burn and
         // vesting enforcement operate on the real chain state.
         if let Some(params) = &self.bud_tokenomics {
@@ -187,7 +187,7 @@ fn address(byte: u8) -> Address {
     Address::from([byte; 32])
 }
 
-// === MAINNET GENESIS — ADIM3 §3.1 ===
+// === MAINNET GENESIS — Phase 3 §3.1 ===
 
 /// Mainnet genesis configuration.
 ///
@@ -376,7 +376,7 @@ mod tests {
 
     #[test]
     fn test_mainnet_genesis_deterministic() {
-        // ADIM3 §3.1: mainnet genesis must be deterministic — same config → same hash
+        // Phase 3 §3.1: mainnet genesis must be deterministic — same config → same hash
         let cfg = GenesisConfig::for_network(Network::Mainnet);
         let g1 = cfg.build_genesis_block();
         let g2 = cfg.build_genesis_block();
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn test_mainnet_genesis_hash_distinct_from_testnet_devnet() {
-        // ADIM3 §3.1: distinct networks must produce distinct genesis hashes
+        // Phase 3 §3.1: distinct networks must produce distinct genesis hashes
         let mainnet = GenesisConfig::for_network(Network::Mainnet).build_genesis_block();
         let testnet = GenesisConfig::for_network(Network::Testnet).build_genesis_block();
         let devnet = GenesisConfig::for_network(Network::Devnet).build_genesis_block();
@@ -396,7 +396,7 @@ mod tests {
         assert_ne!(testnet.hash, devnet.hash);
     }
 
-    /// Load a checked-in network genesis JSON (ADIM3 §3.1).
+    /// Load a checked-in network genesis JSON (Phase 3 §3.1).
     fn load_genesis_json(relative: &str) -> GenesisConfig {
         let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(relative);
         let data = std::fs::read_to_string(&path)
@@ -482,7 +482,7 @@ mod tests {
     }
 }
 
-// === MAINNET GENESIS TESTS — ADIM3 §3.1 ===
+// === MAINNET GENESIS TESTS — Phase 3 §3.1 ===
 
 #[cfg(test)]
 mod mainnet_genesis_tests {

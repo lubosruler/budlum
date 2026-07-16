@@ -1,6 +1,6 @@
-//! Tur 15 §1.3 — Finality live-path son taraması.
+//! Phase 0.40 §1.3 — Finality live-path son taraması.
 //!
-//! Mevcut `finality_adversarial.rs` (12 test) Tur 13 + Tur 14 düzeltmelerini
+//! Mevcut `finality_adversarial.rs` (12 test) Phase 0.36 + Phase 0.38 düzeltmelerini
 //! (equivocation → slashing evidence, ingest-time imza doğrulama) kapsar.
 //! Bu dosya, **live-path pencerelerini** ve **dürüstlük sınırlarını** test
 //! eder — son taramada eksik kalan senaryolar.
@@ -20,11 +20,11 @@
 //! ## Yapmadıkları
 //!
 //! - Quorum / split-brain / byzantine gürültü: `finality_adversarial.rs`
-//!   bunları Tur 13'te kapsadı, regresyon DEĞİL.
+//!   bunları Phase 0.36'te kapsadı, regresyon DEĞİL.
 //! - Snapshot roundtrip: `equivocation_slashing_record_survives_snapshot_roundtrip`
-//!   bunu Tur 15 Görev 1'de kapsadı.
+//!   bunu Phase 0.40 Görev 1'de kapsadı.
 //! - Rate-limit invalid sig slashing: `repeated_invalid_signatures_trigger_slash`
-//!   Tur 15 Görev 2'de kapsadı.
+//!   Phase 0.40 Görev 2'de kapsadı.
 
 #![allow(clippy::needless_range_loop)]
 
