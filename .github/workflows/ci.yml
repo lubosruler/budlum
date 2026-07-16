@@ -49,11 +49,17 @@ jobs:
       - name: Test
         run: cargo test --lib --verbose 2>&1 | tee /tmp/libtests.log
       - name: Test rozeti tazeleme — main push + sayi degisimi (Phase 8.4/Q5)
-        # Loop guard ×3: (1) yalnız main push'ları, (2) sayı aynıysa push yok,
-        # (3) bot commit'i aynı sayıyı üretir → ikinci turda guard (2) durdurur.
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Loop guard ×3 + KIRMIZI KORUMASI: success() AÇIK zorunlu — step-level `if:`
+        # default success() kosulunu EZER (CI kanit: run a601dcf — ea27afd'nin KIRMIzI
+        # test koşusundan 519 rozeti yazdı; step-level if success() ezmeseydi atlanırdı).
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
+          # Çift koruma: logda failure izi varsa rozet yazma (success() pratikte engeller).
+          if grep -qE '[1-9][0-9]* failed' /tmp/libtests.log; then
+            echo "FAIL: test koşusunda failure varken rozet güncellenmez"
+            exit 1
+          fi
           N=$(grep -oE '[0-9]+ passed' /tmp/libtests.log | tail -1 | grep -oE '^[0-9]+')
           [ -n "$N" ] || { echo "FAIL: test sayisi parse edilemedi (kapi guvenilmez)"; exit 1; }
           CUR=$(grep -oE 'tests-[0-9]+%20lib' README.md | head -1 || true)
