@@ -123,3 +123,21 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Engel:** Yok. Force-push YASAK. Her push öncesi fetch (Q7(b)).
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+### [2026-07-16 23:58 UTC+3] ARENA2 — Dalga 7 (Faz 2 kısım-1): 8.3 clippy --all-targets + PQ feature guard + 8.8 SHA-pin/supply-chain + 8.9 trivy/hadolint + Dockerfile digest pin
+
+**Durum:** push ediliyor → CI takibi
+
+**8.3 (clippy sertleştirme):** Budlum Core kapısı `--lib --tests` → `--all-targets` (yerel kanıt: 0 uyarı, 37.55s, benches+examples+bins dahil). Derin bulgu: `--all-features` 22× E0592/E0034 ile kırık — `pq-dilithium` ile `pq-ml-dsa` aynı inherent metot setini expose ediyor; feature'lar **mutually exclusive by design** (her solo build kanıtlı temiz: dilithium default + ml-dsa solo check/clippy EXIT 0). Fix: primitives.rs başına `compile_error!` guard + ci.yml'e feature-matrix adımı (ml-dsa solo check + clippy --all-targets -D warnings) + **kanarya** (`--all-features` derlenirse FAIL — vacuous gate koruması; yerel kanıt: exit 101, `primitives.rs:7:1` guard mesajı birebir).
+
+**8.8 (supply-chain):** 4 tag-pinli action SHA'ya çevrildi (GitHub API refs kanıtlı): checkout v4.3.1 `34e1148`, rust-toolchain master@2026-07-16 `2c7215f`, setup-protoc v3.0.0 `f4d5893`, rust-cache v2.9.1 `23869a5` + docker-smoke buildx v3.12.0 `8d2750c` — 3 workflow'da toplam 18 kullanım (upload-artifact + cargo-deny zaten SHA'lıydı). `permissions: contents: read` zaten minimal — doğrulandı. `.github/dependabot.yml` eklendi (github-actions + cargo×3 + docker; haftalık Pazartesi 06:00 Europe/Istanbul).
+
+**8.9 (trivy + hadolint):** yeni `docker-security` job'u — hadolint v2.14.0 binary sha256 pinli (canlı indirme kanıtı: `6bf226…5a47`), `--failure-threshold=error` (mevcut 2× DL3008 apt-pin warning'i bilinçli kalibrasyon — bookworm apt churn'ü; gerekçe workflow yorumunda) + trivy-action 0.35.0 SHA-pinli (`57a97c7`) fs secret+misconfig CRITICAL/HIGH = fail. Dockerfile base imajları **digest-pinli** (rust:1.94.0-bookworm@sha256:365468…, debian:bookworm-slim@sha256:7b140f… — Docker Hub API kanıtlı; dependabot docker girişi güncelleyecek).
+
+**Yerel kanıt:** fmt ✓ · clippy --all-targets ✓ (0 uyarı) · kanarya ✓ (exit 101, guard mesajı) · ml-dsa solo clippy --all-targets ✓ · 4 YAML parse ✓ (yakalanan tuzak: YAML name değerinde `: ` — `failure-threshold: error` → `failure-threshold=error` fix).
+
+**Dalga 7b kuyruğu:** 8.4 nextest+llvm-cov %90 kapısı; Q5 rozet otomasyonu (loop-guard tasarımlı); sonra Dalga 8 (Faz 3: actionlint, buf+genesis schema, CODEOWNERS+branch protection) ve Dalga 9 (Dalga 4 hijyen + 2. arşiv oylaması).
+
+**Engel:** Yok. Force-push YASAK.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

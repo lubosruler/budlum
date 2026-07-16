@@ -1,3 +1,13 @@
+// Phase 8.3 (CI sertleştirme): `pq-dilithium` ile `pq-ml-dsa` aynı inherent
+// metot setini (generate/from_bytes/sign/verify/…) expose eder; ikisi birden
+// açılırsa 22× E0592/E0034 ile derleme kırılır. Mutually exclusive BY DESIGN:
+// tam olarak bir PQ imza backend'i seçilir. CI feature-matrix her solo build'i,
+// kanarya adımı da bu guard'ın ateşlendiğini kanıtlar (vacuous gate yok).
+#[cfg(all(feature = "pq-dilithium", feature = "pq-ml-dsa"))]
+compile_error!(
+    "features `pq-dilithium` and `pq-ml-dsa` are mutually exclusive; enable exactly one (Phase 8.3)"
+);
+
 use bls12_381::{G2Affine, G2Projective, Scalar};
 use ed25519_dalek::{
     Signature, Signer, SigningKey, Verifier, VerifyingKey, SECRET_KEY_LENGTH, SIGNATURE_LENGTH,

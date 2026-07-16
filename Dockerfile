@@ -2,7 +2,7 @@
 # Multi-stage build: builder → runtime
 
 # ── Stage 1: Builder ────────────────────────────────────────
-FROM rust:1.94.0-bookworm AS builder
+FROM rust:1.94.0-bookworm@sha256:365468470075493dc4583f47387001854321c5a8583ea9604b297e67f01c5a4f AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
@@ -25,7 +25,7 @@ RUN cargo build --release --locked && \
     cp target/release/budlum-core /usr/local/bin/budlum-core
 
 # ── Stage 2: Runtime ────────────────────────────────────────
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

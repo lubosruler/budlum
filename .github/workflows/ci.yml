@@ -14,21 +14,34 @@ jobs:
     name: Budlum Core
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
         with:
           toolchain: "1.94.0"
           components: clippy, rustfmt
       - name: Install protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@f4d5893b897028ff5739576ea0409746887fa536 # v3.0.0
         with:
           version: "29.x"
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
       - name: Format
         run: cargo fmt --all -- --check
       - name: Clippy
-        run: cargo clippy --lib --tests -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Feature matrix — pq-ml-dsa solo (Phase 8.3)
+        run: |
+          set -euo pipefail
+          cargo check --no-default-features --features pq-ml-dsa
+          cargo clippy --no-default-features --features pq-ml-dsa --all-targets -- -D warnings
+      - name: Feature canary — --all-features REDDEDILMELI (Phase 8.3)
+        run: |
+          set -euo pipefail
+          if cargo check --all-features 2>/dev/null; then
+            echo "HATA: --all-features derlendi -> compile_error guard yok (vacuous gate!)"
+            exit 1
+          fi
+          echo "Kanarya OK: --all-features beklendigi gibi compile_error ile rededildi (PQ backend'ler mutually exclusive)."
       - name: Test
         run: cargo test --lib --verbose
 
@@ -39,12 +52,12 @@ jobs:
       run:
         working-directory: budzero
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
         with:
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
         with:
           workspaces: budzero
       - name: Format
@@ -66,12 +79,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
         with:
           toolchain: "1.94.0"
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
       - name: cargo audit (CVE = fail)
         run: bash ./scripts/audit-deps.sh
       - name: SBOM üret (CycloneDX)
@@ -95,7 +108,7 @@ jobs:
           - { name: root, manifest: "./Cargo.toml" }
           - { name: budzero, manifest: "budzero/Cargo.toml" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: cargo deny check (advisories, bans, licenses, sources)
         uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
         with:
@@ -109,16 +122,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust (nightly — cargo-fuzz gereksinimi)
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
         with:
           toolchain: nightly
       - name: Install protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@f4d5893b897028ff5739576ea0409746887fa536 # v3.0.0
         with:
           version: "29.x"
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
         with:
           workspaces: fuzz
           shared-key: fuzz
@@ -155,7 +168,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
       - name: gitleaks v8.30.1 kur (sürüm + sha256 pinli)
@@ -196,19 +209,49 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
         with:
           toolchain: "1.94.0"
       - name: Install protoc
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@f4d5893b897028ff5739576ea0409746887fa536 # v3.0.0
         with:
           version: "29.x"
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
       - name: Statik tarama + kanarya
         run: |
           bash ./scripts/check-timing-safe.sh
           bash ./scripts/check-timing-safe.sh --self-test
       - name: Dudect-tarzı istatistiksel zamanlama testi
         run: cargo bench --bench timing_safe
+
+  docker-security:
+    # Phase 8.9: Dockerfile statik lint (hadolint) + repo fs trivy taramasi.
+    # hadolint binary surum+sha256 pinli (gitleaks deseni). DL3008 (apt surum
+    # pinleme) warning seviyesinde birakilir: bookworm apt churn'une karsi
+    # bilincli kalibrasyon — failure-threshold: error ile yalniz error+ FAIL.
+    name: Docker Security (trivy + hadolint) (Phase 8.9)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: hadolint v2.14.0 kur (surum + sha256 pinli)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o /tmp/hadolint \
+            https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-Linux-x86_64
+          echo "6bf226944684f56c84dd014e8b979d27425c0148f61b3bd99bcc6f39e9dc5a47  /tmp/hadolint" | sha256sum -c -
+          sudo install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
+          hadolint --version
+      - name: Dockerfile lint (failure-threshold=error)
+        run: hadolint --failure-threshold error Dockerfile
+      - name: Trivy fs taramasi (secret + misconfig; CRITICAL/HIGH = fail)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret,misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
