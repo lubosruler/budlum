@@ -312,7 +312,6 @@ pub trait BudlumApi {
     /// All `StorageDeal`s bound to a given `(manifest_id, shard_id)` pair.
     /// Used by clients that downloaded one shard and want to know which
     /// operators are also holding it.
-    /// operators are also holding it.
     #[method(name = "bud_storageGetDealsByShard")]
     async fn storage_get_deals_by_shard(
         &self,
@@ -439,4 +438,75 @@ pub trait BudlumApi {
     /// B.U.D. Gateway: Fetch raw content by BNS name (D-Web entry).
     #[method(name = "bud_gatewayFetchContent")]
     async fn gateway_fetch_content(&self, name: String) -> Result<String, ErrorObjectOwned>;
+
+    // --- B.U.D. SocialFi extended ---
+
+    /// Prepare an NFT burn transaction.
+    #[method(name = "bud_socialPrepareBurn")]
+    async fn social_prepare_burn(
+        &self,
+        owner: String,
+        nft_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Prepare an NFT boost transaction.
+    #[method(name = "bud_socialPrepareBoost")]
+    async fn social_prepare_boost(
+        &self,
+        booster: String,
+        nft_id: u64,
+        amount: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    // --- B.U.D. AI Data Marketplace ---
+
+    /// List all active data offers.
+    #[method(name = "bud_marketGetOffers")]
+    async fn market_get_offers(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Prepare a data offer transaction.
+    #[method(name = "bud_marketPrepareOffer")]
+    async fn market_prepare_offer(
+        &self,
+        seller: String,
+        cid: String,
+        price: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Prepare a data purchase transaction.
+    #[method(name = "bud_marketPreparePurchase")]
+    async fn market_prepare_purchase(
+        &self,
+        buyer: String,
+        offer_id: u64,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    // --- B.U.D. Hub ---
+
+    /// List all registered dApps.
+    #[method(name = "bud_hubGetApps")]
+    async fn hub_get_apps(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Prepare a dApp registration transaction.
+    #[method(name = "bud_hubPrepareRegister")]
+    async fn hub_prepare_register(
+        &self,
+        developer: String,
+        name: String,
+        category: crate::hub::types::AppCategory,
+        website_url: String,
+        manifest_id: Option<String>,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    // --- B.U.D. Universal Relayer ---
+
+    /// Prepare an external chain relay transaction.
+    #[method(name = "bud_relayerPrepareExternalTx")]
+    async fn relayer_prepare_external_tx(
+        &self,
+        from: String,
+        chain: crate::core::transaction::ExternalChain,
+        target_address: String,
+        payload: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
 }

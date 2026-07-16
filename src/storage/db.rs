@@ -962,6 +962,15 @@ impl Storage {
         tracing::info!("Repair complete. Re-indexed {} blocks", count);
         Ok(())
     }
+
+    /// Retrieve raw content bytes by ContentId.
+    /// Stub: content-addressed blob storage is not yet implemented (Tur 15 scope).
+    pub fn get_content(&self, _cid: &crate::storage::content_id::ContentId) -> std::io::Result<Vec<u8>> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Content-addressed blob storage not yet implemented (Tur 15 scope)",
+        ))
+    }
 }
 
 impl BlockchainStorage for Storage {

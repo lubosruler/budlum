@@ -4,7 +4,7 @@ use crate::core::address::Address;
 use crate::core::block::Block;
 use crate::core::transaction::Transaction;
 use crate::domain::storage_deal::{
-    RetrievalChallenge, RetrievalChallengeRequest, RetrievalResponse, StorageRegistry,
+    RetrievalChallenge, RetrievalChallengeRequest, RetrievalResponse, StorageDeal, StorageRegistry,
 };
 use crate::network::node::NodeClient;
 use crate::storage::content_id::ContentId;
@@ -626,6 +626,62 @@ fn text_response(status: StatusCode, body: &'static str) -> HttpResponse {
         .header("content-type", HeaderValue::from_static("text/plain"))
         .body(HttpBody::from(body))
         .expect("static RPC security response is valid")
+}
+
+fn parse_content_id(hex_str: &str) -> Result<ContentId, ErrorObjectOwned> {
+    let clean = hex_str.strip_prefix("0x").unwrap_or(hex_str);
+    let bytes = hex::decode(clean).map_err(|e| {
+        ErrorObjectOwned::owned(-32602, format!("Invalid ContentId hex: {e}"), None::<()>)
+    })?;
+    if bytes.len() != 32 {
+        return Err(ErrorObjectOwned::owned(
+            -32602,
+            "ContentId must be 32 bytes",
+            None::<()>,
+        ));
+    }
+    let mut arr = [0u8; 32];
+    arr.copy_from_slice(&bytes);
+    Ok(ContentId(arr))
+}
+
+fn storage_deal_to_json(deal: &StorageDeal) -> serde_json::Value {
+    serde_json::json!({
+        "dealId": deal.deal_id,
+        "domainId": deal.domain_id,
+        "manifestId": format!("0x{}", hex::encode(deal.manifest_id.0)),
+        "shardId": format!("0x{}", hex::encode(deal.shard_id.0)),
+        "operator": format!("0x{}", deal.operator.to_hex()),
+        "replicaIndex": deal.replica_index,
+        "startEpoch": deal.deal_start_epoch,
+        "endEpoch": deal.deal_end_epoch,
+        "status": format!("{:?}", deal.status),
+    })
+}
+
+fn retrieval_challenge_to_json(challenge: &RetrievalChallenge) -> serde_json::Value {
+    serde_json::json!({
+        "challengeId": challenge.challenge_id,
+        "dealId": challenge.deal_id,
+        "shardId": format!("0x{}", hex::encode(challenge.shard_id.0)),
+        "byteStart": challenge.byte_start,
+        "byteEnd": challenge.byte_end,
+        "challengeEpoch": challenge.challenge_epoch,
+        "deadlineEpoch": challenge.deadline_epoch,
+        "opener": format!("0x{}", challenge.opener.to_hex()),
+        "openerBond": challenge.opener_bond,
+    })
+}
+
+fn storage_economics_event_to_json(event: &crate::chain::blockchain::StorageEconomicsEvent) -> serde_json::Value {
+    serde_json::json!({
+        "epoch": event.epoch,
+        "dealId": event.deal_id,
+        "operator": format!("0x{}", event.operator.to_hex()),
+        "amount": event.amount,
+        "balanceEffect": event.balance_effect,
+        "kind": format!("{:?}", event.kind),
+    })
 }
 
 #[jsonrpsee::core::async_trait]
@@ -2032,7 +2088,7 @@ impl BudlumApiServer for RpcServer {
     async fn gateway_fetch_content(&self, name: String) -> Result<String, ErrorObjectOwned> {
         let gateway = crate::gateway::BudGateway::new(self.chain.clone(), None);
         let data = gateway.fetch_name_content(&name).await.map_err(|e| {
-            ErrorObjectOwned::owned(-32000, format!("Gateway resolution failed: e"), None::<()>)
+            ErrorObjectOwned::owned(-32000, format!("Gateway resolution failed: {e}"), None::<()>)
         })?;
         Ok(hex::encode(data))
     }
