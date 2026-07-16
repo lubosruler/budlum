@@ -3046,3 +3046,26 @@ Force-push YASAK.
 Co-authored-by: ARENA2 <arena2@budlum.ai>
 
 Force-push YASAK.
+
+### [2026-07-16 22:00 UTC+3] ARENA2 — Phase rename TAMAMLAMA: yetim-liste + terminoloji notu + paralel-oturum tutarlılık raporu
+
+**Durum:** push ediliyor → CI takibi → kullanıcı onayı bekleniyor
+**Kapsam:** dc91e31 (paralel ARENA2 rename) üzerine tamamlama düzeltmeleri.
+
+**ÖNEMLİ tutarlılık raporu (Aşama-2 kuralı işledi):**
+Push öncesi `git fetch` ile paralel bir ARENA2 oturumunun aynı rename görevini ÖNCE bitirdiği (dc91e31, 18:06 UTC) ve ARENA3'ün Phase 8 Faz 1 CI fix'lerini (810b69a..51204c2) üstüne koyduğu tespit edildi. Paralel commit'in kuralı kullanıcının BEŞ çapasını da (Tur1=0, Tur2=0.02; Tur10=0.30, Tur11=0.32, Tur12=0.34) aynı anda karşılayan PARÇALI formüldü: `t<10 → 0.02(t−1)`, `t≥10 → 0.30+0.02(t−10)`. Benim (bu oturumdaki) eş zamanlı taslağım tek-doğrusal `0.02×(N−1)` idi ve kullanıcının Tur10+ çapalarıyla ÇELİŞİYORDU → kanonik kabul: **parçalı formül**. Benim yerel taslak commit'lerim hiç push'lanmadan atıldı (history'de hiçbir şey yok); değerli ek parçaları bu ağaca cerrahi olarak işledim. İki eş zamanlı ARENA2 oturumu aynı kimliği imzalıyor — kullanıcıya raporlandı.
+
+**Aksiyon (tamamlama, 8 dosya):**
+1. Yetim numaralandırma listeleri (paylaşılan "Tur" öneki kaybolup yalın sayı kalanlar) parçalı formülle düzeltildi: README `(Phase 0.38/0.40/0.42+)`; AI_BIRLIGI `0.36/0.37/0.38/0.39/0.398` + `0.36/0.38/0.40`; DEVIR_RAPORU `0.36/0.37 sonrası`; ORG_ROADMAP_AUDIT `0.36/0.37/0.378/0.38` + `Revize 0.36/0.37/0.378`; PHASE0.378_GAP_MATRIX `0.41/0.43`; PHASE0.42_PLAN `0.40/0.42 planı`; 03_post_quantum `Phase 0.08/0.10`.
+2. docs/AI_BIRLIGI.md'ye 📌 2026-07-16 KANONİK KURAL notu (parçalı formül + çapalar + muafiyetler) işlendi — terminoloji artık tek yerde kanıtlı.
+3. ci.yml job adları `(8.x)` → `(Phase 8.x)` (5 job; budlum/budzero adları zaten sayısız).
+
+**Kanıt:** hedef dizgeler uzak ağaçta tek tek sayıldı (her biri x1); son yetim taraması `Phase [0-9.]+( / [0-9.]+)+` → kalan yalnızca DÜZELTİLMİŞ listeler + kasıtlı `Phase 3/4/5/6` (ADIM serisi); YAML lint OK. Exec modları uzak ağaçta sağlam (100755 ✓, snapshot yan etkisi yalnızca yereldi).
+
+**Sonraki adım:** Bu push + 6d5c45b (Faz 1 düzeltme turu 2) + 51204c2 (ARENA3 SBOM/fuzz fix'leri) için CI koşuları izlenecek; HEPSİ yeşilse kullanıcı onayı beklenecek. Onay sonrası Phase 8.9 Aşama-1 (iddia-vs-kanıt matrisi + 4 ceremony belgesi konsolidasyonu + HUB html araştırması) başlıyor. Not: docs/PHASE1_RAPOR.md ile docs/PHASE0.378_RAPOR.md aynı içeriğin kopyası (eski ADIM1_RAPOR ≡ TUR13_9_RAPOR kanıtlı, diff=0) → Phase 8.9 konsolidasyon adayı.
+
+**Engel:** Yok.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+Force-push YASAK.

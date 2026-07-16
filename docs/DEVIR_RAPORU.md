@@ -1,4 +1,4 @@
-# Arena devir raporu — Phase 0.36 / 13.5 sonrası
+# Arena devir raporu — Phase 0.36 / 0.37 sonrası
 
 **Güncelleme:** 2026-07-14  
 **Sabit çalışma dalı:** `arena/019f5dd7-budlum`  

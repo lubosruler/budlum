@@ -98,7 +98,7 @@ dilithium5::verify_detached_signature(&sig, message, &public_key)
 
 ### 2.3 Hibrit Katmanı (Mevcut Olmayan — Gelecek)
 
-**Sorun:** Finality BLS imzaları hâlâ **klasik** (BLS12-381). Phase 0.08/6 PQ imzayı QcBlob'a ekledi ama BLS'yi değiştirmedi. Bu, **hibrit olmayan** bir sistem yaratıyor:
+**Sorun:** Finality BLS imzaları hâlâ **klasik** (BLS12-381). Phase 0.08/0.10 PQ imzayı QcBlob'a ekledi ama BLS'yi değiştirmedi. Bu, **hibrit olmayan** bir sistem yaratıyor:
 - QcBlob **PQ güvenli** ✅
 - BLS finality **PQ güvenli değil** ⚠️
 

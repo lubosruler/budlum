@@ -100,7 +100,7 @@ Faz 3-6.
 - **Z-B gate:** BudZero ekibinin sorumluluğunda. Gate açılmadan B.U.D.
   Faz 3-6 yazılamaz.
 - **Vizyon değişikliği:** budlum-xyz/B.U.D. upstream güncellenirse
-  Phase 0.40/16 planı revize edilmeli.
+  Phase 0.40/0.42 planı revize edilmeli.
 
 ## Sonuç
 

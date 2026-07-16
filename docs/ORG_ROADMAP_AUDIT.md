@@ -1,4 +1,4 @@
-# budlum-xyz org roadmap denetimi → Phase 0.36 / 13.5 / 13.9 / 14
+# budlum-xyz org roadmap denetimi → Phase 0.36 / 0.37 / 0.378 / 0.38
 
 **Kaynak depolar (upstream org):**
 | Repo | URL | Rol |
@@ -203,7 +203,7 @@ implementasyonu (`ffb66e9`) + 7 storage RPC + 3-aktör E2E + 9 invariant
 
 ---
 
-## 5. Revize Phase 0.36 / 13.5 / 13.9 (org roadmap ile hizalı)
+## 5. Revize Phase 0.36 / 0.37 / 0.378 (org roadmap ile hizalı)
 
 ### Phase 0.36 — “ZK doğruluğu + her persona için aynı çekirdek”
 **Hedef:** User / Dev / Enterprise PoA aynı binary’de uyumlu config; ZK tarafında dürüst production sınırı.

@@ -144,7 +144,7 @@ Aligned with [budlum-xyz/Budlum](https://github.com/budlum-xyz/Budlum) Research 
 Bu tablo `budlum-xyz/Budlum` Research Roadmap + ch12 mainnet blockers
 maddelerinin durumunu gösterir. B.U.D. (Broad Universal Database) **bu
 tablodan bilinçli olarak hariç tutulmuştur** — ayrı turlarda
-(Phase 0.38/15/16+) takip edilir.
+(Phase 0.38/0.40/0.42+) takip edilir.
 
 | Madde (org) | Durum (lubosruler fork, 2026-07-15) | Adım |
 |-------------|--------------------------------------|-----|

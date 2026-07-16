@@ -6,13 +6,14 @@
 **Aktif Aşama:** **Phase 1** (eski adı: Phase 0.38 & Phase 0.39 `B.U.D. Broad Universal Database` Sunucu Sistemi)
 
 > **⚠️ KRİTİK TERMİNOLOJİ VE YOL HARİTASI DEĞİŞİKLİĞİ (2026-07-14):**
+> **📌 TERMİNOLOJİ KANONİK KURAL (2026-07-16, kullanıcı çapalarıyla):** İsimlendirme **Phase** sistemine sabitlendi. `ADIM1 = Phase 1` (ADIM serisi birebir: Phase 1..8, Phase 8.5, Phase 8.9...). Tur serisi, kullanıcının verdiği beş çapa noktasını (Tur1 = Phase 0, Tur2 = Phase 0.02; Tur10 = Phase 0.30, Tur11 = Phase 0.32, Tur12 = Phase 0.34) aynı anda karşılayan **parçalı formülle** taşındı: `t < 10 → Phase = 0.02 × (t − 1)` (Tur9 = 0.16, Tur9.5 = 0.17); `t ≥ 10 → Phase = 0.30 + 0.02 × (t − 10)` (Tur13.9 = 0.378, Tur15 = 0.40, Tur25 = 0.60). Yarım adımlar aradaki ondalıklara serilir. Muafiyet: küçük harf "tur" (raunt anlamı) ve backtick içindeki tarihsel branch adları (`tur15-pr-5` vb.). Uygulama: ARENA2 repo-genel rename (dc91e31) + tamamlama düzeltmeleri (yetim numaralandırma listeleri + bu not).
 > 1. **"Tur" Söyleminin Kaldırılması:** Kullanıcı talimatı ile projedeki tüm yeni çalışma aşamaları artık "Tur" (`Phase 0.38`, `Phase 0.40` vb.) değil, **"PHASE"** olarak adlandırılacaktır. Bu kapsamda ilk ana adımımız **Phase 1** (`Phase 1 = eski Phase 0.38 + Phase 0.39 B.U.D. Server Sistemi iskeleti + 7 RPC + 3-aktör E2E`) olarak tanımlanmıştır.
 > 2. **`budlum-xyz` Organizasyon Yol Haritası Senkronizasyonu:** Eski temel kodlamamız olan `github.com/budlum-xyz` organizasyonundaki depolarda (`Budlum`, `BudZero`, `B.U.D.`, `budlum.com`) yer alan yol haritası tam olarak kapsanmaktadır:
 >    - **`budlum-xyz/B.U.D.`** vizyonu (`BUD_Merkeziyetsiz_Depolama_Vizyonu.md`) kapsamındaki Faz 1 (ConsensusKind::StorageAttestation), Faz 2 (ContentId & ContentManifest), ve Faz 5 (StorageDeal, RetrievalChallenge, StorageRegistry) **Phase 1** olarak `src/domain/` ve `src/storage/` altında kodlanmış ve `main` branch HEAD (`39e30c7`) commitine sabitlenmiştir.
 
 > **Bu dosya üç şeyi birden taşır:**
 > 1. **AI üyeleri tablosu** — kim var, kimin rolü ne, boş slotlar.
-> 2. **Tarihsel Tur/Adım özetleri** — Phase 0.36 / 13.5 / 14 / 14.5 / 14.9 (DEVIR_RAPORU'nun
+> 2. **Tarihsel Tur/Adım özetleri** — Phase 0.36 / 0.37 / 0.38 / 0.39 / 0.398 (DEVIR_RAPORU'nun
 >    tamamı, hiçbir şey atlanmadan).
 > 3. **Aktif iş akışı** — kim neyi yazar, kim onaylar, kim denetler.
 >
@@ -33,7 +34,7 @@ Bu tablo **N AI'lı** çalışmayı destekler. Yeni AI eklendikçe satır ekleni
 |---|-----------------|-----|--------------|------------|------------------|-------|
 | 1 | `arena-agent[bot]` (`ARENA1`) | Arena AI (Claude Fable 5 / Arena 5) | **Kod Yazarı & Phase 1 Altyapısı**. PR #6 (`arena/019f5f77-budlum`) ve PR #9 (`arena/phase1-sync`) kod stabilizasyonu. | Rust kodu (`budlum-core`), RPC, E2E invariantları ve `finality_live_path.rs` test seti bakımı. | `STATUS_ONLINE.md`, `ARENA_AI.md`, `CLAUDE.md` | 🟢 aktif |
 | 2 | `ARENA2` | Arena AI (Arena 5) | **Denetçi & Roadmap Doğrulayıcı**. Phase 1 (eski Phase 0.38) kapanış denetimi ve kayıp iş tespiti. | `ORG_ROADMAP_AUDIT.md` doğrulama, commit history takibi (`git log`), borç/eksik iş tespiti. | `STATUS_ONLINE.md`, `ORG_ROADMAP_AUDIT.md` | 🟢 aktif |
-| 3 | `ARENA3` (me) | Arena AI (Arena 5) | **Kayıp/Uçmuş Commit Geri Getirici & Çekirdek Kodlayıcı**. Force-push veya revert ile kaybolan/boşalan commit'leri (`tur15-pr-5 ConsensusStateV2`, `pr-6 BLS/PQ HSM`, vb.) sırayla hayata getirmek ve kodlamak. | `ARENA1` ve `ARENA2` ile görev dağılımı yaparak ortak commit (`Co-authored-by`) oluşturmak, Phase 0.36/14/15 kayıp paketlerini sırayla kodlamak + `STATUS_ONLINE.md` müzakeresi. | `STATUS_ONLINE.md` (`main` branşı), `ARENA_AI.md`, `CLAUDE.md` | 🟢 aktif |
+| 3 | `ARENA3` (me) | Arena AI (Arena 5) | **Kayıp/Uçmuş Commit Geri Getirici & Çekirdek Kodlayıcı**. Force-push veya revert ile kaybolan/boşalan commit'leri (`tur15-pr-5 ConsensusStateV2`, `pr-6 BLS/PQ HSM`, vb.) sırayla hayata getirmek ve kodlamak. | `ARENA1` ve `ARENA2` ile görev dağılımı yaparak ortak commit (`Co-authored-by`) oluşturmak, Phase 0.36/0.38/0.40 kayıp paketlerini sırayla kodlamak + `STATUS_ONLINE.md` müzakeresi. | `STATUS_ONLINE.md` (`main` branşı), `ARENA_AI.md`, `CLAUDE.md` | 🟢 aktif |
 | 4 | (gelecek) | (TBD) | **Kullanıcı kararına göre** — örn. harici audit reviewer, Phase 2 (eski Phase 0.40) release manager, BNS/.bud uzmanı. | (TBD) | (TBD) | ⏳ boş slot |
 
 **Handle listesi (PR yorumlarından / commit co-author'dan kanıtlanır):**
