@@ -410,8 +410,10 @@ impl Transaction {
                     println!("Contract call TX amount must be 0");
                     return false;
                 }
-                if self.data.is_empty() {
-                    println!("Contract call TX data must be non-empty BudZKVM bytecode");
+                if self.data.is_empty() || !self.data.len().is_multiple_of(8) {
+                    println!(
+                        "Contract call TX data must be non-empty BudZKVM bytecode (multiple of 8)"
+                    );
                     return false;
                 }
             }
