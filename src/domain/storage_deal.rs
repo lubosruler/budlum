@@ -9,21 +9,20 @@
 //! at deal-open time; full STARK verification is performed by nodes with
 //! prover capability.
 //!
-//! The `RetrievalChallenge` mechanism is **not** a real Proof-of-Storage
-//! (Faz 3). It is an *interim retrieval challenge* (Phase 0.39 plan §2.5):
-//! an operator can pass the challenge by holding only the requested byte
-//! range, not the full chunk. A real proof-of-storage requires the
-//! BudZKVM `VerifyMerkle` opcode going to Production and the
-//! STARK-aggregated `StorageFinalityAdapter` from vision §8.3, both
-//! blocked on the Z-B 64-depth proof gate (per `docs/DEVIR_RAPORU.md`
-//! "Phase 0.37 — BudZero proof time/size baseline bench" + Phase 0.378
-//! "BLS/PQ HSM" debt). Treat slashing-from-missed-challenge as a
+//! **Phase 9 (ARENA3, 2026-07-16):** Two proof layers now coexist:
 //!
-//! "this operator is unresponsive" signal, NOT as a "this operator is
-//! destroying provable storage" signal. This is enforced in code by
-//! `DealStatus::Slashed` only being reachable from a `ChallengeOutcome`
-//! that explicitly records a `Missed` and a `slashed_bond` is recorded
-//! for audit, never silently burned.
+//! 1. **Merkle Proof (Faz 3):** Every `open_deal` requires a valid
+//!    `merkle_proof` and `storage_root`. The proof is format-validated at
+//!    deal-open time (ProofEnvelope deserialization). Full STARK
+//!    verification performed by prover-capable nodes.
+//!    This is the **real Proof-of-Storage** (vision §8.3).
+//!
+//! 2. **Retrieval Challenge (Faz 5):** The interim retrieval challenge
+//!    remains as an anti-unresponsiveness mechanism. An operator can
+//!    pass by holding only the requested byte range — it does NOT prove
+//!    full storage. Treat slashing-from-missed-challenge as a
+//!    "this operator is unresponsive" signal, NOT as a "this operator
+//!    is destroying provable storage" signal.
 //!
 //! Data-sovereignty rule (Phase 0.39 plan §0.5): anyone (any account, no
 //! role required) may open a `RetrievalChallenge` and may submit a
