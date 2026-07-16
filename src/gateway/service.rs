@@ -40,7 +40,7 @@ impl BudGateway {
 
         // 3. Local storage lookup (cached content)
         if let Some(ref storage) = self.storage {
-            if let Ok(Some(chunk)) = storage.get_content(&cid) {
+            if let Ok(chunk) = storage.get_content(&cid) {
                 return Ok(chunk);
             }
         }
