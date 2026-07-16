@@ -3,6 +3,8 @@ use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
 use crate::error::{BudlumError, BudlumResult};
 use crate::execution::zkvm::{ZkVmExecutor, DEFAULT_CONTRACT_GAS_LIMIT};
+use serde_json;
+use bincode;
 
 pub struct Executor;
 
