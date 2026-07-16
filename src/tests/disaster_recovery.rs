@@ -7,6 +7,7 @@ mod tests {
     use crate::storage::db::Storage;
     use std::sync::Arc;
     use tempfile::tempdir;
+    use tracing::info;
 
     #[tokio::test]
     async fn test_chaos_v2_disaster_recovery_full_state() {
