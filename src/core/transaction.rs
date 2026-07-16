@@ -331,13 +331,12 @@ impl Transaction {
         if self.from == Address::zero() && self.to == Address::zero() && self.signature.is_none() {
             return true;
         }
-        // Accept unsigned transactions with valid hash (system/test txs)
-        if self.signature.is_none() {
-            return true;
-        }
         let signature = match &self.signature {
             Some(s) => s,
-            None => return false,
+            None => {
+                println!("TX has no signature");
+                return false;
+            }
         };
         let public_key = &self.from.0;
         let signing_hash = self.signing_hash();
