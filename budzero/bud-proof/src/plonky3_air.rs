@@ -1122,7 +1122,8 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             // as Program CTL). The trace_matrix correctly skips register events
             // for expansion rows, so the CPU side must match.
             let is_expand_ext_reg: AB::ExprEF = cur[COL_VM_MERKLE_IS_EXPAND].into();
-            let is_reg_active: AB::ExprEF = is_real_op_ext.clone() * (AB::ExprEF::ONE - is_expand_ext_reg);
+            let is_reg_active: AB::ExprEF =
+                is_real_op_ext.clone() * (AB::ExprEF::ONE - is_expand_ext_reg);
             builder.when_transition().assert_zero_ext(
                 (s_reg_nxt.clone() - s_reg_cur.clone()) * d_total
                     - (is_reg_active * (d_rs1 + d_rs2 + d_rd) - r_active_ext * d_reg),
