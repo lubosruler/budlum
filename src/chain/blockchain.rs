@@ -2307,6 +2307,18 @@ impl Blockchain {
             block.producer.as_ref(),
         )
         .map_err(|e| format!("Failed to apply block: {e}"))?;
+        // Mint block reward to the producer (Tur 8 tokenomics)
+        if let Some(producer) = block.producer.as_ref() {
+            let reward = next_state.tokenomics.block_reward;
+            if reward > 0 {
+                let supply = next_state.circulating_supply();
+                let cap = crate::tokenomics::BUD_TOTAL_SUPPLY as u128;
+                let actual = reward.min((cap.saturating_sub(supply)) as u64);
+                if actual > 0 {
+                    next_state.add_balance(producer, actual);
+                }
+            }
+        }
         Self::apply_system_effects(&mut next_state, block);
         Ok(next_state)
     }

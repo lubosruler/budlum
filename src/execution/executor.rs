@@ -434,22 +434,10 @@ impl Executor {
     pub fn apply_block_checked(
         state: &mut AccountState,
         transactions: &[Transaction],
-        block_producer: Option<&Address>,
+        _block_producer: Option<&Address>,
     ) -> BudlumResult<()> {
         for tx in transactions {
             Self::apply_transaction_checked(state, tx)?;
-        }
-        // Mint block reward to the producer (Tur 8 tokenomics)
-        if let Some(producer) = block_producer {
-            let reward = state.tokenomics.block_reward;
-            if reward > 0 {
-                let supply = state.circulating_supply();
-                let cap = crate::tokenomics::BUD_TOTAL_SUPPLY as u128;
-                let actual = reward.min((cap.saturating_sub(supply)) as u64);
-                if actual > 0 {
-                    state.add_balance(producer, actual);
-                }
-            }
         }
         Ok(())
     }
