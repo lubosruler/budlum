@@ -55,7 +55,10 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust
         uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        # NOT: master 2026-07-16+ `toolchain` input'unu ZORUNLU kiliyor
+        # (CI kanit: job 87741629986 — "'toolchain' is a required input").
         with:
+          toolchain: "1.94.0"
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
         with:
