@@ -3046,3 +3046,36 @@ Force-push YASAK.
 Co-authored-by: ARENA2 <arena2@budlum.ai>
 
 Force-push YASAK.
+
+### [2026-07-16 21:45 UTC+3] ARENA1 — PHASE 8 FAZ 1 KIRMIZI CI DÜZELTME TURU (root-cause kanıtlı)
+
+**Durum:** push aşaması (push sonrası CI takibi → kullanıcı onayı bekleme modu)
+**Kapsam:** main HEAD `dc91e31` kırmızı CI (run #728 ve önceki #725-727 — Faz 1 push'undan beri SİSTEMATİK kırmızı, flaky DEĞİL) — düzeltme turu (kural: push kırmızıysa otomatik düzeltme evresi)
+**Claim:** Bu düzeltme turu ARENA1'de (üst üste binme olmasın). Phase 8 Faz 2 (8.3/8.4/8.8/8.9-container) ve Faz 3 (8.10-8.12) henüz claim EDİLMEDİ — plan soruları kullanıcıda.
+
+**Root-cause 1 — Dependency Audit + SBOM (8.1) / "SBOM üret (CycloneDX)" adımı:**
+- Kanıt (run #728, job 87702896883 log): `error: unexpected argument '--output-file' found` (exit 2).
+- Neden: `scripts/generate-sbom.sh`, cargo-cyclonedx 0.5.9 CLI'ında VAR OLMAYAN `--output-file` bayrağını çağırıyordu. 0.5.x'te çıktı dosyası crate manifest dizinine `--override-filename <ad>` ile yazılıyor; verilen ismin TAMAMI + format uzantısı kullanılıyor ("sbom.cdx" + json → `sbom.cdx.json`). Eski `--override-filename ""` da ek risk taşıyordu.
+- Fix: `--override-filename "sbom.cdx" --spec-version 1.5` (spec 1.5 → üretilen BOM `specVersion` alanını SBOM.md beyanıyla hizalar; Phase 8.5 §8 doküman-kod tutarlılığı). Araç script'te `0.5.9`'a pinlendi (CLI drift koruması, tedarik zinciri determinizmi).
+
+**Root-cause 2 — Fuzz Quick (8.5) / "Her target 90 saniye fuzz" adımı:**
+- Kanıt (run #728, job 87702896880 log): adım başlar başlamaz (~26 ms) `Error: manifest /home/runner/work/budlum/budlum/fuzz/Cargo.toml does not look like a cargo-fuzz manifest. Add following lines to override: [package.metadata] cargo-fuzz = true` (exit 1).
+- Neden: cargo-fuzz 0.13.x, fuzz crate manifestinde `[package.metadata] cargo-fuzz = true` ZORUNLULUĞU getirdi; `fuzz/Cargo.toml`'da yoktu. Crash ya da build kırılması DEĞİL — koşu, derleme aşamasına hiç geçemiyordu.
+- Fix: `fuzz/Cargo.toml`'a `[package.metadata]\ncargo-fuzz = true` eklendi (satır içi yorumla neden-sonuç + CI kanıt referansı).
+
+**Hijyen:** `.gitignore`'a `sbom.cdx.json` eklendi (CI artifact'ı; yanlışlıkla commit riskini kapatır).
+
+**Kanıt (yerel, bu oturum, tek komut tekrarlanabilir):**
+- `cargo +nightly fuzz list` → 5 target LİSTELENDİ (block_deserialize, consensus_validate, fuzz_blockchain_serialize, snapshot_deserialize, transaction_deserialize) → manifest reddi GİTTİ. Araç sürümleri CI ile birebir: cargo-fuzz v0.13.2, rustc 1.99.0-nightly (d0babd8b6, 2026-07-15).
+- `./scripts/generate-sbom.sh` → `sbom.cdx.json` repo kökünde üretildi, JSON parse PASS, `specVersion: 1.5`, `components: 422`, ~535 KB. Pin mantığı doğrulandı (ikinci koşu reinstall'ü atladı).
+- `bash -n` PASS; workflow YAML dokunulmadı; Rust kodu DEĞİŞMEDİ → fmt/clippy/test gate'leri etkilenmez.
+
+**Sandbox sınırı (dürüst kapsam):** 2 CPU / 1 GB RAM + protoc yok → budlum-core'un tam ASAN fuzz build'i yerelde koşulamadı; build+koşu doğrulaması CI fuzz-quick job'ına devredildi. Risk: nightly drift derleme kırabilir — CI'da görünür olur (geçmiş başarı: eski nightly'de derleme kanıtlıydı).
+
+**Sonraki adım:** branch push (`arena/arena1-p8fix1-budlum`) + PR açılacak → CI takibi (8.1 SBOM + 8.5 fuzz adımlarının yeşili şart) → kullanıcı onayı BEKLENİYOR.
+
+**Engel:** Yok. Force-push YASAK. Workflow push YASAK (bu turda workflow dosyası DEĞİŞMEDİ).
+
+**Co-authored-by:** ARENA1 <arena1@budlum.ai>
+
+Force-push YASAK.

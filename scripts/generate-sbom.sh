@@ -19,15 +19,28 @@ cd "$REPO_ROOT"
 
 echo "[generate-sbom] SBOM üretimi başlatılıyor..."
 
-# 1. cargo-cyclonedx yükle (yoksa)
-if ! command -v cargo-cyclonedx >/dev/null 2>&1; then
-    echo "[generate-sbom] cargo-cyclonedx yükleniyor..."
-    cargo install --locked cargo-cyclonedx
+# 1. cargo-cyclonedx yükle (yoksa veya sürüm pinli değilse).
+# Sürüm pinli: CLI bayrakları sürümler arası değişebiliyor (aşağıdaki not),
+# kapının deterministik kalması için pin ZORUNLU.
+CYCLONEDX_VERSION="0.5.9"
+if ! command -v cargo-cyclonedx >/dev/null 2>&1 \
+    || ! cargo cyclonedx --version 2>/dev/null | grep -q "$CYCLONEDX_VERSION"; then
+    echo "[generate-sbom] cargo-cyclonedx $CYCLONEDX_VERSION (pinli) yükleniyor..."
+    cargo install --locked cargo-cyclonedx --version "$CYCLONEDX_VERSION"
 fi
 
 # 2. SBOM üret
+# Not: cargo-cyclonedx 0.5.x CLI'sında `--output-file` bayrağı YOKTUR
+# (main CI run #728: "error: unexpected argument '--output-file' found",
+# exit 2). Çıktı, crate'in manifest dizinine
+# `--override-filename <ad>` ile verilen ismin TAMAMI + format uzantısı
+# olarak yazılır ("sbom.cdx" + json → "sbom.cdx.json"). ci.yml'deki
+# artifact adımının beklediği yol budur (path: sbom.cdx.json).
 SBOM_FILE="$REPO_ROOT/sbom.cdx.json"
-cargo cyclonedx --format json --output-file "$SBOM_FILE" --override-filename ""
+rm -f "$SBOM_FILE"
+# --spec-version 1.5: üretilen BOM'un gerçek specVersion alanını SBOM.md'deki
+# "CycloneDX 1.5" beyanıyla hizalar (doküman-kod tutarlılık kuralı, Phase 8.5 §8).
+cargo cyclonedx --format json --override-filename "sbom.cdx" --spec-version 1.5
 
 # 3. JSON validasyon
 if ! python3 -c "import json; json.load(open('$SBOM_FILE'))" 2>/dev/null; then

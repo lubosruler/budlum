@@ -5,6 +5,13 @@ edition = "2021"
 rust-version = "1.94.0"
 publish = false
 
+# cargo-fuzz >= 0.13, fuzz crate manifestlerini bu metadata ile doğrular.
+# Eksikse `cargo fuzz run` anında çıkar:
+#   "manifest .../fuzz/Cargo.toml does not look like a cargo-fuzz manifest"
+# (main CI run #728 kanıtı). Bu satır kapının çalışması için ZORUNLUDUR.
+[package.metadata]
+cargo-fuzz = true
+
 # Fuzz harness'leri. CI'da uzun fuzz run çalıştırılmaz; Phase 2 §1.7 sadece
 # setup/build edilebilir target setini teslim eder.
 # Manuel run: `cargo +nightly fuzz run <target>`.
