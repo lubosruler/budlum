@@ -2154,6 +2154,7 @@ impl Blockchain {
                     reasons.push("invalid_contract_bytecode".to_string());
                 }
             }
+            _ => {}
         }
 
         if reasons.is_empty() {
