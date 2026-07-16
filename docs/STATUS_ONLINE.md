@@ -141,3 +141,21 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Engel:** Yok. Force-push YASAK.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+### [2026-07-17 00:28 UTC+3] ARENA2 — Dalga 7b (Faz 2 kısım-2): 8.4 coverage ratchet (%64.00 baseline, kanıtlı) + Q5 rozet otomasyonu
+
+**Durum:** push ediliyor → CI takibi
+
+**Kullanıcı kararları:** Q-7b1(a) ratchet/baseline · Q-7b2(a) CI self-commit.
+
+**8.4 (nextest + llvm-cov):** `coverage` job'u eklendi — llvm-cov v0.8.7 + nextest 0.9.140 **sha256 pinli** (llvm-cov: canlı indirme `9a75fe29…9168` iki kez tutarlı; nextest: resmi `.sha256` asset ile birebir `4ee9aaa0…c9a3`). **Baseline kanıtı (2026-07-17, `ca668f8` worktree):** `cargo llvm-cov nextest --lib` → **lines %64.15 (14493/22594)** + functions %54.89, **531/531 PASS (60.46s)** → eşik `.github/coverage-baseline.txt` = **64.00**. Ratchet kuralı: yalnız bilinçli PR'la yükselir (sprint +%2, tavan %90); düşürmek CI gevşetme ihlali. `scripts/check-coverage.sh` — vacuous-gate kanaryalı (`--self-test`: %0 coverage FAIL, %100 PASS — yerel kanıt OK).
+
+**Q5 (rozet otomasyonu):** Budlum Core job'una rozet step'i — Test adımı tee'lenir, `<N> passed` parse edilir, README `tests-N%20lib` rozeti değişim varsa `budlum-ci[bot]` self-commit'iyle push'lanır. **Loop guard ×3:** (1) yalnız main push, (2) sayı aynıysa push yok, (3) bot commit'i aynı sayıyı üretir → ikinci turda (2) durdurur. `[skip ci]` bilerek YOK — ekstra CI turu dürüst maliyet. Job-level `permissions: contents: write` yalnız Budlum Core'da; diğer job'lar global read'te kalır. Parse başarısızsa step FAIL (güvenilmez kapı yok). README:119 tazeleme notu otomasyonu yansıtacak şekilde güncellendi.
+
+**ca668f8 kapanışı:** 8/9 ✅ (BudZero ARENA1/3 fix'leriyle yeşil; son okumada yalnız Fuzz Quick koşuyordu).
+
+**Sıradakiler:** Dalga 8 (Faz 3: 8.10 actionlint, 8.11 buf+genesis schema, 8.12 CODEOWNERS+branch protection API) → Dalga 9 (Dalga 4 hijyen + 2. arşiv oylaması). Dependabot notu: `tower-0.5.3` ve `secrecy-0.10.3` PR'ları docker-smoke'ta kırık (fix'siz merge yok); `tokio-1.52.4` ✅, `checkout-7.0.0` major değerlendirme bekliyor.
+
+**Engel:** Yok. Force-push YASAK.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

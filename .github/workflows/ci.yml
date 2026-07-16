@@ -13,6 +13,10 @@ jobs:
   budlum:
     name: Budlum Core
     runs-on: ubuntu-latest
+    # Rozet self-commit'i (Q5, loop guard'lı) yalnız bu job'da write ister;
+    # diğer tüm job'lar global minimalde (contents: read) kalır.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust
@@ -43,7 +47,30 @@ jobs:
           fi
           echo "Kanarya OK: --all-features beklendigi gibi compile_error ile rededildi (PQ backend'ler mutually exclusive)."
       - name: Test
-        run: cargo test --lib --verbose
+        run: cargo test --lib --verbose 2>&1 | tee /tmp/libtests.log
+      - name: Test rozeti tazeleme — main push + sayi degisimi (Phase 8.4/Q5)
+        # Loop guard ×3: (1) yalnız main push'ları, (2) sayı aynıysa push yok,
+        # (3) bot commit'i aynı sayıyı üretir → ikinci turda guard (2) durdurur.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          N=$(grep -oE '[0-9]+ passed' /tmp/libtests.log | tail -1 | grep -oE '^[0-9]+')
+          [ -n "$N" ] || { echo "FAIL: test sayisi parse edilemedi (kapi guvenilmez)"; exit 1; }
+          CUR=$(grep -oE 'tests-[0-9]+%20lib' README.md | head -1 || true)
+          echo "rozet: $CUR -> tests-${N}%20lib"
+          if [ "$CUR" = "tests-${N}%20lib" ]; then
+            echo "ROZET GUNCEL — push yok (loop guard calisti)"
+            exit 0
+          fi
+          sed -i -E "s/tests-[0-9]+%20lib/tests-${N}%20lib/" README.md
+          if ! git diff --quiet README.md; then
+            git config user.name "budlum-ci[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore(badge): tests rozeti -> ${N} lib (CI kanitli, ${GITHUB_SHA:0:7})"
+            git push
+            echo "rozet push'landi: $N"
+          fi
 
   budzero:
     name: BudZero / BudZKVM
@@ -258,3 +285,51 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           ignore-unfixed: true
+
+  coverage:
+    # Phase 8.4: nextest + llvm-cov, ratchet kapisi (Q-7b1(a)).
+    # Basline kaniti 2026-07-17: lines 64.15% (14493/22594), 531/531 PASS.
+    # Araclar surum+sha256 pinli (nextest resmi .sha256 asset ile birebir dogrulanmis).
+    name: Coverage (nextest + llvm-cov, ratchet) (Phase 8.4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+          components: llvm-tools-preview
+      - name: Install protoc
+        uses: arduino/setup-protoc@f4d5893b897028ff5739576ea0409746887fa536 # v3.0.0
+        with:
+          version: "29.x"
+      - uses: Swatinem/rust-cache@23869a5bd66c73db3c0ac40331f3206eb23791dc # v2.9.1
+      - name: cargo-llvm-cov v0.8.7 + nextest 0.9.140 kur (sha256 pinli)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o /tmp/clcov.tar.gz \
+            https://github.com/taiki-e/cargo-llvm-cov/releases/download/v0.8.7/cargo-llvm-cov-x86_64-unknown-linux-gnu.tar.gz
+          echo "9a75fe29538d3800b3da57f6f6efb64cba5c720a257bf0cb8b51f39d495a9168  /tmp/clcov.tar.gz" | sha256sum -c -
+          cd /tmp
+          curl -sSfLO https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.140/cargo-nextest-0.9.140-x86_64-unknown-linux-gnu.tar.gz
+          curl -sSfLO https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.140/cargo-nextest-0.9.140-x86_64-unknown-linux-gnu.sha256
+          sha256sum -c cargo-nextest-0.9.140-x86_64-unknown-linux-gnu.sha256
+          cd -
+          mkdir -p ~/.cargo/bin
+          tar -xzf /tmp/clcov.tar.gz -C ~/.cargo/bin/
+          tar -xzf /tmp/cargo-nextest-0.9.140-x86_64-unknown-linux-gnu.tar.gz -C ~/.cargo/bin/
+          cargo llvm-cov --version && cargo nextest --version
+      - name: Kapi kanaryasi (vacuous-gate korumasi)
+        run: bash ./scripts/check-coverage.sh --self-test
+      - name: Olcum + ratchet kapisi
+        run: |
+          mkdir -p coverage
+          cargo llvm-cov nextest --lib --json --summary-only --output-path coverage/cov.json
+          bash ./scripts/check-coverage.sh coverage/cov.json
+      - name: Coverage artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage-${{ github.sha }}
+          path: coverage/cov.json
+          retention-days: 30
