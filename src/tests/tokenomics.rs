@@ -317,7 +317,10 @@ fn f4_boost_share_accumulates_in_pending_bud_boost_share() {
         hash: String::new(),
         signature: None,
         chain_id: DEFAULT_CHAIN_ID,
-        tx_type: TransactionType::NftBoost { nft_id, amount: boost_amount },
+        tx_type: TransactionType::NftBoost {
+            nft_id,
+            amount: boost_amount,
+        },
     };
 
     Executor::apply_transaction_checked(&mut state, &tx).unwrap();
@@ -332,8 +335,5 @@ fn f4_boost_share_accumulates_in_pending_bud_boost_share() {
     assert_eq!(state.pending_bud_boost_share, expected_bud_share);
 
     // Booster should have lost amount + fee.
-    assert_eq!(
-        state.get_balance(&booster),
-        10_000_000 - boost_amount - 100
-    );
+    assert_eq!(state.get_balance(&booster), 10_000_000 - boost_amount - 100);
 }

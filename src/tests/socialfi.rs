@@ -1,20 +1,23 @@
 //! SocialFi boost dağılımı regresyon mühürleri (F4 — ARENAX raporu bulgusu,
 //! ARENA3 test mühürü, 2026-07-17).
 //!
-//! Constitution §3: NFT boost akışının %4'ü B.U.D. storage operatörlerine,
-//! %16'sı content creator'a, %80'i protocol'e (burn/treasury). 5322e00 öncesi
-//! %4 hesaplanıp hiçbir hesaba yazılmıyordu (implicit burn). Bu testler:
-//! (1) iki operatöre eşit dağıtımı, (2) remainder'ın deterministik olarak ilk
-//! operatöre (BTreeMap adres sırası) gittiğini, (3) operatör yoksa dürüst
-//! burn fallback'ini kilitler.
+//! Constitution §3: boost %4 B.U.D. operatörlerine, %16 creator'a, %80
+//! protocol'e. Mevcut birleşik semantik (5322e00 + 7f054d7): executor
+//! bud_share'i `pending_bud_boost_share`'de biriktirir; blok commit sonrası
+//! `distribute_bud_boost_share` bunu aktif deal'lerin fee_per_epoch ağırlığına
+//! göre dağıtır (yuvarlama tozu ilk deal'in operatörüne), aktif deal yoksa
+//! dürüst burn. Bu testler ağırlıklı dağıtımı, dust determinizmini, pending
+//! drain'i ve burn fallback'ini kilitler.
 
 use crate::chain::blockchain::Blockchain;
 use crate::consensus::pow::PoWEngine;
 use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
-use crate::registry::role::roles;
+use crate::domain::storage_deal::StorageEconomicsParams;
+use crate::domain::storage_params::StorageDomainParams;
 use crate::storage::content_id::ContentId;
 use crate::storage::db::Storage;
+use crate::storage::manifest::ContentManifest;
 use std::sync::Arc;
 use tempfile::tempdir;
 
@@ -27,6 +30,62 @@ fn fresh_chain(db_path: &str) -> Blockchain {
     bc.state.base_fee = 0;
     bc.mempool.set_min_fee(0);
     bc
+}
+
+fn domain_params() -> StorageDomainParams {
+    StorageDomainParams {
+        chunk_size: 256,
+        max_committed_chunks: 1000,
+        challenge_interval: 10,
+        min_operator_bond: 1_000_000,
+    }
+}
+
+fn deal_econ(fee_per_epoch: u64) -> StorageEconomicsParams {
+    StorageEconomicsParams {
+        operator_bond: 5_000_000,
+        fee_per_epoch,
+    }
+}
+
+/// Format-geçerli test zarfı (dürüst marker — GERÇEK STARK kanıtı değil;
+/// storage_deal.rs test helper'ıyla birebir aynı minimal ProofEnvelope).
+fn valid_merkle_proof() -> Vec<u8> {
+    let envelope = bud_proof::ProofEnvelope {
+        proof_format_version: 1,
+        backend: "test-backend".to_string(),
+        p3_version: "0.6".to_string(),
+        fri_params_id: "test-fri".to_string(),
+        public_inputs_hash: [0x42u8; 32],
+        proof_bytes: vec![0xABu8; 96],
+        degree_bits: 8,
+    };
+    bincode::serialize(&envelope).expect("test envelope serialize")
+}
+
+fn open_weighted_deal(
+    bc: &mut Blockchain,
+    m: &ContentManifest,
+    op: Address,
+    replica: u8,
+    fee: u64,
+) {
+    let shard_id = m.shards[0].shard_id;
+    bc.storage_registry
+        .open_deal(
+            42,
+            m,
+            shard_id,
+            op,
+            replica,
+            100,
+            200,
+            deal_econ(fee),
+            &domain_params(),
+            Some(valid_merkle_proof()),
+            Some([0x42u8; 32]),
+        )
+        .unwrap();
 }
 
 fn mint_nft(bc: &mut Blockchain, owner: Address, cid: ContentId) {
@@ -49,9 +108,9 @@ fn boost_nft(bc: &mut Blockchain, booster: Address, nft_id: u64, amount: u64) {
 }
 
 #[tokio::test]
-async fn boost_share_splits_between_two_active_operators() {
+async fn boost_share_distributes_by_deal_fee_weight_with_dust_to_first() {
     let dir = tempdir().unwrap();
-    let db = dir.path().join("boost_two_ops.db");
+    let db = dir.path().join("boost_weighted.db");
     let mut bc = fresh_chain(db.to_str().unwrap());
 
     let alice = Address::from([0xAA; 32]);
@@ -60,54 +119,32 @@ async fn boost_share_splits_between_two_active_operators() {
     let op2 = Address::from([0x02; 32]);
     bc.state.add_balance(&alice, 1000);
     bc.state.add_balance(&bob, 1_000_000);
-    bc.state.registry.register(op1, roles::STORAGE_OPERATOR, 10_000_000, 0).unwrap();
-    bc.state.registry.register(op2, roles::STORAGE_OPERATOR, 10_000_000, 0).unwrap();
+
+    // Aktif deal'ler: op1 fee=100, op2 fee=300 (toplam ağırlık 400).
+    let manifest = ContentManifest::from_bytes_sliced(b"boost pool content", 4).unwrap();
+    open_weighted_deal(&mut bc, &manifest, op1, 0, 100);
+    open_weighted_deal(&mut bc, &manifest, op2, 1, 300);
 
     mint_nft(&mut bc, alice, ContentId([0x77; 32]));
     assert_eq!(bc.state.get_balance(&alice), 999);
     boost_nft(&mut bc, bob, 0, BOOST_AMOUNT);
 
+    // bud_share = 10: op1 = 10*100/400 = 2, op2 = 10*300/400 = 7, dağıtılan 9.
+    // dust 1 ilk deal'in operatörüne (deal_id sırası deterministik) -> op1 = 3.
+    assert_eq!(bc.state.get_balance(&op1), 3);
+    assert_eq!(bc.state.get_balance(&op2), 7);
     // %16 creator
     assert_eq!(bc.state.get_balance(&alice), 999 + 40);
-    // %4 B.U.D. = 10 -> iki operatöre 5'er (remainder 0)
-    assert_eq!(bc.state.get_balance(&op1), 5);
-    assert_eq!(bc.state.get_balance(&op2), 5);
     // booster: 1_000_000 - 250 (boost) - 1 (fee)
     assert_eq!(bc.state.get_balance(&bob), 999_749);
+    // Havuz blok sonunda boşaltıldı (drain) — sonraki bloğa borç kalmaz.
+    assert_eq!(bc.state.pending_bud_boost_share, 0);
 }
 
 #[tokio::test]
-async fn boost_remainder_goes_to_first_operator_deterministically() {
+async fn boost_without_active_deals_burns_share_and_drains_pool() {
     let dir = tempdir().unwrap();
-    let db = dir.path().join("boost_three_ops.db");
-    let mut bc = fresh_chain(db.to_str().unwrap());
-
-    let alice = Address::from([0xAA; 32]);
-    let bob = Address::from([0xBB; 32]);
-    let op1 = Address::from([0x01; 32]);
-    let op2 = Address::from([0x02; 32]);
-    let op3 = Address::from([0x03; 32]);
-    bc.state.add_balance(&alice, 1000);
-    bc.state.add_balance(&bob, 1_000_000);
-    for op in [op1, op2, op3] {
-        bc.state.registry.register(op, roles::STORAGE_OPERATOR, 10_000_000, 0).unwrap();
-    }
-
-    mint_nft(&mut bc, alice, ContentId([0x78; 32]));
-    boost_nft(&mut bc, bob, 0, BOOST_AMOUNT);
-
-    // bud_share = 10 -> per = 3, remainder = 1.
-    // registrations BTreeMap<(RoleId, Address)> deterministik sıralar: ilk
-    // operatör en küçük adresli (0x01) -> remainder ONA gider (konsensüs kilidi).
-    assert_eq!(bc.state.get_balance(&op1), 4);
-    assert_eq!(bc.state.get_balance(&op2), 3);
-    assert_eq!(bc.state.get_balance(&op3), 3);
-}
-
-#[tokio::test]
-async fn boost_without_operators_falls_back_to_honest_burn() {
-    let dir = tempdir().unwrap();
-    let db = dir.path().join("boost_no_ops.db");
+    let db = dir.path().join("boost_burn.db");
     let mut bc = fresh_chain(db.to_str().unwrap());
 
     let alice = Address::from([0xAA; 32]);
@@ -119,9 +156,10 @@ async fn boost_without_operators_falls_back_to_honest_burn() {
     mint_nft(&mut bc, alice, ContentId([0x79; 32]));
     boost_nft(&mut bc, bob, 0, BOOST_AMOUNT);
 
-    // Operatör yok: creator %16'sını yine alır, %4 + %80 kimseye yazılmaz
-    // (dürüst burn fallback — hiçbir operatör hesabı oluşmamalı).
+    // Aktif deal yok: creator %16'sını yine alır, %4 + %80 dürüst burn —
+    // hiçbir operatör hesabı oluşmamalı ve havuz yine drain edilmeli.
     assert_eq!(bc.state.get_balance(&alice), 999 + 40);
     assert_eq!(bc.state.get_balance(&bob), 999_749);
     assert_eq!(bc.state.get_balance(&ghost), 0);
+    assert_eq!(bc.state.pending_bud_boost_share, 0);
 }

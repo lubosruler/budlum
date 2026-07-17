@@ -361,7 +361,8 @@ impl Executor {
 
                 // F4 (Constitution §3): route 4% B.U.D. share to storage operator pool.
                 // Distributed by blockchain after block commit via distribute_bud_boost_share.
-                state.pending_bud_boost_share = state.pending_bud_boost_share.saturating_add(bud_share);
+                state.pending_bud_boost_share =
+                    state.pending_bud_boost_share.saturating_add(bud_share);
 
                 tracing::info!(nft_id = %nft_id, creator_reward = %creator_share, bud_share = %bud_share, protocol_fee = %protocol_share, "SocialFi: Content Boosted");
             }

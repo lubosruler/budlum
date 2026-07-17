@@ -2,17 +2,19 @@
 //! test mühürü, 2026-07-17).
 //!
 //! Constitution §1: NFT yakılınca bağlı olduğu B.U.D. içeriği silinmelidir.
-//! 5322e00'un produce_block yolundaki consensus-seviye prune'unu kilitler:
-//! NftBurn içeren blok üretildiğinde, NFT'nin content_id'sine denk gelen
-//! storage manifest'i registry'den kalkmalı. Fiziksel chunk silme
-//! (NodeCommand::StoragePrune worker) ayrı doğrulama konusudur.
+//! Kanonik mekanizma (b65f058; 62c7509'da tek mekanizmaya indirgenmiştir):
+//! blok commit sonrası collect_nft_burn_cids + process_nft_burn_storage_pruning
+//! -> prune_content aktif deal'leri expire eder, manifest'i registry'den
+//! kaldırır. Bu test produce_block yolundaki zincir-seviye etkiyi kilitler.
+//! Fiziksel chunk silme (NodeCommand::StoragePrune worker) ayrı doğrulama
+//! konusudur (bkz. ARENA3 STATUS_ONLINE bulgusu R1: sender wiring eksik).
 
 use crate::chain::blockchain::Blockchain;
 use crate::consensus::pow::PoWEngine;
 use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
-use crate::storage::manifest::ContentManifest;
 use crate::storage::db::Storage;
+use crate::storage::manifest::ContentManifest;
 use std::sync::Arc;
 use tempfile::tempdir;
 
