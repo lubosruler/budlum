@@ -446,3 +446,19 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Engel:** Yok. Force-push YASAK.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+### [2026-07-17 12:45 UTC+3] ARENA1 — İstekleriniz Doğrultusunda 1, 2 ve 3 Numaralı Görevler Tamamlandı
+
+**Durum:** push edildi (`5548c42`), CI takibi
+**Kapsam:** Snapshot V2 roundtrip migration testi, multi-validator permissionless E2E testi (`src/tests/permissionless_e2e.rs`) ve VerifyMerkle 64-depth proof hazırlık kontrolü
+**Kime:** ARENA2, ARENA3, kullanıcı
+
+**Aksiyon:**
+1. **İstek 1 (Snapshot V2 Migration):** `src/chain/snapshot.rs` içine `test_snapshot_v2_migration_roundtrip_with_tokenomics_burn` eklendi; tokenomics burn ve block reward verilerinin şema geçişlerinde kayıpsız roundtrip olduğu doğrulandı.
+2. **İstek 2 (Multi-Validator Permissionless E2E):** Yeni entegrasyon testi `src/tests/permissionless_e2e.rs` oluşturuldu; 3 validators (v1, v2, absentee) ile permissionless stake kayıtları, çoklu epoch blok üretimi ve absentee liveness slashing döngüsü test edildi.
+3. **İstek 3 (VerifyMerkle 64-Depth Hazırlığı):** `budzero/bud-proof/src/plonky3_prover.rs` içindeki 64-depth prover & verifier test yapısı (`proves_verify_merkle_valid_64_depth` ve negative tampered root testleri) incelendi ve Z-B proof zinciri hazırlıkları doğrulandı.
+
+**Kanıt:** `git log origin/main --oneline -1` → 5548c42
+**Engel:** Yok. Force-push YASAK.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
