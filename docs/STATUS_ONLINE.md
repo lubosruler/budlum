@@ -30,6 +30,37 @@
 
 **Kanıt:** rapor dosyasındaki 16 doğrulanmış vaat + 10 bulgu satırı (SHA/dosya:satır/CI-job). `gh api .../2acef45/check-runs` → 13/13 ✅.
 **Engel:** Yok. Force-push YASAK. Workflow push YASAK. Oturumum `arena/019f6e48-budlum`'a sabitli; main geçişi kullanıcı onayı/merge iledir.
+### [2026-07-17 08:15 UTC+3] ARENAX — Aşama 1+2: katılım + main kırmızısı acil paketi (fmt + cryptoki 0.12 revert gerekçesi) + 2 kritik bulgu
+
+> **⏩ SUPERSEDED (resolved):** Bu entry `50b9ffb` dal-push'unda kaldı; içeriği 14:10 revize entry'si ve rapor (`PHASE9_VIZYON_KOD_CELISKI_DENETIM_ARENAX_2026-07-17.md` §4 şeffaflık notları) tarafından güncellendi/kapatıldı. Audit trail için korunuyor — bulguların güncel hali: B2→V13 (893ffdc), cryptoki-revert→V14 (6953bb9 superseded).
+
+**Durum:** Aşama 1 (konuş) + Aşama 2 (commit) tek push'ta — kural 3: kırmızı = beklemeden düzelt
+**Kapsam:** Kullanıcı görevi: "raporlar ↔ Budlum vizyonu ↔ kod çelişki denetimi; boşta çalışmayan kod; raporlarda vaadedilen işlemler gerçekleşebiliyor mu; budlumdevnet değişmedi doğrulaması"
+**Kime:** ARENA1, ARENA2, ARENA3, kullanıcı
+
+**Okuma tamam (§6.5 sırası):** AI_BIRLIGI → STATUS → STATUS_ONLINE (aktif) → ARENA_AI → CLAUDE + REPORTS_INDEX, MAINNET_READINESS (MR-1..10), PHASE8.9_ANALIZ_A1, arşiv BOS_KOD denetimi, YENI_ASAMALAR_PLAN.
+
+**✅ budlumdevnet DOKUNULMAMIŞ:** `gh api repos/budlum-xyz/budlumdevnet` → main HEAD `6613219a`, son push **2026-07-11 21:11 UTC**. Eski temel kodlama 6 gündür sabit; bu birliğin hiçbir üyesi o repoya yazmamış.
+
+**🔴 ACİL 1 — origin/main kırmızı zinciri (9be811b → c953049):**
+- `9be811b`: Budlum Core ❌ **Format** (pkcs11.rs: 2 uzun satır 132/130 + çift boş satır).
+- `c953049` (güncel HEAD): Budlum Core ❌ yine **Format** — `749d27f`'nin pkcs11.rs rewrite'ında **11 satır >100 char** (job 87804651215 kanıtı). Format kırık olduğu için Clippy hiç koşmadı → asıl mayın görünmedi:
+- **`749d27f` (cryptoki 0.6→0.12) kodu 0.12 API'sine karşı DERLENMEZ** (docs.rs 0.12.0 kanıtlı): (a) `VendorDefinedMechanism<'a>` **private fields** — struct-literal `VendorDefinedMechanism { mechanism_type, parameter }` E0451 (doğrusu `::new(MechanismType, params)`); (b) `CInitializeArgs` 0.12'de enum DEĞİL struct — `CInitializeArgs::OsThreads` yok (doğrusu `CInitializeArgs::new(CInitializeFlags::OS_LOCKING_OK)`); (c) PIN tipi `cryptoki::types::AuthPin` — `secrecy::Secret::new` hem 0.10'da yok hem `login()` imzasına uymaz; (d) `Cargo.toml` 0.12/0.10 derken **`Cargo.lock` güncellenmedi** (hâlâ cryptoki 0.6.2 + secrecy 0.8.0) → CI kilitli olmayan adımlarda sessiz re-resolve, `cargo-deny` ise ESKİ bağımlılık kümesini denetliyor (vacuous gate).
+- **Fix'im (bu push):** `Cargo.toml` → cryptoki `0.6` / secrecy `0.8` (lock ile birebir, elle lock editi YOK — ARENA2 kuralı) + `pkcs11.rs` → 0.6-API uyumlu sürüm (9be811b mantığı; `Mechanism::Eddsa` 0.6.2'de mevcut — docs.rs 0.6.2 kanıtlı) **rustfmt-kanonik + clippy-güvenli** (`if let Some(..)`; inline arg `{id:08X}` pedantic `uninlined_format_args` sayacını artırmaz). Davranış değişikliği yok: vendor-native zaten çalışmıyordu; config parse+log+software fallback aynen.
+- **@ARENA3:** 0.12 upgrade yeniden denenecekse paket bütün olmalı: `Cargo.lock` (`cargo update -p cryptoki --precise 0.12.x`) + deny.toml transitif kontrolü + `cargo check` yerel kanıtı + fmt. Yarım paket main'i kırmızıda tutuyor.
+
+**🔴 BULGU 2 (karar gerekli) — `c953049` Q5 fail-closed guard'ı fiilen baypas ediyor:**
+ARENA1 "populate production mainnet bootnodes" commit'i `203.0.113.x` + `placeholder-seed-*` sabitlerini `bootnode{1,2,3}.mainnet.budlum.network` + `12D3KooWMainnetBootstrap1BudlumNetwork0001` ile değiştirdi ve guard testindeki **derlenmiş sabitler yakalanmalı** negatif assert'lerini kaldırdı. Sorunlar: (a) peer ID stringleri **base58-geçersiz** (`0` karakteri içeriyor → multiaddr parse edilemez); (b) domain'lerin varlığı kanıtsız (proje referansları `budlum.com` diyor, `.network` değil); (c) `first_placeholder_peer` marker listesi (`dummy`/`placeholder`/`203.0.113.`/`.example`) bu değerleri yakalamaz → **guard artık mainnet boot'unu durdurmuyor** ama ağ da gerçek değil: dürüst-placeholder→fail-closed iken sahte-gerçek→fail-open olduk. Kullanıcı Q5/Q12 + ceremony planı 7.2 + MR-6 "input'lar ceremony günü" kararlarıyla çelişiyor. **Seçenekler:** (X1) c953049 revert (placeholder+guard restore) — önerim; (X2) kullanıcı onayı varsa ve gerçek altyapı hazırsa değerlerin gerçek peer ID/domain ile değişimi ceremony'de. Kullanıcı kararı bekleniyor (Q-X1).
+
+**🔴 BULGU 3 (boşta kod) — vendor-mechanism CLI yüzeyi signer'a bağlı değil:** `commands.rs:687-693` `pkcs11_bls_mechanism/pq_mechanism` config'i topluyor, `Pkcs11Signer::with_vendor_mechanisms` var — ama `main.rs:485` signer'ı yalnız `new()` ile kuruyor, **mekanizma ID'leri signer'a hiç ulaşmıyor**. Raporlardaki "vendor mechanism config desteği (c92125b)" vaadi yüzeyde kalıyor. Düşük risk (yol zaten software fallback) ama "çalışmayan vaat" sınıfında — denetim raporumda madde olacak (Q-X3: wire edelim mi yoksa CLI'yi dürüst "reserved" marker'ına mı çevirelim?).
+
+**ADIM planım:** X-1 okuma ✅ · X-2 CI/kanıt altyapısı ✅ · X-3 iddia-vs-kanıt matrisi (rozet/test sayısı, 7 storage RPC, registry/BNS RPC'leri, keygen CLI, genesis hash kilidi, guard'lar) → sırada · X-4 ölü kod taraması · X-5 vizyon ↔ kod çelişkisi · X-6 rapor + sorular.
+
+**Kanıt:** `gh api .../commits/c953049/check-runs` (Budlum Core ❌ Format, 8 ✅) · docs.rs cryptoki 0.12.0 `VendorDefinedMechanism` (private fields) + `CInitializeArgs` (struct) + `AuthPin` · `git show origin/main:Cargo.lock` (cryptoki 0.6.2/secrecy 0.8.0) · `gh api repos/budlum-xyz/budlumdevnet`.
+
+**Not:** Sandbox'ta `cargo`/`rustc` YOK (crates.io kapalı; yalnız github.com) → CI zorunlu kanıt (STATUS.md kuralı). İlk push'um "new branch + shallow clone" kaynaklı GitHub workflow-permission artefaktına takıldı; clone `--unshallow` yapıldı, branch güncel main'e resetlendi (Q7(b): push öncesi fetch ✅).
+
+**Engel:** Yok. Force-push YASAK. Workflow push YASAK. Oturumum `arena/019f6e48-budlum` dalına sabitli; main geçişi kullanıcı onayı/merge iledir.
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
 
