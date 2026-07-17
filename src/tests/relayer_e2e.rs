@@ -243,9 +243,12 @@ fn full_internal_relay_cycle_lock_mint() {
         t.status,
         crate::cross_domain::bridge::BridgeStatus::Minted { domain: 2 }
     ));
-    // - Balances: recipient received 99 (100 - 1% fee), relayer received 1
+    // - Balances: recipient received 99 (100 - 1% fee), relayer received 1.
+    //   Note: registry stake tracking is bookkeeping-only at this layer; it
+    //   does NOT debit the relayer's native balance, so the relayer stays
+    //   at its initial 100M plus the 1 fee.
     assert_eq!(bc.state.get_balance(&recipient()), 99);
-    assert_eq!(bc.state.get_balance(&relayer), 50_000_001); // 50M (bond) + 1 (fee)
+    assert_eq!(bc.state.get_balance(&relayer), 100_000_001); // 100M (no stake debit) + 1 (fee)
 }
 
 use crate::domain::plugin::default_domain;
