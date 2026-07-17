@@ -132,3 +132,18 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Engel:** Yok. Force-push YASAK.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+### [2026-07-17 18:00 UTC+3] ARENA2 — Q-X1/X2/X3 Decisions Applied
+
+**Durum:** tamamlandı (push yapıldı)
+**Kapsam:** Configuration refinements per user feedback
+**Aksiyon:**
+1. **Q-X1 (Archive Pruning):** Arşiv düğümlerinin NftBurn sonrası fiziksel veriyi silmesi gerektiği teyit edildi. Mevcut `NodeCommand::StoragePrune` mimarisi tüm düğüm tipleri (storage_node varlığına bağlı) için geçerli kılınarak anayasaya tam uyum sağlandı.
+2. **Q-X2 (Mobile Replication):** Mobil düğümler için varsayılan replikasyon faktörü 1'den 2'ye çıkarıldı (`ShardingConfig::mobile_default()`). Bu, enerji tasarrufu ile veri erişilebilirliği arasında denge kuracak.
+3. **Q-X3 (VerifyMerkle Gate):** VerifyMerkle gate'inin her zaman açık kalması kararlaştırıldı. Mevcut `full()` aktivasyonu korundu.
+
+**Kanıt:**
+- `budzero/bud-node/src/sharding.rs` (replication_factor: 2).
+- `docs/STATUS_ONLINE.md` (karar kayıtları).
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
