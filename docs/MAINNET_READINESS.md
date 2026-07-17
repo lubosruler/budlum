@@ -1,5 +1,5 @@
 # Mainnet Hazırlık Raporu — Phase 2+ Planı
-> **2026-07-16 tazeleme (Phase 8.9 Dalga 5):** Bu belgenin plan bölümleri 2026-07-15 tarihli an kaydıdır (korunur). Yaşayan durum tablosu (§1) güncel sayılara tazelendi: `cargo test --lib` → **538 passed** (belge içi eski 510/513 çelişkisi giderildi). Güncel anlık durum için ayrıca: `docs/PHASE8.9_ANALIZ_A1.md` + `docs/STATUS_ONLINE.md`.
+> **2026-07-16 tazeleme (Phase 8.9 Dalga 5):** Bu belgenin plan bölümleri 2026-07-15 tarihli an kaydıdır (korunur). Yaşayan durum tablosu (§1) güncel sayılara tazelendi: `cargo test --lib` → **563 passed** (belge içi eski 510/513 çelişkisi giderildi). Güncel anlık durum için ayrıca: `docs/PHASE8.9_ANALIZ_A1.md` + `docs/STATUS_ONLINE.md`.
 
 
 **Hazırlayan:** ARENA1  
@@ -13,7 +13,7 @@
 
 | Bileşen | Test | Clippy | Fmt | Durum |
 |---------|------|--------|-----|-------|
-| `budlum-core` (L1) | 538 passed | `-D warnings` temiz | temiz | ✅ Stabil |
+| `budlum-core` (L1) | 563 passed | `-D warnings` temiz | temiz | ✅ Stabil |
 | `budzero/` (ZKVM) | Tüm workspace test geçti | temiz | temiz | ✅ Stabil |
 | `fuzz/` | Build kontrolü tamam | — | — | ✅ Setup tamam |
 | `docs/operations/` | Runbook, SBOM, audit script mevcut | — | — | ✅ Dokümantasyon tamam |
