@@ -104,28 +104,15 @@ fn submit_tx(bc: &mut Blockchain, mut tx: Transaction, kp: &KeyPair) {
 fn mint_nft(bc: &mut Blockchain, kp: &KeyPair, cid: ContentId) {
     let from = Address::from(kp.public_key_bytes());
     let data = bincode::serialize(&(cid, None::<String>)).unwrap();
-    let mut tx = Transaction::new_with_fee(
-        from,
-        Address::zero(),
-        0,
-        1,
-        bc.get_nonce(&from),
-        data,
-    );
+    let mut tx = Transaction::new_with_fee(from, Address::zero(), 0, 1, bc.get_nonce(&from), data);
     tx.tx_type = TransactionType::NftMint;
     submit_tx(bc, tx, kp);
 }
 
 fn boost_nft(bc: &mut Blockchain, kp: &KeyPair, nft_id: u64, amount: u64) {
     let from = Address::from(kp.public_key_bytes());
-    let mut tx = Transaction::new_with_fee(
-        from,
-        Address::zero(),
-        0,
-        1,
-        bc.get_nonce(&from),
-        Vec::new(),
-    );
+    let mut tx =
+        Transaction::new_with_fee(from, Address::zero(), 0, 1, bc.get_nonce(&from), Vec::new());
     tx.tx_type = TransactionType::NftBoost { nft_id, amount };
     submit_tx(bc, tx, kp);
 }
