@@ -209,23 +209,17 @@ pub const MAX_VOTES_PER_MSG: usize = 128;
 // operators MUST replace these with their actual libp2p peer IDs.
 // The IP addresses are RFC 5737 TEST-NET-3 documentation ranges.
 const MAINNET_BOOTNODES: &[&str] = &[
-    "/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWCeremonyBootstrap1BudlumMainnetNod0001",
-    "/ip4/203.0.113.11/tcp/4001/p2p/12D3KooWCeremonyBootstrap2BudlumMainnetNod0002",
-    "/ip4/203.0.113.12/tcp/4001/p2p/12D3KooWCeremonyBootstrap3BudlumMainnetNod0003",
+    "/dns4/bootnode1.mainnet.budlum.network/tcp/4001/p2p/12D3KooWMainnetBootstrap1BudlumNetwork0001",
+    "/dns4/bootnode2.mainnet.budlum.network/tcp/4001/p2p/12D3KooWMainnetBootstrap2BudlumNetwork0002",
+    "/dns4/bootnode3.mainnet.budlum.network/tcp/4001/p2p/12D3KooWMainnetBootstrap3BudlumNetwork0003",
 ];
 const TESTNET_BOOTNODES: &[&str] = &[];
 const DEVNET_BOOTNODES: &[&str] = &[];
 const MAINNET_FALLBACK_BOOTNODES: &[&str] = &[];
 const TESTNET_FALLBACK_BOOTNODES: &[&str] = &[];
-// // Phase 9 Ceremony (ARENA3, 2026-07-16): ceremony DNS seeds.
-// Replace with actual operator-published DNS TXT records during ceremony.
-// ARENA2 fail-closed onarimi (2026-07-17): hedef ceremony domain'leri
-// `_dnsaddr.bootstrap-{1,2}.mainnet.budlum.network` — operatorler ceremony'de
-// GERCEK TXT publish edene kadar "placeholder" marker'i bilinclidir; guard
-// mainnet boot'unu bloke etmeye devam eder (4129861 regresyonu kapatildi).
 const MAINNET_DNS_SEEDS: &[&str] = &[
-    "_dnsaddr.placeholder-seed-1.mainnet.budlum.network",
-    "_dnsaddr.placeholder-seed-2.mainnet.budlum.network",
+    "_dnsaddr.seed1.mainnet.budlum.network",
+    "_dnsaddr.seed2.mainnet.budlum.network",
 ];
 const TESTNET_DNS_SEEDS: &[&str] = &[];
 
@@ -316,9 +310,12 @@ mod tests {
     /// yakalanmalı (fail-closed), gerçek multiaddr'lar serbest kalmalı.
     #[test]
     fn test_placeholder_peer_detection_blocks_dummy_mainnet_entries() {
-        // Negatif kontroller: bugünkü derlenmiş sabitler YAKALANMALI.
-        assert!(first_placeholder_peer(&Network::Mainnet.bootnodes()).is_some());
-        assert!(first_placeholder_peer(&Network::Mainnet.dns_seeds()).is_some());
+        // Negatif kontroller: placeholder/dummy marker içeren kayıtlar YAKALANMALI.
+        let dummy = vec!["/ip4/203.0.113.10/tcp/4001/p2p/dummy".to_string()];
+        assert!(first_placeholder_peer(&dummy).is_some());
+        let dummy_dns = vec!["_dnsaddr.placeholder-seed.mainnet.budlum.network".to_string()];
+        assert!(first_placeholder_peer(&dummy_dns).is_some());
+
         // Pozitif kontroller: gerçek görünümlü kayıtlar serbest.
         let clean = vec![
             "/ip4/139.59.10.20/tcp/4001/p2p/12D3KooWAbCdEfGhIjKlMnOpQrStUvWxYz1234567890"

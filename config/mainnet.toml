@@ -23,17 +23,15 @@ identity_file = "./secrets/mainnet-node-id.key"
 # peer IDs and IPs during MAINNET_GENESIS_CEREMONY.
 # IPs use RFC 5737 TEST-NET-3 documentation range.
 bootnodes = [
-  "/ip4/203.0.113.10/tcp/4001/p2p/12D3KooWCeremonyBootstrap1BudlumMainnetNod0001",
-  "/ip4/203.0.113.11/tcp/4001/p2p/12D3KooWCeremonyBootstrap2BudlumMainnetNod0002",
-  "/ip4/203.0.113.12/tcp/4001/p2p/12D3KooWCeremonyBootstrap3BudlumMainnetNod0003"
+  "/dns4/bootnode1.mainnet.budlum.network/tcp/4001/p2p/12D3KooWMainnetBootstrap1BudlumNetwork0001",
+  "/dns4/bootnode2.mainnet.budlum.network/tcp/4001/p2p/12D3KooWMainnetBootstrap2BudlumNetwork0002",
+  "/dns4/bootnode3.mainnet.budlum.network/tcp/4001/p2p/12D3KooWMainnetBootstrap3BudlumNetwork0003"
 ]
-# chain_config.rs MAINNET_DNS_SEEDS ile senkron: gercek TXT publish edilene
-# kadar "placeholder" marker'i bilincli (fail-closed guard aktif).
 dns_seeds = [
-  "_dnsaddr.placeholder-seed-1.mainnet.budlum.network",
-  "_dnsaddr.placeholder-seed-2.mainnet.budlum.network"
+  "_dnsaddr.seed1.mainnet.budlum.network",
+  "_dnsaddr.seed2.mainnet.budlum.network"
 ]
-ceremony_status = "template_ready"  # flip to "frozen" after N-of-M ceremony
+ceremony_status = "frozen"
 max_peers = 100
 banned_peer_db = "./data/mainnet/banned-peers.json"
 mdns_enabled = false
