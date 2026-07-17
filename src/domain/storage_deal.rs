@@ -1193,14 +1193,32 @@ mod tests {
         let shard_id = m.shards[0].shard_id;
         let _id1 = reg
             .open_deal(
-                42, &m, shard_id, operator(), 0, 100, 200,
-                good_econ(), &params(), Some(valid_merkle_proof()), Some([0x42u8; 32]),
+                42,
+                &m,
+                shard_id,
+                operator(),
+                0,
+                100,
+                200,
+                good_econ(),
+                &params(),
+                Some(valid_merkle_proof()),
+                Some([0x42u8; 32]),
             )
             .unwrap();
         let _id2 = reg
             .open_deal(
-                42, &m, shard_id, operator(), 1, 100, 200,
-                good_econ(), &params(), Some(valid_merkle_proof()), Some([0x42u8; 32]),
+                42,
+                &m,
+                shard_id,
+                operator(),
+                1,
+                100,
+                200,
+                good_econ(),
+                &params(),
+                Some(valid_merkle_proof()),
+                Some([0x42u8; 32]),
             )
             .unwrap();
 

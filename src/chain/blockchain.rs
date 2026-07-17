@@ -3638,9 +3638,8 @@ impl Blockchain {
 
         tracing::info!(
             total = boost_share,
-            distributed = distributed.saturating_add(
-                boost_share.saturating_sub(distributed).min(boost_share)
-            ),
+            distributed = distributed
+                .saturating_add(boost_share.saturating_sub(distributed).min(boost_share)),
             operators = deals.len(),
             "F4: B.U.D. boost share distributed to storage operators"
         );
