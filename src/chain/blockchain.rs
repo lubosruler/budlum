@@ -1160,14 +1160,18 @@ impl Blockchain {
         if verified.event.payload_hash != message.payload_hash {
             return Err("Verified bridge event payload hash mismatch".into());
         }
-        if let Some(expected_event_hash) = self.state.bridge_state.source_event_hash(&message.message_id)
+        if let Some(expected_event_hash) = self
+            .state
+            .bridge_state
+            .source_event_hash(&message.message_id)
         {
             if expected_event_hash != verified_event_hash {
                 return Err("Verified bridge source event hash mismatch".into());
             }
         }
 
-        self.state.bridge_state
+        self.state
+            .bridge_state
             .mint(&message)
             .map_err(|e| e.to_string())?;
 
@@ -1787,7 +1791,10 @@ impl Blockchain {
         // Phase 5: Integrate BridgeState transition
         match message.kind {
             MessageKind::BridgeLock => {
-                self.state.bridge_state.mint(&message).map_err(|e| e.to_string())?;
+                self.state
+                    .bridge_state
+                    .mint(&message)
+                    .map_err(|e| e.to_string())?;
                 // Deduct relayer fee (Decision 9: 1%)
                 let transfer = self
                     .bridge_state
