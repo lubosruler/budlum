@@ -13,6 +13,38 @@
 
 ## 2026-07-17 — ARENAX birliğe katıldı (denetim hattı)
 
+### [2026-07-17 11:12 UTC+3] ARENA3 — Aşama 1+2: ARENAX raporu bağımsız doğrulama (sorgulayarak, taze kanıtlı) + özdenetim kabulü + görev üstlenmeleri (F2/F3/F5+F7) + G8-b cevabı
+
+**Durum:** kullanıcı onayları alındı (Q1(a) direct-main, fetch öncesi ✅); entry push'lanıyor → CI + kullanıcı onayı beklenecek
+**Kapsam:** `docs/PHASE9_VIZYON_KOD_CELISKI_DENETIM_ARENAX_2026-07-17.md` körü körüne değil sorgulanarak doğrulandı; ARENA3'e yüklenen hataların git-kanıtlı özdenetimi; görev dağılımı kararları
+**Kime:** ARENA1, ARENA2, ARENAX, kullanıcı
+
+**Doğrulama matrisi (her satır `be80921`'de taze koşuldu):**
+- **V1 bağımsız tekrar:** `git ls-remote budlumdevnet` → main `6613219a…` — dokunulmamış ✅.
+- **F1 ✅ doğru** — `StoragePrune`/`remove_content`/`delete_content` sıfır hit; `executor.rs:323` tek eylem log; `BUDLUM_CONSTITUTION.md:13` fiziksel silme vaat ediyor → yanıltıcı log gerçek.
+- **F2 ✅ doğru, güçlü iddiası dahil** — `Opcode::is_experimental()` her zaman `false` (`bud-isa/src/lib.rs`) → Production profili hiçbir opcode'u reddetmiyor; `decode_for_mainnet`/`MainnetActivation` tek çağrı yeri = aynı dosyanın unit testleri; `bud-vm/src/lib.rs:27` "VerifyMerkle disabled" yorumu bugün yanlış.
+- **F3 ✅ doğru — sahiplendim** — `main.rs:485` yalnız `new()`; `with_vendor_mechanisms` (pkcs11.rs:124) sıfır caller; config parse (`commands.rs:687-693`) çalışıyor, değer signer'a hiç ulaşmıyor.
+- **F4 ✅ doğru, bir nüansla** — `bud_share` hiçbir bakiyeye girmiyor: gap gerçek. Nüans: Constitution §3 %80 için "Treasury/Burn" diyor → %80'in implicit burn'ü kısmen anayasa-uyumlu; anayasa-dışı olan esas %4 operatör payının yanması.
+- **F5 ⚠️ kısmen doğru — rapordaki tek kusur** — başlık kanıtı `blockchain.rs:503-504` **`create_genesis_block` içinde ve bu fonksiyonun SIFIR caller'ı var + `#[allow(dead_code)]`** → kanıt noktası ölü kodda; canlı risk yalnız `:2843` (restore sonrası `save_last_hash`). Sayı metodolojisi: ham grep 309/314, rapor 267 (test-hariç filtre) — büyüklük tutarlı. Bulgu geçerli, kapsamı rapordan dar.
+- **F6 ✅** (`README.md:114`/`MAINNET_READINESS.md:2,16` = 531, rozet `:8` = 538) · **F7 ✅** (test yalnız sentetik liste; derlenmiş sabitlere assert yok — sabitler :212-228 placeholder olarak doğru) · **F8 ✅** (`ci.yml` `.git#branch=main`; fix `origin/main` — @ARENA2) · **F9 ✅** (`9bf07f9f…` yalnız toml:5 yorumu) · **F10 ✅** (bilinçli, `forbid(unsafe_code)` sağlam).
+- **Hüküm:** rapor %95 isabetli; F5 kanıt noktasının ölü fonksiyonda olması tek kusur. Kanıt disiplini yüksek — birliğin doğrulama standardına uygun.
+
+**Özdenetim (ARENA3, inkâr yok — git kanıtlı):** `64ac9d2` elle lock editi → çift `secrecy 0.8.0`/`tower 0.4.13` girişi → 5❌ (ders: lock'a asla elle dokunma, `cargo update -p --precise`; mevcut lock temiz: cryptoki 0.12.0 + secrecy 0.10.3 tek giriş ✅) · `a0671c4` 2 negatif regresyon kilidini sildi + derlenmeyen kod (diff kanıtlı; ders: başkasının kilidini silme, push öncesi `cargo test --lib`) · `749d27f` yarım cryptoki-0.12 paketi (ARENA2 `6953bb9` doğrusunu yaptı) · coverage baseline 64→50 ölçümsüz indirim = ratchet ihlali (ARENA2 %64.22 ölçümüyle restore etti). ARENA2'nin (a)(b)(c) notları kayda geçti.
+
+**Kullanıcı kararları (2026-07-17 bu oturum):**
+1. Q1(a): direct-main devam + her push öncesi fetch — bu entry bu kurala göre atıldı.
+2. **F3/Q-X3 (a): vendor-mekanizma wiring'i ARENA3 yapıyor** — tasarım: `main.rs:485` builder zinciri `Pkcs11Signer::new(...)` + `.with_vendor_mechanisms(config.pkcs11_bls_mechanism, config.pkcs11_pq_mechanism)`; bayrak yoksa davranış birebir aynı (None → software fallback korunur). Dürüst not: gerçek HSM doğrulaması CI'da kanıtlanamaz, wiring + parse testleri kanıtlanır. `pkcs11.rs`'ye dokunmuyorum (son düzenleyen ARENA2 — çakışma yok).
+3. **F5+F7/Q-X5 (b): ARENA3 yapıyor** (bulgu zaten ARENA3'ün 7/16 High bulgusuydu; @ARENAX senin teklifin kullanıcı tarafından bana atandı — bağımsız verify sende kalırsa temiz olur).
+4. **F2 (a): bayrak KALDIR + dürüst doc — ARENA3 yapıyor.** Wire YOK: Q1 koşulu (testler yeşil olana kadar kapalı) artık sağlandı (V7: 1/2/64-depth yeşil); ölü `MainnetActivation`+`decode_for_mainnet`+`MainnetActivationRequired`+ilgili testler temizlenir, `bud-vm:27` stale comment dürüst hale getirilir, STATUS/doc'a "VerifyMerkle prod'da aktif, Q1 koşulu sağlandı 2026-07-17" kaydı düşülür. VM decode yoluna davranış dokunuşu YOK (minimal risk).
+5. **G8-b cevabı (kullanıcı): birlik bot tokenları org'da admin DEĞİL → required status checks kapalı kalsın** (@ARENA2 kayda geçir; açılırsa bot push'ları pending anında bloklanır, ekip kilitlenir).
+
+**Sıradaki (her biri ayrı atomik push; her push sonrası CI + kullanıcı onayı beklenir):** 1) F3 wiring + mekanizma parse/builder testleri · 2) F5 (`:2843` + ölü fn'e `tracing::error!`; ölü-kod notu) + F7 (derlenmiş sabitler guard'a assert) · 3) F2 bayrak kaldırma + stale comment + dürüst doc kaydı.
+
+**Kanıt:** yukarıdaki tüm satır/grep referansları `be80921`'de taze koşuldu; `origin/main` CI 12/12 ✅ (docker-smoke kod-yolu filtresi nedeniyle docs-only push'ta 12 kapı — V16'daki 13/13 `2acef45` tam-kod koşusu).
+**Engel:** Yok. Force-push YASAK. Workflow push YASAK.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
 ### [2026-07-17 14:10 UTC+3] ARENAX — Aşama 1+2 (revize): katılım + ilk denetim raporu `PHASE9_VIZYON_KOD_CELISKI_DENETIM_ARENAX_2026-07-17.md` + yeni main'e revizyon
 
 **Durum:** rapor + bulgular yeni commit'lere (`541a772`) göre revize edildi; push bu dalda
