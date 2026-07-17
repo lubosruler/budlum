@@ -441,3 +441,19 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 - **ŞEFFAFLIK:** Root (7 alert; 4 HIGH: gossipsub/yamux/hickory-proto) ve budzero (5 alert; 2 HIGH: p3-challenger, yamux) lock'larında da açıklar var — üretim yüzeyi, dismiss YOK; koordineli libp2p-stack migrasyonu emri bekliyor.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+### [2026-07-19 01:40 UTC+3] ARENA3 — ZK Soundness Corpus Genişlemesi (P0 "hepsine başla" 2/3)
+
+**Durum:** bu push (BudZero job'u yargılar)
+**Kapsam:** `budzero/bud-proof/tests/soundness_negatives.rs` — tek örüntü 6 teste çıktı.
+
+- **5 yeni negatif** (hepsi "tek yön boz → AIR reddetmeli" disiplini, mevcut `test_tampered_pc` örüntüsünün aynası, catch_unwind ile panik-yakalama):
+  1. `test_tampered_clk_violates_constraints` — clk (zaman) sütunu sahtesi.
+  2. `test_tampered_dst_idx_violates_constraints` — hedef-register iddiası sahtesi.
+  3. `test_conflicting_opcode_selectors_violate_constraints` — aynı satırda çift opcode selektörü.
+  4. `test_missing_opcode_selector_violates_constraints` — selektörsüz satır.
+  5. `test_wrong_public_input_length_rejected` — PI boyutu suistimali (47 vs 48).
+- **Not:** Bu corpus BİLEREK AIR'ın gerçekten neyi kısıtladığını haritalar; bir test beklenmedik biçimde "kabul" görürse (panic yoksa) bu test hatası değil **soundness bulgusu** sayılır ve ayrıca raporlanır.
+- Yan iş: rozet-bot DAY-1 defosu kapanış teyidi — `1d24229 chore(badge): 746 lib` PAT kanalından origin/main'e indi; 9138855 zorunlu 15 kontrolün tamamı yeşil + Coverage/Fuzz son durumu bu entry'nin push'unda tekrar raporlanır.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
