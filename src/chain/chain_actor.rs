@@ -932,7 +932,8 @@ impl ChainHandle {
         {
             return Err(format!("Actor dropped: {}", e));
         }
-        rx.await.unwrap_or_else(|_| Err("Actor dropped".to_string()))
+        rx.await
+            .unwrap_or_else(|_| Err("Actor dropped".to_string()))
     }
 
     pub async fn register_bridge_asset(

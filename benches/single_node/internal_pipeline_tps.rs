@@ -105,7 +105,7 @@ async fn main() {
     let producer = Address::from(validator_keys.sig_key.public_key_bytes());
 
     while processed < ingested {
-        if let Some(block) = chain.produce_block(producer).await {
+        if let Some((block, _)) = chain.produce_block(producer).await {
             processed += block.transactions.len();
             blocks += 1;
             if blocks % 2 == 0 {
