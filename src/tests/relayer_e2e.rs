@@ -332,6 +332,10 @@ fn full_internal_relay_cycle_burn_unlock() {
         t.status,
         crate::cross_domain::bridge::BridgeStatus::Unlocked { domain: 1 }
     ));
-    // - Owner received funds (100 - 1% relayer fee)
-    assert_eq!(bc.state.get_balance(&owner()), 99);
+    // - Owner received funds (100 - 1% relayer fee = 99) on top of the
+    //   initial 1000 allocation. The bridge routes value via asset-location
+    //   accounting (Active -> Locked -> Unlocked); it does NOT debit the
+    //   owner's native balance at lock time, so the post-unlock balance is
+    //   1000 + 99 = 1099.
+    assert_eq!(bc.state.get_balance(&owner()), 1099);
 }
