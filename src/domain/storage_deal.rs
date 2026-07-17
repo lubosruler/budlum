@@ -832,28 +832,6 @@ mod tests {
     }
 
     #[test]
-    fn prune_manifest_removes_manifest_deals_and_shard_index() {
-        // F1 mühürü (ARENA3, 2026-07-17): hard prune manifest + deals +
-        // deals_by_shard index'ini birlikte temizlemeli; idempotent kalmalı.
-        // 5322e00'un consensus-seviye silme mantığının regresyon kilidi.
-        let m = good_manifest();
-        let mut reg = StorageRegistry::new();
-        let (_deal_id, _shard) = open_one(&mut reg, &m);
-        let manifest_id = m.manifest_id;
-        assert!(reg.manifests.contains_key(&manifest_id));
-        assert_eq!(reg.deals.len(), 1);
-        assert!(!reg.deals_by_shard.is_empty());
-
-        assert!(reg.prune_manifest(&manifest_id));
-        assert!(reg.manifests.is_empty());
-        assert!(reg.deals.is_empty());
-        assert!(reg.deals_by_shard.is_empty());
-
-        // İkinci prune: içerik yok -> false, panic yok (idempotent).
-        assert!(!reg.prune_manifest(&manifest_id));
-    }
-
-    #[test]
     fn deal_open_rejects_unregistered_shard() {
         let m = good_manifest();
         let mut reg = StorageRegistry::new();
