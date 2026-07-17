@@ -764,6 +764,22 @@ mod tests {
         }
     }
 
+    /// Phase 9 (Faz 3, `9d82f61`): format-gecerli test zarfi (durust
+    /// marker — GERCEK STARK kaniti degil; bincode-deserialize olabilen minimal
+    /// ProofEnvelope).
+    fn valid_merkle_proof() -> Vec<u8> {
+        let envelope = bud_proof::ProofEnvelope {
+            proof_format_version: 1,
+            backend: "test-backend".to_string(),
+            p3_version: "0.6".to_string(),
+            fri_params_id: "test-fri".to_string(),
+            public_inputs_hash: [0x42u8; 32],
+            proof_bytes: vec![0xABu8; 96],
+            degree_bits: 8,
+        };
+        bincode::serialize(&envelope).expect("test envelope serialize")
+    }
+
     fn open_one(reg: &mut StorageRegistry, m: &ContentManifest) -> (u64, ContentId) {
         let shard_id = m.shards[0].shard_id;
         let id = reg
@@ -777,7 +793,7 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .unwrap();
@@ -800,7 +816,7 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .unwrap_err();
@@ -823,7 +839,7 @@ mod tests {
                 100,
                 good_econ(),
                 &params(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .unwrap_err();
@@ -848,7 +864,7 @@ mod tests {
                 200,
                 econ,
                 &params(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .unwrap_err();
@@ -871,7 +887,7 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .unwrap();
@@ -886,7 +902,7 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .unwrap();
@@ -905,8 +921,8 @@ mod tests {
                 200,
                 good_econ(),
                 &params(),
-                Some(vec![0u8; 100]), // merkle_proof: Faz 3 proof
-                Some([0x42u8; 32]),   // storage_root
+                Some(valid_merkle_proof()),
+                Some([0x42u8; 32]), // storage_root
             )
             .unwrap();
         assert_ne!(id2, id3);
@@ -1081,5 +1097,53 @@ mod tests {
 
     fn deal_status(reg: &StorageRegistry, id: u64) -> DealStatus {
         reg.get_deal(id).unwrap().status
+    }
+
+    #[test]
+    fn deal_open_rejects_missing_merkle_proof() {
+        // Faz 3 gate (9d82f61): None her zaman MerkleProofRequired (regresyon kilidi).
+        let m = good_manifest();
+        let mut reg = StorageRegistry::new();
+        let shard_id = m.shards[0].shard_id;
+        let err = reg
+            .open_deal(
+                42,
+                &m,
+                shard_id,
+                operator(),
+                0,
+                100,
+                200,
+                good_econ(),
+                &params(),
+                None,
+                None,
+            )
+            .unwrap_err();
+        assert!(matches!(err, StorageError::MerkleProofRequired));
+    }
+
+    #[test]
+    fn deal_open_rejects_malformed_merkle_proof() {
+        // Faz 3 format gate: deserialize edilemeyen blob InvalidMerkleProof (durust marker).
+        let m = good_manifest();
+        let mut reg = StorageRegistry::new();
+        let shard_id = m.shards[0].shard_id;
+        let err = reg
+            .open_deal(
+                42,
+                &m,
+                shard_id,
+                operator(),
+                0,
+                100,
+                200,
+                good_econ(),
+                &params(),
+                Some(vec![0u8; 64]),
+                Some([0x42u8; 32]),
+            )
+            .unwrap_err();
+        assert!(matches!(err, StorageError::InvalidMerkleProof(_)));
     }
 }

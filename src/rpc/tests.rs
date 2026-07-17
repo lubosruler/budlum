@@ -10,6 +10,20 @@ mod rpc_tests {
     use crate::rpc::server::{RpcMode, RpcSecurityConfig, RpcServer};
     use std::sync::Arc;
 
+    /// Phase 9 (Faz 3, `9d82f61`): format-gecerli test zarfi (durust marker).
+    fn valid_merkle_proof() -> Vec<u8> {
+        let envelope = bud_proof::ProofEnvelope {
+            proof_format_version: 1,
+            backend: "test-backend".to_string(),
+            p3_version: "0.6".to_string(),
+            fri_params_id: "test-fri".to_string(),
+            public_inputs_hash: [0x42u8; 32],
+            proof_bytes: vec![0xABu8; 96],
+            degree_bits: 8,
+        };
+        bincode::serialize(&envelope).expect("test envelope serialize")
+    }
+
     async fn setup() -> (RpcServer, ChainHandle) {
         let consensus = Arc::new(PoWEngine::new(0));
         let blockchain = Blockchain::new(consensus, None, 1337, None);
@@ -477,7 +491,7 @@ mod rpc_tests {
                     fee_per_epoch: 10,
                 },
                 crate::domain::storage_params::StorageDomainParams::default(),
-                Some(vec![0u8; 64]),
+                Some(valid_merkle_proof()),
                 Some([0x42u8; 32]),
             )
             .await

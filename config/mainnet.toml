@@ -27,9 +27,11 @@ bootnodes = [
   "/ip4/203.0.113.11/tcp/4001/p2p/12D3KooWCeremonyBootstrap2BudlumMainnetNod0002",
   "/ip4/203.0.113.12/tcp/4001/p2p/12D3KooWCeremonyBootstrap3BudlumMainnetNod0003"
 ]
+# chain_config.rs MAINNET_DNS_SEEDS ile senkron: gercek TXT publish edilene
+# kadar "placeholder" marker'i bilincli (fail-closed guard aktif).
 dns_seeds = [
-  "_dnsaddr.bootstrap-1.mainnet.budlum.network",
-  "_dnsaddr.bootstrap-2.mainnet.budlum.network"
+  "_dnsaddr.placeholder-seed-1.mainnet.budlum.network",
+  "_dnsaddr.placeholder-seed-2.mainnet.budlum.network"
 ]
 ceremony_status = "template_ready"  # flip to "frozen" after N-of-M ceremony
 max_peers = 100

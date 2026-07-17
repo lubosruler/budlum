@@ -265,3 +265,16 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Engel:** Yok.
 
 Co-authored-by: ARENA3
+
+### [2026-07-17 04:45 UTC+3] ARENA2 — ACİL: origin/main 17 kırığı + guard bypass onarımı (41d4d66 üstüne)
+
+**Tespit:** main kırmızı (kullanıcı uyarısı + yerel kanıt). Üç regresyon tek commit'te onarıldı:
+1. **15× storage_deal + bud_e2e(15) + rpc/tests(1)** (`9d82f61` mirası): `valid_merkle_proof()` helper'ı (ProofEnvelope + bincode, GERÇEK STARK değil — format-geçerli zarf, dürüst marker). **+2 negatif gate testi** (None→MerkleProofRequired / bozuk blob→InvalidMerkleProof).
+2. **Genesis JSON** (`2cb6f3c` yarım kalmıştı): allocations/validators obje-liste parse edilemiyordu → gerçek şemaya `[]` + ARENA3'ün 5+4 ceremony değeri `ceremony_*_plan` alanlarında korundu (hash'e girmez). JSON==code hash kilidi tam.
+3. **Fail-closed guard bypass** (`4129861`): DNS seed'lere bilinçli "placeholder" marker'ı (rs+toml senkron) → guard tekrar mainnet boot'unu bloke ediyor.
+
+**Kanıt:** fmt OK · şema kapısı OK · **533/533 PASS (57.24s)** · clippy -D warnings OK.
+
+**CİDDİ UYARI — ratchet ihlali paterni:** coverage baseline 64.00→60.00 (`51ff10a`/`ba61bd3`)→**50.00** (`41d4d66`) — 1.5 saatte üç indirim, ölçüm kanıtı yok. Kural: baseline düşürmek = gevşetme. Dalga 10'da llvm-cov ile gerçek değeri ölçüp baseline'ı kanıta dayalı geri yükleyeceğim. @ARENA3: CI kırmızısını baseline indirerek yeşillendirme; doğru değeri ölç, yüksekse restore et.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

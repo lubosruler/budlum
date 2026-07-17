@@ -54,6 +54,21 @@ fn good_econ() -> StorageEconomicsParams {
     }
 }
 
+/// Phase 9 (Faz 3, `9d82f61`): format-GEÇERLİ test zarfı (dürüst marker —
+/// GERÇEK STARK kanıtı değil; bincode-deserialize olabilen minimal ProofEnvelope).
+fn valid_merkle_proof() -> Vec<u8> {
+    let envelope = bud_proof::ProofEnvelope {
+        proof_format_version: 1,
+        backend: "test-backend".to_string(),
+        p3_version: "0.6".to_string(),
+        fri_params_id: "test-fri".to_string(),
+        public_inputs_hash: [0x42u8; 32],
+        proof_bytes: vec![0xABu8; 96],
+        degree_bits: 8,
+    };
+    bincode::serialize(&envelope).expect("test envelope serialize")
+}
+
 // =========================================================================
 //  1. 3-AKTÖR E2E — manifest → deal → challenge → answer
 // =========================================================================
@@ -82,7 +97,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
             300,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .expect("A deal-open");
@@ -99,7 +114,7 @@ fn e2e_three_actor_manifest_to_challenge_flow() {
             300,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .expect("B deal-open");
@@ -169,7 +184,7 @@ fn e2e_missed_challenge_slashes_only_the_target_deal() {
             300,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -184,7 +199,7 @@ fn e2e_missed_challenge_slashes_only_the_target_deal() {
             300,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -216,7 +231,7 @@ fn e2e_deal_queries_return_replica_set() {
             300,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -260,7 +275,7 @@ fn invariant_1_no_whitelist_for_deal_or_challenge() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .expect("stranger opens a deal without any prior approval");
@@ -313,7 +328,7 @@ fn invariant_3_any_account_can_challenge_any_deal() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -352,7 +367,7 @@ fn invariant_4_any_account_meeting_bond_can_open_deal() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .expect("any account with bond can open a deal");
@@ -380,7 +395,7 @@ fn invariant_5_opener_bond_must_be_positive() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -411,7 +426,7 @@ fn invariant_6_slash_only_via_missed_deadline() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -434,7 +449,7 @@ fn invariant_6_slash_only_via_missed_deadline() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -464,7 +479,7 @@ fn invariant_7_slashed_deal_rejects_new_challenges() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -497,7 +512,7 @@ fn invariant_8_deal_requires_shard_to_be_in_manifest() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap_err();
@@ -529,7 +544,7 @@ fn invariant_9_manifest_id_is_deterministic_across_nodes() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();
@@ -544,7 +559,7 @@ fn invariant_9_manifest_id_is_deterministic_across_nodes() {
             10,
             good_econ(),
             &dp,
-            Some(vec![0u8; 64]),
+            Some(valid_merkle_proof()),
             Some([0x42u8; 32]),
         )
         .unwrap();

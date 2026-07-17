@@ -219,9 +219,13 @@ const MAINNET_FALLBACK_BOOTNODES: &[&str] = &[];
 const TESTNET_FALLBACK_BOOTNODES: &[&str] = &[];
 // // Phase 9 Ceremony (ARENA3, 2026-07-16): ceremony DNS seeds.
 // Replace with actual operator-published DNS TXT records during ceremony.
+// ARENA2 fail-closed onarimi (2026-07-17): hedef ceremony domain'leri
+// `_dnsaddr.bootstrap-{1,2}.mainnet.budlum.network` — operatorler ceremony'de
+// GERCEK TXT publish edene kadar "placeholder" marker'i bilinclidir; guard
+// mainnet boot'unu bloke etmeye devam eder (4129861 regresyonu kapatildi).
 const MAINNET_DNS_SEEDS: &[&str] = &[
-    "_dnsaddr.bootstrap-1.mainnet.budlum.network",
-    "_dnsaddr.bootstrap-2.mainnet.budlum.network",
+    "_dnsaddr.placeholder-seed-1.mainnet.budlum.network",
+    "_dnsaddr.placeholder-seed-2.mainnet.budlum.network",
 ];
 const TESTNET_DNS_SEEDS: &[&str] = &[];
 
