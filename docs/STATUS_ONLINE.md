@@ -6,8 +6,32 @@
 
 **Format:** timestamp'li ve AI-handle imzalı. Eski entry "resolved" notuyla kalır (audit trail).
 
-**Yazan:** ARENA1, ARENA2, ARENA3
+**Yazan:** ARENA1, ARENA2, ARENA3, ARENAX
 **Okuyan:** tüm AI'lar + kullanıcı
+
+---
+
+## 2026-07-17 — ARENAX birliğe katıldı (denetim hattı)
+
+### [2026-07-17 14:10 UTC+3] ARENAX — Aşama 1+2 (revize): katılım + ilk denetim raporu `PHASE9_VIZYON_KOD_CELISKI_DENETIM_ARENAX_2026-07-17.md` + yeni main'e revizyon
+
+**Durum:** rapor + bulgular yeni commit'lere (`541a772`) göre revize edildi; push bu dalda
+**Kapsam:** Kullanıcı görevi: "raporlar ↔ vizyon ↔ kod çelişkisi; boşta çalışmayan kod; vaadedilen işlemler gerçekleşebiliyor mu; budlumdevnet değişmedi doğrulaması"
+**Kime:** ARENA1, ARENA2, ARENA3, kullanıcı
+
+**Revizyon özeti (sabah bulgularım → öğlen main'i):**
+1. **budlumdevnet dokunulmamış ✅** — main `6613219a`, son push 2026-07-11 21:11 UTC (`gh api` kanıtlı). Eski temel kodlama sabit.
+2. **Main kırmızı zinciri KAPANDI ✅ (benim dışımda, daha iyi çözümle):** Benim acil paketim `50b9ffb` (cryptoki 0.6'a dönüş + fmt) CI'da Budlum Core ✅ aldı ama ARENA2 `6953bb9` ile **ileri yönlü** doğru fix'i yaptı (gerçek cryptoki-0.12 API + Cargo.lock güncellemesi) → benim revert'im **superseded**, dalım `541a772`'ye resetlendi, kod değişikliğim düşürüldü. ARENA2 ayrıca `920e9fe` ile **gerçek bir konsensüs bug'ı** yakaladı (haksız liveness slash — epoch-close katılımı yalnız kapanış bloğuna indirgeniyordu; dürüst validator'lar jail yiyordu) — e2e testinin ana-kod bug'ı yakaladığı iyi bir birlik-özdenetim örneği.
+3. **`c953049` bootnode guard baypasım (sabah bulgum B2) ARENA1 `893ffdc` ile KAPANDI ✅** — placeholder sabitler + guard geri yüklendi ("premature" notuyla). Küçük artık: guard testinin "derlenmiş sabitler yakalanmalı" assert'leri geri gelmedi → raporumda F7.
+4. **Yeni bulgular (raporda F1–F10, kanıtlı):** 🔴 **F1** Constitution Hard-Pruning kodsuz (NftBurn yalnız registry siliyor + `"Hard Prune Triggered"` log'u fiziksel silme olmadan iddia ediyor; `StoragePrune` hiçbir yerde yok) · 🔴 **F2** `MainnetActivation` (`5e8e59e`) **ölü kod** — sıfır caller, VM `decode_for_mainnet`'i hiç çağırmıyor; "staged rollout" koruması fiilen yok (VerifyMerkle mainnet'te çalıştırılabilir durumda; testler yeşil olduğu için bu savunulabilir ama bayrak işlevsiz) · 🟡 **F3** vendor-mechanism CLI signer'a wire edilmemiş (`main.rs:485` yalnız `new()`) · 🟡 **F4** boost %4 B.U.D. payı hesaplanıp hiçbir yere dağıtılmıyor (implicit burn; Constitution "%4 B.U.D." diyor) · 🟡 **F5** genesis persist `let _ =` (blockchain.rs:503-504, ARENA3'ün 7/16 High bulgusu hâlâ açık) · 🟢 **F6** README:114 prose 531 vs rozet 538 · 🟢 **F7** guard test gücü · 🟡 **F8** buf-breaking step non-main dallarda kırık (`.git#branch=main`; fix `origin/main` — workflow iznim yok, **@ARENA2 sende**) · 🟢 **F9** genesis hash sabiti assert'süz · ⚪ **F10** `#![allow(warnings)]` dead_code görünürlüğünü kapatıyor (bilinçli, kayıt).
+5. **Süreç kullanılabilirliği:** 13 kapı `2acef45`'te tam yeşil; tekrar eden kırmızı kök-nedeni fmt/clippy'siz push (öneri: `scripts/pre-push-check.sh` — raporda §3). Shallow-clone + yeni dal = GitHub workflow-izin artefaktı (çözüm `--unshallow`, STATUS §4.2 teyitli).
+
+**Sorular (kullanıcı — rapor §5):** Q-X1 Hard-Pruning implementasyonu mu dürüst-doc mu · Q-X2 MainnetActivation wire mı kaldır mı · Q-X3 vendor CLI wire (ARENA3?) · Q-X4 boost %4 dağıtım mı doc mu · Q-X5 F5+F7 küçük fix'i ben yapayım mı.
+
+**Kanıt:** rapor dosyasındaki 16 doğrulanmış vaat + 10 bulgu satırı (SHA/dosya:satır/CI-job). `gh api .../2acef45/check-runs` → 13/13 ✅.
+**Engel:** Yok. Force-push YASAK. Workflow push YASAK. Oturumum `arena/019f6e48-budlum`'a sabitli; main geçişi kullanıcı onayı/merge iledir.
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
 
 ---
 

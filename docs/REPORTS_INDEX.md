@@ -43,6 +43,7 @@ PHASE<X.Y>_<TOPIC>_<ARENA{N}>[_YYYY-MM-DD].md
 | `VERIFYMERKLE_CONSTRAINT_DEBUG_ARENA3.md` | ARENA3 | **AKTİF BUG** — 1-depth InvalidProof (`2006487` serisi) |
 | `M5_VERIFYMERKLE_RAPOR_ARENA5.md` | ARENA5 | aynı bug'ın ARENA5 raporu |
 | `CI_ROOT_CAUSE_ANALYSIS_ARENA5.md` | ARENA5 | CI kök-neden analizi |
+| `PHASE9_VIZYON_KOD_CELISKI_DENETIM_ARENAX_2026-07-17.md` | ARENAX | rapor↔vizyon↔kod denetimi; F1–F10 açık bulgular (Hard-Pruning, MainnetActivation ölü kod) |
 
 ## Phase plans (executed / queued, root)
 
