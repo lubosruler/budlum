@@ -146,9 +146,11 @@ mod tests {
 }
 
 use crate::chain::blockchain::Blockchain;
+use crate::chain::blockchain::EPOCH_LENGTH;
 use crate::consensus::pow::PoWEngine;
 use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
+use crate::registry::role::roles;
 use crate::storage::db::Storage;
 use std::sync::Arc;
 use tempfile::tempdir;
@@ -287,4 +289,52 @@ async fn test_chaos_v2_ultimate_byzantine_recovery() {
         );
         info!("ULTIMATE SUCCESS: Budlum recovered from partial block processing and performed deep reorg.");
     }
+}
+
+/// Chaos v2 (ADIM5 §5.4, ARENA3): CHAIN-HALT — tam sessizlik sonrası kurtarma.
+///
+/// Mevcut 4 senaryo crash/fork/byzantine/restart kapsar; bu mühür ağın HİÇ
+/// üretim yapmadığı sessiz dönemin dayanıklılığını kilitler: epoch-close
+/// liveness hook'u üretime bağlı olduğundan (`maybe_observe_liveness_on_epoch_close`
+/// yalnız blok üretiminde koşar) sessizlikte hiçbir sayaç kımıldamaz; üretici
+/// geri dönünce zincir deterministik olarak kaldığı height'tan devam etmelidir.
+#[tokio::test]
+async fn test_chaos_v2_chain_halt_full_silence_and_resume() {
+    let consensus = Arc::new(PoWEngine::new(0));
+    let mut bc = Blockchain::new(consensus, None, 1337, None);
+    // NOT: devnet_genesis özel adreslerinden (0x01/0x02) uzak durulur.
+    let producer = Address::from([0x61; 32]);
+    let silent = Address::from([0x62; 32]);
+    bc.state.add_validator(producer, 10_000);
+    bc.state.add_validator(silent, 10_000);
+
+    // 1) Baseline: bir tam epoch üret — silent ilk miss'ini alır.
+    for _ in 0..EPOCH_LENGTH {
+        bc.produce_block(producer).expect("produce must succeed");
+    }
+    assert_eq!(bc.state.liveness.missed_count(&silent), 1);
+    let height_before_halt = bc.chain.len() as u64;
+    let missed_before = bc.state.liveness.missed_count(&silent);
+
+    // 2) CHAIN-HALT: tam sessizlik (hiçbir produce_block çağrısı). Epoch ancak
+    //    blok üretimiyle kapanır; dolayısıyla sessizlikte liveness sayaçları
+    //    da state de kımıldamamalıdır. Burada çağrı YOK — doğrudan mühür:
+    assert_eq!(
+        bc.state.liveness.missed_count(&silent),
+        missed_before,
+        "halt sirasinda epoch-close hook'u kosmaz, sayac sabit kalmali"
+    );
+
+    // 3) Kurtarma: üretici geri döner; zincir kaldığı height'tan uzamaya devam.
+    for _ in 0..EPOCH_LENGTH * 2 {
+        bc.produce_block(producer)
+            .expect("resume production must succeed");
+    }
+    let expected = height_before_halt + EPOCH_LENGTH * 2;
+    assert_eq!(bc.chain.len() as u64, expected);
+    // Resume'un iki epoch'unda silent hâlâ yok -> sayaç deterministik: 1 + 2 = 3.
+    assert_eq!(bc.state.liveness.missed_count(&silent), 3);
+    // Üreticinin streak'i temiz; sessiz validator observe-mode'da slash EDİLMEZ.
+    assert_eq!(bc.state.liveness.missed_count(&producer), 0);
+    assert!(bc.state.registry.is_active(&silent, roles::VALIDATOR));
 }
