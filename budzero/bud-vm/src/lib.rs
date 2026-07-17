@@ -43,11 +43,8 @@ fn decode_instruction(raw: u64) -> Result<bud_isa::Instruction, String> {
         // F2 wiring: use MainnetActivation::full() so VerifyMerkle is allowed
         // on mainnet today (gate opened). This consumes the MainnetActivation
         // type, fixing dead-code finding, while preserving open-gate behavior.
-        bud_isa::Instruction::decode_for_mainnet(
-            raw,
-            bud_isa::MainnetActivation::full(),
-        )
-        .map_err(|e| e.to_string())
+        bud_isa::Instruction::decode_for_mainnet(raw, bud_isa::MainnetActivation::full())
+            .map_err(|e| e.to_string())
     }
 }
 

@@ -727,8 +727,7 @@ impl StorageRegistry {
                 self.deals.remove(&deal_id);
             }
             // Clean deals_by_shard index entries for this manifest
-            self.deals_by_shard
-                .retain(|(mid, _), _| mid != manifest_id);
+            self.deals_by_shard.retain(|(mid, _), _| mid != manifest_id);
             tracing::info!(%manifest_id, "StorageRegistry: hard pruned manifest and its deals (NftBurn)");
         }
         existed

@@ -58,7 +58,9 @@ pub enum NodeCommand {
     /// F1 fix (ARENAX): Hard Pruning — physical deletion of B.U.D. content.
     /// Triggered ONLY by local Executor after verified NftBurn (SECURITY_AUDIT_HACKER.md).
     /// Payload is 32-byte ContentId (mirrors budlum_core::storage::content_id::ContentId and bud_node::store::ContentId).
-    StoragePrune { cid: [u8; 32] },
+    StoragePrune {
+        cid: [u8; 32],
+    },
 }
 #[derive(Clone)]
 pub struct NodeClient {
@@ -122,9 +124,7 @@ impl NodeClient {
 
     /// F1: Trigger local hard prune of B.U.D. content (only via local executor, not P2P).
     pub fn storage_prune_sync(&self, cid: [u8; 32]) {
-        let _ = self
-            .sender
-            .try_send(NodeCommand::StoragePrune { cid });
+        let _ = self.sender.try_send(NodeCommand::StoragePrune { cid });
     }
 
     pub async fn storage_prune(&self, cid: [u8; 32]) {

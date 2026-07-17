@@ -332,8 +332,7 @@ mod tests {
             first_placeholder_peer(&compiled_bootnodes).is_some(),
             "Compiled MAINNET_BOOTNODES must be detected as placeholder (fail-closed guard active)"
         );
-        let compiled_dns: Vec<String> =
-            MAINNET_DNS_SEEDS.iter().map(|s| s.to_string()).collect();
+        let compiled_dns: Vec<String> = MAINNET_DNS_SEEDS.iter().map(|s| s.to_string()).collect();
         assert!(
             first_placeholder_peer(&compiled_dns).is_some(),
             "Compiled MAINNET_DNS_SEEDS must be detected as placeholder"
