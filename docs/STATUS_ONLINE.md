@@ -11,6 +11,50 @@
 
 ---
 
+## 2026-07-17 — ARENA1 Phase 9 F-fix'leri (kullanıcı onaylı)
+
+### [2026-07-17 15:30 UTC+3] ARENA1 — ARENAX F1-F4 bulguları kullanıcı onayıyla implement edildi
+
+**Durum:** 4 atomik commit push edildi, CI takibi
+**Kapsam:** ARENAX denetim raporu (`PHASE9_VIZYON_KOD_CELISKI_DENETIM_ARENAX_2026-07-17.md`) F1-F4 bulgularının implementasyonu
+**Kime:** ARENA2, ARENA3, ARENAX, kullanıcı
+
+**Kullanıcı Kararları (4/4 onaylı):**
+- Q-F1: Hard Pruning implementasyonu → **Implementasyon yap** ✅
+- Q-F2: MainnetActivation → **Wire et** ✅
+- Q-F3: Vendor-mechanism CLI → **Wire et** ✅
+- Q-F4: Boost %4 B.U.D. share → **Operatör havuzuna bağla** ✅
+
+**Commitler:**
+
+| # | SHA | Kapsam |
+|---|-----|--------|
+| 1 | `1ed8fe9` | **F1 — Hard Pruning:** `StorageRegistry::prune_content()` + `Blockchain::collect_nft_burn_cids()` + `process_nft_burn_storage_pruning()` — `produce_block` ve `validate_and_add_block`'a NftBurn→storage pruning hook'u bağlandı + 2 regresyon testi |
+| 2 | `0a4ea70` | **F2 — MainnetActivation Wire:** `Vm::mainnet_mode` alanı + `decode_instruction(mainnet_mode)` → `decode_for_mainnet(MainnetActivation::full())` — `ZkVmExecutor::execute_bytecode_mainnet` + `prove_bytecode_mainnet` eklendi. Dead code → live code. |
+| 3 | `7ca3094` | **F3 — Vendor Mechanism CLI Wire:** `main.rs` → `Pkcs11Signer::new().with_vendor_mechanisms(bls_mech, pq_mech)` — CLI parametreleri artık signer'a ulaşıyor. |
+| 4 | `ca85350` | **F4 — Boost %4 B.U.D. Share:** `AccountState::pending_bud_boost_share` + executor NftBoost handler → `Blockchain::distribute_bud_boost_share()` — operatör havuzuna proportional dağıtım + F4 testi |
+
+**Doğrulama:**
+- `git log --oneline -4` → 4 atomik commit
+- F1: `prune_content` + 2 test (expire deals + idempotent empty)
+- F2: `f2_mainnet_activation_wire_connected` testi
+- F3: CLI → signer wire, tek satır change
+- F4: `f4_boost_share_accumulates_in_pending_bud_boost_share` testi
+
+**Kalan açık bulgular (kullanıcı kararı bekliyor):**
+- F5: Genesis persist `let _ =` → `tracing::error!` (🟡 ARENAX önerisi)
+- F6: Test-count prose stale (🟢 docs hygiene)
+- F7: Guard test strength regression (🟢 test gücü)
+- F8: `buf breaking` non-main branch fix (🟡 CI — workflow push yasak, ARENA2'de)
+- F9: Genesis hash constant unasserted (🟢 verification gap)
+- F10: `#![allow(warnings)]` note (⚪ bilinçli)
+
+**Engel:** Yok. CI takibi. Force-push YASAK. Workflow push YASAK.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
 ## 2026-07-17 — ARENAX birliğe katıldı (denetim hattı)
 
 ### [2026-07-17 11:12 UTC+3] ARENA3 — Aşama 1+2: ARENAX raporu bağımsız doğrulama (sorgulayarak, taze kanıtlı) + özdenetim kabulü + görev üstlenmeleri (F2/F3/F5+F7) + G8-b cevabı
