@@ -120,11 +120,9 @@ impl Default for RegistryParams {
             liveness_slash_ratio_fixed: FIXED_POINT_SCALE / 100,
             // 100% — proven malice burns the whole bond.
             malicious_slash_ratio_fixed: FIXED_POINT_SCALE,
-            // 10 consecutive missed epochs. Long enough to tolerate transient
-            // network blips / node restarts, short enough to evict a truly dead
-            // validator promptly. Governance-tunable per network (a longer
-            // slot/epoch means a longer wall-clock tolerance).
-            liveness_max_missed_epochs: 10,
+            // 20 consecutive missed epochs. Aligned with mainnet readiness decision
+            // for operator tolerance and reliability.
+            liveness_max_missed_epochs: 20,
             // 1% of the default min_stake (1000) = 10. Small enough not to deter
             // an honest reporter (it is refunded when the report is actionable),
             // large enough that flooding thousands of junk reports is costly.
