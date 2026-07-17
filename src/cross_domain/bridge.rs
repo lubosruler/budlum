@@ -39,7 +39,7 @@ pub struct BridgeTransfer {
     pub expiry_height: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BridgeError(pub String);
 
 impl std::fmt::Display for BridgeError {
