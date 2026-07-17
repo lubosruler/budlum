@@ -13,6 +13,7 @@ use crate::core::chain_config::Network;
 use crate::core::transaction::Transaction;
 use crate::cross_domain::{
     BridgeState, CrossDomainMessageRegistry, DomainEvent, DomainEventKind, MerkleProof, MessageKind,
+    RelayerConfig, UniversalRelayer,
 };
 use crate::domain::{
     hash_finality_proof, BftFinalityAdapter, ConsensusDomain, ConsensusDomainRegistry,
@@ -73,6 +74,9 @@ pub struct Blockchain {
     pub global_headers: Vec<GlobalBlockHeader>,
     pub plugin_registry: DomainPluginRegistry,
     pub message_registry: CrossDomainMessageRegistry,
+    /// Universal Relayer — permissionless cross-domain relay orchestrator.
+    /// Tracks pending relays, validates Merkle proofs, records relay ledger.
+    pub universal_relayer: UniversalRelayer,
     pub settlement_finality_hashes: Vec<crate::domain::Hash32>,
     pub pending_slashing_evidence: Vec<SlashingEvidence>,
     pub finality_aggregator: Option<FinalityAggregator>,
@@ -445,6 +449,7 @@ impl Blockchain {
             global_headers,
             plugin_registry: DomainPluginRegistry::new(),
             message_registry,
+            universal_relayer: UniversalRelayer::new(RelayerConfig::default()),
             settlement_finality_hashes: Vec::new(),
             pending_slashing_evidence: Vec::new(),
             finality_aggregator: None,
@@ -1740,6 +1745,71 @@ impl Blockchain {
             .ensure_active_relayer(&message.sender)
             .map_err(|e| e.to_string())?;
         self.submit_cross_domain_message(message)
+    }
+
+    /// ADIM5 §5.1: Process a bridge lock event through the Universal Relayer.
+    ///
+    /// Called when a bridge lock creates a cross-domain message. Enqueues
+    /// the relay request for a relayer to pick up and submit proof.
+    pub fn enqueue_bridge_relay(
+        &mut self,
+        source_event: DomainEvent,
+        message: &crate::cross_domain::CrossDomainMessage,
+    ) {
+        let current_height = self.chain.len() as u64;
+        self.universal_relayer
+            .enqueue_relay(source_event, message, current_height);
+    }
+
+    /// ADIM5 §5.1: Submit a relay proof from a relayer.
+    ///
+    /// Validates the Merkle proof against the source domain's event tree,
+    /// records the relay in the ledger, and processes the bridge state
+    /// transition (mint or unlock).
+    pub fn submit_relay_proof(
+        &mut self,
+        message_id: crate::cross_domain::MessageId,
+        relayer: Address,
+        proof: &MerkleProof,
+        source_domain: DomainId,
+    ) -> Result<crate::cross_domain::CrossDomainMessage, String> {
+        // Verify the relayer is active (staked RELAYER role)
+        self.state
+            .registry
+            .ensure_active_relayer(&relayer)
+            .map_err(|e| e.to_string())?;
+
+        let current_height = self.chain.len() as u64;
+
+        // Build event tree from bridge state for the source domain
+        let event_tree_root = self
+            .universal_relayer
+            .ledger_root(); // Use relay ledger root as commitment
+
+        // Process the relay through the Universal Relayer
+        self.universal_relayer
+            .process_relay(message_id, relayer, proof, event_tree_root, current_height)
+            .map_err(|e| e.to_string())
+    }
+
+    /// ADIM5 §5.1: Get the number of pending relays.
+    pub fn pending_relay_count(&self) -> usize {
+        self.universal_relayer.pending_count()
+    }
+
+    /// ADIM5 §5.1: Get expired relays for slashing.
+    pub fn expired_relays(&self) -> Vec<crate::cross_domain::relayer::PendingRelay> {
+        let current_height = self.chain.len() as u64;
+        self.universal_relayer
+            .expired_relays(current_height)
+            .into_iter()
+            .cloned()
+            .collect()
+    }
+
+    /// ADIM5 §5.1: Merkle root of the relay ledger (for on-chain commitment).
+    pub fn relay_ledger_root(&self) -> crate::domain::types::Hash32 {
+        self.universal_relayer.ledger_root()
     }
 
     /// Phase 0.08: permissionless entry-point for slashing reports with an
