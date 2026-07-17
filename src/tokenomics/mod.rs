@@ -471,11 +471,7 @@ mod tests {
     fn calculate_epoch_reward_uses_fixed_point_scale() {
         // FIXED_POINT_SCALE gerçekten kullanılıyor mu kontrolü.
         // This is a smoke test: the function must not panic for any
-        // positive stake and must respect the fixed-point scale. (No
-        // `assert!(true)` — clippy's `assertions_on_constants` would
-        // reject it. The real invariant is that the function never
-        // returns a value > stake * APY * lifetime, and the parametric
-        // test above covers the relative monotonicity.)
+        // positive stake and must respect the fixed-point scale.
         let params = TokenomicsParams::default();
         for stake in [0u64, 1, 1_000, 1_000_000, 1_000_000_000] {
             let reward = params.calculate_epoch_reward(stake);
@@ -485,5 +481,32 @@ mod tests {
                 assert!(reward > 0, "positive stake must produce a reward");
             }
         }
+    }
+
+    #[test]
+    fn test_tokenomics_edge_cases_and_precision() {
+        let params = TokenomicsParams::default();
+        // Check 6-decimal scaling precision helpers
+        assert_eq!(bud(1), 1_000_000);
+        assert_eq!(params.total(), BUD_TOTAL_SUPPLY);
+
+        // Vesting edge cases
+        let v = VestingSchedule {
+            total: bud(1_000_000),
+            start_epoch: 10,
+            cliff_epochs: 50,
+            duration_epochs: 200,
+        };
+        // Before start
+        assert_eq!(v.unlocked_at(5), 0);
+        // During cliff (start + cliff = 60)
+        assert_eq!(v.unlocked_at(59), 0);
+        // At start of unlock (60)
+        assert_eq!(v.unlocked_at(60), 0);
+        // Mid duration
+        assert!(v.unlocked_at(160) > 0);
+        // After full duration (10 + 200 = 210)
+        assert_eq!(v.unlocked_at(300), bud(1_000_000));
+        assert_eq!(v.locked_at(300), 0);
     }
 }
