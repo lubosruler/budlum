@@ -421,7 +421,7 @@ fn phase3_validator_onboarding_e2e_stake_register_produce() {
     let tx = signed_stake_tx(&keypair, stake_amount, 0, bc.chain_id, fee);
     bc.add_transaction(tx).expect("stake tx must enter mempool");
 
-    let block = bc
+    let (block, _) = bc
         .produce_block(staker)
         .expect("new staker must be able to produce after onboarding stake");
     assert_eq!(block.producer, Some(staker));
@@ -443,7 +443,7 @@ fn phase3_validator_onboarding_e2e_stake_register_produce() {
     assert!(reg.is_active());
 
     // Second block production: already-onboarded validator keeps producing.
-    let block2 = bc
+    let (block2, _) = bc
         .produce_block(staker)
         .expect("active validator continues producing");
     assert_eq!(block2.producer, Some(staker));

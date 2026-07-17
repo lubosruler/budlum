@@ -128,7 +128,7 @@ mod zkvm_tests {
             .expect("valid contract call should enter mempool");
 
         let producer = Address::from_hex(&"09".repeat(32)).unwrap();
-        let block = blockchain
+        let (block, _burned_cids) = blockchain
             .produce_block(producer)
             .expect("contract call block should be produced");
 

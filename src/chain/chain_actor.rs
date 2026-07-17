@@ -925,7 +925,11 @@ impl ChainHandle {
 
     pub async fn request_prune(&self, min_blocks_to_keep: Option<u64>) -> Result<u64, String> {
         let (tx, rx) = oneshot::channel();
-        if let Err(e) = self.tx.send(ChainCommand::RequestPrune(min_blocks_to_keep, tx)).await {
+        if let Err(e) = self
+            .tx
+            .send(ChainCommand::RequestPrune(min_blocks_to_keep, tx))
+            .await
+        {
             return Err(format!("Actor dropped: {}", e));
         }
         rx.await.unwrap_or_else(|_| Err("Actor dropped".to_string()))
@@ -1433,7 +1437,10 @@ impl ChainActor {
                     if let Ok(ref cids) = res {
                         self.run_storage_maintenance(height);
                         if !cids.is_empty() {
-                            tracing::info!(count = cids.len(), "NftBurn detected — notifying node for physical pruning");
+                            tracing::info!(
+                                count = cids.len(),
+                                "NftBurn detected — notifying node for physical pruning"
+                            );
                         }
                     }
                     let _ = res_tx.send(res);
@@ -1442,7 +1449,10 @@ impl ChainActor {
                     // Manual prune trigger from CLI/RPC
                     let now_epoch = self.blockchain.state.epoch_index;
                     let cid_obj = crate::storage::content_id::ContentId(cid);
-                    let pruned_deals = self.blockchain.storage_registry.prune_content(&cid_obj, now_epoch);
+                    let pruned_deals = self
+                        .blockchain
+                        .storage_registry
+                        .prune_content(&cid_obj, now_epoch);
                     tracing::info!(
                         cid = %hex::encode(cid),
                         pruned_deals,
@@ -1719,7 +1729,12 @@ impl ChainActor {
                 ChainCommand::GetPruneStatus(res_tx) => {
                     let height = self.blockchain.chain.len() as u64;
                     let finalized = self.blockchain.finalized_height;
-                    let mobile_mode = self.blockchain.pruning_manager.as_ref().map(|pm| pm.min_blocks_to_keep < 1000).unwrap_or(false);
+                    let mobile_mode = self
+                        .blockchain
+                        .pruning_manager
+                        .as_ref()
+                        .map(|pm| pm.min_blocks_to_keep < 1000)
+                        .unwrap_or(false);
                     let res = serde_json::json!({
                         "current_height": height,
                         "finalized_height": finalized,
@@ -1734,7 +1749,8 @@ impl ChainActor {
                     let mut pruned_count = 0;
                     if let Some(ref pm) = self.blockchain.pruning_manager {
                         let keep = min_blocks.unwrap_or(pm.min_blocks_to_keep);
-                        let prunable = pm.get_prunable_blocks(height, height.saturating_sub(1), finalized);
+                        let prunable =
+                            pm.get_prunable_blocks(height, height.saturating_sub(1), finalized);
                         if let Some(ref store) = self.blockchain.storage {
                             for h in &prunable {
                                 if let Ok(_) = store.delete_block(*h) {

@@ -639,7 +639,7 @@ mod integration_tests {
         for _ in 1..cp_height {
             bc.produce_block(validator_addr);
         }
-        let block = bc.produce_block(validator_addr).unwrap();
+        let (block, _) = bc.produce_block(validator_addr).unwrap();
         assert_eq!(block.index, cp_height);
         assert!(is_checkpoint_height(block.index));
 

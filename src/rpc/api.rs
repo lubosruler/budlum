@@ -518,5 +518,8 @@ pub trait BudlumApi {
 
     /// Manually trigger a pruning pass.
     #[method(name = "bud_requestPrune")]
-    async fn request_prune(&self, min_blocks_to_keep: Option<u64>) -> Result<serde_json::Value, ErrorObjectOwned>;
+    async fn request_prune(
+        &self,
+        min_blocks_to_keep: Option<u64>,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
 }

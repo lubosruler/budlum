@@ -41,7 +41,7 @@ impl Default for ShardingConfig {
 impl ShardingConfig {
     pub fn mobile_default() -> Self {
         Self {
-            replication_factor: 2, // Balance energy and availability
+            replication_factor: 2,                 // Balance energy and availability
             max_xor_distance: u128::MAX / 100_000, // 0.001% of the keyspace
             mandatory: true,
             mobile_mode: true,

@@ -721,7 +721,9 @@ impl Blockchain {
                     .ok_or_else(|| format!("Domain {} not found", commitment.domain_id))?;
                 d_mut.status = DomainStatus::Frozen;
                 if let Some(store) = &self.storage {
-                    if let Err(e) = store.save_consensus_domain(d_mut) { tracing::error!(error = %e, "Failed to persist consensus domain"); }
+                    if let Err(e) = store.save_consensus_domain(d_mut) {
+                        tracing::error!(error = %e, "Failed to persist consensus domain");
+                    }
                 }
                 return Err(format!(
                     "Equivocation or invalid sequence detected for domain {} height {}",
@@ -754,7 +756,9 @@ impl Blockchain {
                     .ok_or_else(|| format!("Domain {} not found", commitment.domain_id))?;
                 d_mut.status = DomainStatus::Frozen;
                 if let Some(store) = &self.storage {
-                    if let Err(e) = store.save_consensus_domain(d_mut) { tracing::error!(error = %e, "Failed to persist consensus domain"); }
+                    if let Err(e) = store.save_consensus_domain(d_mut) {
+                        tracing::error!(error = %e, "Failed to persist consensus domain");
+                    }
                 }
                 return Err(format!(
                     "Equivocation or invalid sequence detected for domain {} height {}",
@@ -1973,8 +1977,12 @@ impl Blockchain {
             let mut height = from_height;
             let upper_bound = self.chain.len().saturating_sub(1) as u64;
             while height <= upper_bound {
-                if let Err(e) = store.delete_finality_cert(height) { tracing::error!(error = %e, height, "Failed to delete finality cert"); }
-                if let Err(e) = store.delete_qc_blob(height) { tracing::error!(error = %e, height, "Failed to delete QC blob"); }
+                if let Err(e) = store.delete_finality_cert(height) {
+                    tracing::error!(error = %e, height, "Failed to delete finality cert");
+                }
+                if let Err(e) = store.delete_qc_blob(height) {
+                    tracing::error!(error = %e, height, "Failed to delete QC blob");
+                }
                 if let Some(next) = height.checked_add(checkpoint_interval) {
                     height = next;
                 } else {
@@ -2009,7 +2017,9 @@ impl Blockchain {
         self.finalized_hash = new_finalized_hash;
 
         if let Some(store) = &self.storage {
-            if let Err(e) = store.save_canonical_height(self.finalized_height) { tracing::error!(error = %e, height = self.finalized_height, "Failed to save canonical height"); }
+            if let Err(e) = store.save_canonical_height(self.finalized_height) {
+                tracing::error!(error = %e, height = self.finalized_height, "Failed to save canonical height");
+            }
         }
     }
 
@@ -3294,7 +3304,9 @@ impl Blockchain {
 
         if let Some(ref store) = self.storage {
             let _ = store.save_finality_cert(self.finalized_height, &cert);
-            if let Err(e) = store.save_canonical_height(self.finalized_height) { tracing::error!(error = %e, height = self.finalized_height, "Failed to save canonical height"); }
+            if let Err(e) = store.save_canonical_height(self.finalized_height) {
+                tracing::error!(error = %e, height = self.finalized_height, "Failed to save canonical height");
+            }
         }
 
         Ok(())

@@ -254,11 +254,17 @@ impl Node {
         sharding_config: Option<bud_node::ShardingConfig>,
     ) -> Result<Self, Box<dyn Error>> {
         let peer_id = PeerId::from(local_key.public());
-        let mobile_mode = sharding_config.as_ref().map(|c| c.mobile_mode).unwrap_or(false);
+        let mobile_mode = sharding_config
+            .as_ref()
+            .map(|c| c.mobile_mode)
+            .unwrap_or(false);
 
         let shard_manager =
             sharding_config.map(|config| Arc::new(bud_node::ShardManager::new(peer_id, config)));
-        info!("Node ID: {} (mDNS: {}, Mobile: {})", peer_id, mdns_enabled, mobile_mode);
+        info!(
+            "Node ID: {} (mDNS: {}, Mobile: {})",
+            peer_id, mdns_enabled, mobile_mode
+        );
         let message_id_fn = |message: &gossipsub::Message| {
             let mut s = DefaultHasher::new();
             message.data.hash(&mut s);
