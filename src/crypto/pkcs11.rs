@@ -355,10 +355,7 @@ impl ConsensusSigner for Pkcs11Signer {
                 match self.try_vendor_bls_sign(&inner.session, msg) {
                     Ok(sig) => return Ok(sig),
                     Err(e) => {
-                        tracing::warn!(
-                            "Vendor BLS sign failed ({}), falling back to software",
-                            e
-                        );
+                        tracing::warn!("Vendor BLS sign failed ({}), falling back to software", e);
                     }
                 }
             }
@@ -392,10 +389,7 @@ impl ConsensusSigner for Pkcs11Signer {
                         match inner.session.sign(&mechanism, objects[0], msg) {
                             Ok(sig) => return Ok(sig),
                             Err(e) => {
-                                tracing::warn!(
-                                    "Vendor PQ sign failed ({}), falling back to software",
-                                    e
-                                );
+                                tracing::warn!("Vendor PQ sign failed ({}), falling back to software", e);
                             }
                         }
                     }
