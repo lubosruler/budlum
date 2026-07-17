@@ -1112,11 +1112,7 @@ impl BudlumApiServer for RpcServer {
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         let clean_addr = relayer.strip_prefix("0x").unwrap_or(&relayer);
         let relayer_addr = Address::from_hex(clean_addr).map_err(|e| {
-            ErrorObjectOwned::owned(
-                -32602,
-                format!("Invalid relayer address: {e}"),
-                None::<()>,
-            )
+            ErrorObjectOwned::owned(-32602, format!("Invalid relayer address: {e}"), None::<()>)
         })?;
 
         let message = self
@@ -1124,7 +1120,11 @@ impl BudlumApiServer for RpcServer {
             .submit_relay_proof(message_id, relayer_addr, proof, source_domain)
             .await
             .map_err(|e| {
-                ErrorObjectOwned::owned(-32602, format!("Relay proof submission failed: {e}"), None::<()>)
+                ErrorObjectOwned::owned(
+                    -32602,
+                    format!("Relay proof submission failed: {e}"),
+                    None::<()>,
+                )
             })?;
 
         Ok(serde_json::json!({

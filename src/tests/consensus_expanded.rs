@@ -70,7 +70,7 @@ gen_pow_difficulty_tests!(
 );
 
 // Meaningful variations of chain tests
-#[test] fn chain_boundary_index_zero() { 
+#[test] fn chain_boundary_index_zero() {
     let consensus = Arc::new(PoWEngine::new(0));
     let bc = Blockchain::new(consensus, None, 1337, None);
     assert_eq!(bc.chain[0].index, 0);

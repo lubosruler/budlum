@@ -1255,7 +1255,7 @@ impl StorageRegistry {
         hasher.update(b"BDLM_STORAGE_REGISTRY_V1");
         hasher.update(self.next_deal_id.to_le_bytes());
         hasher.update(self.next_challenge_id.to_le_bytes());
-        
+
         let mut deal_hashes = Vec::new();
         for (id, deal) in &self.deals {
             let mut h = sha2::Sha256::new();
@@ -1263,11 +1263,11 @@ impl StorageRegistry {
             h.update(storage_deal_leaf_hash(deal));
             deal_hashes.push(h.finalize());
         }
-        
+
         for h in deal_hashes {
             hasher.update(h);
         }
-        
+
         hasher.finalize().into()
     }
 }

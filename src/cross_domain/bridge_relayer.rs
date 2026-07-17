@@ -473,57 +473,59 @@ mod tests {
     }
 }
 
-    #[test]
-    fn pipeline_error_display() {
-        let err = PipelineError::NoEventTree(99);
-        assert!(err.to_string().contains("99"));
+#[test]
+fn pipeline_error_display() {
+    let err = PipelineError::NoEventTree(99);
+    assert!(err.to_string().contains("99"));
 
-        let err = PipelineError::UnexpectedMessageKind {
-            expected: "BridgeLock",
-            got: "BridgeBurn",
-        };
-        assert!(err.to_string().contains("BridgeLock"));
-        assert!(err.to_string().contains("BridgeBurn"));
-    }
+    let err = PipelineError::UnexpectedMessageKind {
+        expected: "BridgeLock",
+        got: "BridgeBurn",
+    };
+    assert!(err.to_string().contains("BridgeLock"));
+    assert!(err.to_string().contains("BridgeBurn"));
+}
 
-    #[test]
-    fn pipeline_register_asset_rejects_duplicate() {
-        let mut p = pipeline();
-        let a = asset(50);
-        p.register_asset(a, 1).unwrap();
-        let err = p.register_asset(a, 1).unwrap_err();
-        assert!(matches!(err, PipelineError::Bridge(_)));
-    }
+#[test]
+fn pipeline_register_asset_rejects_duplicate() {
+    let mut p = pipeline();
+    let a = asset(50);
+    p.register_asset(a, 1).unwrap();
+    let err = p.register_asset(a, 1).unwrap_err();
+    assert!(matches!(err, PipelineError::Bridge(_)));
+}
 
-    #[test]
-    fn pipeline_burn_rejects_unminted_transfer() {
-        let mut p = pipeline();
-        let a = asset(51);
-        p.register_asset(a, 1).unwrap();
+#[test]
+fn pipeline_burn_rejects_unminted_transfer() {
+    let mut p = pipeline();
+    let a = asset(51);
+    p.register_asset(a, 1).unwrap();
 
-        // Lock but don't relay/mint
-        let event = p.lock(1, 2, 100, a, owner(), recipient(), 100, 1000).unwrap();
-        let msg_id = event.message.as_ref().unwrap().message_id;
+    // Lock but don't relay/mint
+    let event = p
+        .lock(1, 2, 100, a, owner(), recipient(), 100, 1000)
+        .unwrap();
+    let msg_id = event.message.as_ref().unwrap().message_id;
 
-        // Burn should fail (transfer is Locked, not Minted)
-        let err = p.burn(msg_id, 2, 200, 1000).unwrap_err();
-        assert!(matches!(err, PipelineError::Bridge(_)));
-    }
+    // Burn should fail (transfer is Locked, not Minted)
+    let err = p.burn(msg_id, 2, 200, 1000).unwrap_err();
+    assert!(matches!(err, PipelineError::Bridge(_)));
+}
 
-    #[test]
-    fn pipeline_sweep_expired_locks_returns_empty_initially() {
-        let mut p = pipeline();
-        let released = p.sweep_expired_locks(10000);
-        assert!(released.is_empty());
-    }
+#[test]
+fn pipeline_sweep_expired_locks_returns_empty_initially() {
+    let mut p = pipeline();
+    let released = p.sweep_expired_locks(10000);
+    assert!(released.is_empty());
+}
 
-    #[test]
-    fn pipeline_bridge_state_root_is_deterministic() {
-        let mut p = pipeline();
-        let a = asset(52);
-        p.register_asset(a, 1).unwrap();
+#[test]
+fn pipeline_bridge_state_root_is_deterministic() {
+    let mut p = pipeline();
+    let a = asset(52);
+    p.register_asset(a, 1).unwrap();
 
-        let root1 = p.bridge_state().root();
-        let root2 = p.bridge_state().root();
-        assert_eq!(root1, root2);
-    }
+    let root1 = p.bridge_state().root();
+    let root2 = p.bridge_state().root();
+    assert_eq!(root1, root2);
+}

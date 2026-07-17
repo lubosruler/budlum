@@ -478,16 +478,19 @@ impl Executor {
                                     BudlumError::validation("bridge_mint_failed", e.0)
                                 })?;
                                 let fee = msg.nonce.saturating_mul(1); // placeholder for fee logic
-                                // credit recipient
-                                // amount logic needs to be tied to msg payload
+                                                                       // credit recipient
+                                                                       // amount logic needs to be tied to msg payload
                             }
                             crate::cross_domain::message::MessageKind::BridgeBurn => {
                                 // Inbound burn (from target back to source) -> Unlock on Budlum
                                 // Correlation ID usually links it.
                                 if let Some(correlation_id) = msg.correlation_id {
-                                     state.bridge_state.unlock(correlation_id, msg.source_domain).map_err(|e| {
-                                        BudlumError::validation("bridge_unlock_failed", e.0)
-                                    })?;
+                                    state
+                                        .bridge_state
+                                        .unlock(correlation_id, msg.source_domain)
+                                        .map_err(|e| {
+                                            BudlumError::validation("bridge_unlock_failed", e.0)
+                                        })?;
                                 }
                             }
                             _ => {}

@@ -1,10 +1,10 @@
 use crate::consensus::pos::SlashingEvidence;
 use crate::core::address::Address;
 use crate::core::governance::GovernanceState;
-use crate::cross_domain::BridgeState;
-use crate::cross_domain::message_registry::CrossDomainMessageRegistry;
-use crate::domain::storage_deal::StorageRegistry;
 use crate::core::transaction::{Transaction, TransactionType};
+use crate::cross_domain::message_registry::CrossDomainMessageRegistry;
+use crate::cross_domain::BridgeState;
+use crate::domain::storage_deal::StorageRegistry;
 use crate::storage::db::Storage;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};

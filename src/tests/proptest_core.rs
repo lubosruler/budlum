@@ -6,7 +6,7 @@ use crate::core::transaction::{Transaction, TransactionType};
 use proptest::prelude::*;
 
 proptest! {
-    /// Address properties: Any 32-byte array must be a valid address, 
+    /// Address properties: Any 32-byte array must be a valid address,
     /// and string round-trip must be identical.
     #[test]
     fn address_roundtrip_string(bytes in prop::collection::vec(any::<u8>(), 32)) {
@@ -24,12 +24,12 @@ proptest! {
         let sender = Address::zero();
         let receiver = Address::zero();
         let tx = Transaction::new_with_fee(sender, receiver, amount, fee, 0, vec![]);
-        
+
         let expected_cost = amount.saturating_add(fee);
         prop_assert_eq!(tx.total_cost(), expected_cost);
     }
 
-    /// Serialization robustness: Any random byte vector must not cause a panic 
+    /// Serialization robustness: Any random byte vector must not cause a panic
     /// when attempting to deserialize as a Transaction.
     #[test]
     fn transaction_deserialization_no_panic(bytes in prop::collection::vec(any::<u8>(), 0..1024)) {

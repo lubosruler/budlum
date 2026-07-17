@@ -1850,7 +1850,10 @@ impl Blockchain {
                 self.state.add_balance(&relayer, fee as u64);
             }
             _ => {
-                return Err(format!("Unsupported relay message kind: {:?}", message.kind));
+                return Err(format!(
+                    "Unsupported relay message kind: {:?}",
+                    message.kind
+                ));
             }
         }
 
@@ -3848,7 +3851,12 @@ impl Blockchain {
             .all_challenges()
             .iter()
             .filter(|c| c.deadline_epoch <= current_epoch)
-            .filter(|c| self.state.storage_registry.get_result(c.challenge_id).is_none())
+            .filter(|c| {
+                self.state
+                    .storage_registry
+                    .get_result(c.challenge_id)
+                    .is_none()
+            })
             .map(|c| (c.challenge_id, c.deal_id))
             .collect();
 

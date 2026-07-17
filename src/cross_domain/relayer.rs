@@ -498,66 +498,76 @@ mod tests {
     }
 }
 
-    #[test]
-    fn relay_config_defaults_are_reasonable() {
-        let config = RelayerConfig::default();
-        assert_eq!(config.relay_window_blocks, 100);
-        assert_eq!(config.min_relayer_stake, 10_000_000);
-        assert_eq!(config.slash_ratio_invalid, 50);
-        assert_eq!(config.slash_ratio_expired, 25);
-    }
+#[test]
+fn relay_config_defaults_are_reasonable() {
+    let config = RelayerConfig::default();
+    assert_eq!(config.relay_window_blocks, 100);
+    assert_eq!(config.min_relayer_stake, 10_000_000);
+    assert_eq!(config.slash_ratio_invalid, 50);
+    assert_eq!(config.slash_ratio_expired, 25);
+}
 
-    #[test]
-    fn relay_ledger_empty_root_is_deterministic() {
-        let ledger = RelayLedger::new();
-        let root1 = ledger.root();
-        let root2 = ledger.root();
-        assert_eq!(root1, root2);
-        // Empty root should be a specific value (merkle_root of empty vec)
-        assert_ne!(root1, [0u8; 32]);
-    }
+#[test]
+fn relay_ledger_empty_root_is_deterministic() {
+    let ledger = RelayLedger::new();
+    let root1 = ledger.root();
+    let root2 = ledger.root();
+    assert_eq!(root1, root2);
+    // Empty root should be a specific value (merkle_root of empty vec)
+    assert_ne!(root1, [0u8; 32]);
+}
 
-    #[test]
-    fn relay_ledger_get_record_returns_none_for_unknown() {
-        let ledger = RelayLedger::new();
-        assert!(ledger.get_record(&hash(b"unknown")).is_none());
-    }
+#[test]
+fn relay_ledger_get_record_returns_none_for_unknown() {
+    let ledger = RelayLedger::new();
+    assert!(ledger.get_record(&hash(b"unknown")).is_none());
+}
 
-    #[test]
-    fn relay_ledger_root_changes_with_different_relayers() {
-        let mut ledger = RelayLedger::new();
-        let msg_id = hash(b"msg1");
-        let relayer1 = Address::from([0xAA; 32]);
-        let relayer2 = Address::from([0xBB; 32]);
+#[test]
+fn relay_ledger_root_changes_with_different_relayers() {
+    let mut ledger = RelayLedger::new();
+    let msg_id = hash(b"msg1");
+    let relayer1 = Address::from([0xAA; 32]);
+    let relayer2 = Address::from([0xBB; 32]);
 
-        ledger.record(msg_id, relayer1, 100, hash(b"proof")).unwrap();
-        let root1 = ledger.root();
+    ledger
+        .record(msg_id, relayer1, 100, hash(b"proof"))
+        .unwrap();
+    let root1 = ledger.root();
 
-        let mut ledger2 = RelayLedger::new();
-        ledger2.record(msg_id, relayer2, 100, hash(b"proof")).unwrap();
-        let root2 = ledger2.root();
+    let mut ledger2 = RelayLedger::new();
+    ledger2
+        .record(msg_id, relayer2, 100, hash(b"proof"))
+        .unwrap();
+    let root2 = ledger2.root();
 
-        assert_ne!(root1, root2);
-    }
+    assert_ne!(root1, root2);
+}
 
-    #[test]
-    fn universal_relayer_new_has_empty_state() {
-        let relayer = UniversalRelayer::new(RelayerConfig::default());
-        assert_eq!(relayer.pending_count(), 0);
-        assert!(!relayer.is_relayed(&hash(b"anything")));
-        assert_eq!(relayer.expired_relays(1000).len(), 0);
-    }
+#[test]
+fn universal_relayer_new_has_empty_state() {
+    let relayer = UniversalRelayer::new(RelayerConfig::default());
+    assert_eq!(relayer.pending_count(), 0);
+    assert!(!relayer.is_relayed(&hash(b"anything")));
+    assert_eq!(relayer.expired_relays(1000).len(), 0);
+}
 
-    #[test]
-    fn process_relay_fails_for_unknown_message() {
-        let mut relayer = UniversalRelayer::new(RelayerConfig::default());
-        let proof = MerkleProof {
-            leaf: hash(b"test"),
-            index: 0,
-            siblings: vec![],
-        };
-        let err = relayer
-            .process_relay(hash(b"unknown"), Address::from([0xAA; 32]), &proof, hash(b"root"), 100)
-            .unwrap_err();
-        assert!(matches!(err, RelayerError::Other(_)));
-    }
+#[test]
+fn process_relay_fails_for_unknown_message() {
+    let mut relayer = UniversalRelayer::new(RelayerConfig::default());
+    let proof = MerkleProof {
+        leaf: hash(b"test"),
+        index: 0,
+        siblings: vec![],
+    };
+    let err = relayer
+        .process_relay(
+            hash(b"unknown"),
+            Address::from([0xAA; 32]),
+            &proof,
+            hash(b"root"),
+            100,
+        )
+        .unwrap_err();
+    assert!(matches!(err, RelayerError::Other(_)));
+}

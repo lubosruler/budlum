@@ -1,5 +1,5 @@
 //! Security Auditor's Stress Suite (ARENA2).
-//! Targeted at catching vulnerabilities in Transaction parsing, 
+//! Targeted at catching vulnerabilities in Transaction parsing,
 //! Signature verification, and Range boundaries.
 
 use crate::core::address::Address;
@@ -16,11 +16,11 @@ fn security_reject_max_u64_amount_plus_fee() {
     let alice_kp = KeyPair::generate().unwrap();
     let alice = Address::from(alice_kp.public_key_bytes());
     state.add_balance(&alice, u64::MAX);
-    
+
     // Amount + Fee would overflow u64
     let mut tx = Transaction::new_with_fee(alice, addr(2), u64::MAX, 1000, 0, vec![]);
     tx.sign(&alice_kp);
-    
+
     // validate_transaction should use saturating_add or check for overflow
     assert!(state.validate_transaction(&tx).is_err());
 }
@@ -30,10 +30,10 @@ fn security_reject_empty_signature() {
     let mut state = crate::core::account::AccountState::new();
     let alice = addr(1);
     state.add_balance(&alice, 1000);
-    
+
     let mut tx = Transaction::new(alice, addr(2), 100, vec![]);
     tx.signature = None; // Explicitly none
-    
+
     assert!(state.validate_transaction(&tx).is_err());
 }
 
@@ -43,11 +43,11 @@ fn security_reject_zero_length_data_for_contract_call() {
     let alice_kp = KeyPair::generate().unwrap();
     let alice = Address::from(alice_kp.public_key_bytes());
     state.add_balance(&alice, 1000);
-    
+
     let mut tx = Transaction::new(alice, addr(2), 0, vec![]);
     tx.tx_type = TransactionType::ContractCall;
     tx.sign(&alice_kp);
-    
+
     // Depending on VM impl, empty bytecode might be rejected early
     assert!(state.validate_transaction(&tx).is_ok()); // Valid TX, but VM will fail
 }
@@ -60,7 +60,7 @@ macro_rules! gen_security_tests {
                 let a = addr($idx);
                 let mut tx = Transaction::new(a, addr(0), 0, vec![]);
                 tx.nonce = $idx as u64;
-                // Proving that even with valid-looking nonces, 
+                // Proving that even with valid-looking nonces,
                 // without balance it fails.
                 let state = crate::core::account::AccountState::new();
                 assert!(state.validate_transaction(&tx).is_err());

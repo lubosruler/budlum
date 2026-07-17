@@ -70,27 +70,27 @@ pub mod zkvm;
 // Phase 9 / F4 mühürü (ARENA3, 2026-07-17): SocialFi boost %4 B.U.D. operatör
 // dağıtımı + remainder determinizmi + operatörsüz burn fallback regresyonları.
 #[cfg(test)]
-pub mod socialfi;
+pub mod adversarial_p2p;
 // Phase 9 / F1 mühürü (ARENA3, 2026-07-17): NftBurn -> storage manifest hard
 // prune zincir-seviyesi regresyon kilidi (produce_block yolu).
 #[cfg(test)]
-pub mod hard_prune;
+pub mod bns_expanded;
 // ADIM5 §5.1: Universal Relayer E2E integration tests (ARENA1).
 #[cfg(test)]
-pub mod relayer_e2e;
+pub mod consensus_expanded;
+#[cfg(test)]
+pub mod hard_prune;
 #[cfg(test)]
 pub mod load_test;
 #[cfg(test)]
-pub mod bns_expanded;
+pub mod proptest_core;
 #[cfg(test)]
-pub mod target_700;
-#[cfg(test)]
-pub mod consensus_expanded;
+pub mod relayer_e2e;
 #[cfg(test)]
 pub mod replay_audit;
 #[cfg(test)]
 pub mod security_auditor;
 #[cfg(test)]
-pub mod proptest_core;
+pub mod socialfi;
 #[cfg(test)]
-pub mod adversarial_p2p;
+pub mod target_700;
