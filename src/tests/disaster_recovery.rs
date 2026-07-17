@@ -5,22 +5,7 @@ mod tests {
     use crate::core::address::Address;
     use crate::core::transaction::{Transaction, TransactionType};
     use crate::storage::db::Storage;
-
-/// sled's file-lock release is not guaranteed to be synchronous with the
-/// previous owner's `drop` under CI scheduling (os error 11 / WouldBlock
-/// flake — Budlum Core run on `4d57f61`, `test_chaos_v2_ultimate_byzantine_recovery`).
-/// Reopen with a bounded wait: the lock always drains within milliseconds in
-/// practice; 100 x 25ms is generous, then the final open reports the error.
-fn reopen_storage(path: &str) -> Storage {
-    for _ in 0..100 {
-        if let Ok(storage) = crate::storage::db::Storage::new(path) {
-            return storage;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(25));
-    }
-    crate::storage::db::Storage::new(path).expect("storage reopen timed out after 2.5s")
-}
-
+    use super::reopen_storage;
 
     use std::sync::Arc;
     use tempfile::tempdir;
@@ -169,6 +154,21 @@ use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
 use crate::registry::role::roles;
 use crate::storage::db::Storage;
+
+/// sled's file-lock release is not guaranteed to be synchronous with the
+/// previous owner's `drop` under CI scheduling (os error 11 / WouldBlock
+/// flake — Budlum Core run on `4d57f61`, `test_chaos_v2_ultimate_byzantine_recovery`).
+/// Reopen with a bounded wait: the lock always drains within milliseconds in
+/// practice; 100 x 25ms is generous, then the final open reports the error.
+fn reopen_storage(path: &str) -> Storage {
+    for _ in 0..100 {
+        if let Ok(storage) = crate::storage::db::Storage::new(path) {
+            return storage;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    }
+    crate::storage::db::Storage::new(path).expect("storage reopen timed out after 2.5s")
+}
 use std::sync::Arc;
 use tempfile::tempdir;
 use tracing::info;
