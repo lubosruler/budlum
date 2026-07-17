@@ -82,8 +82,31 @@ jobs:
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add README.md
             git commit -m "chore(badge): tests rozeti -> ${N} lib (CI kanitli, ${GITHUB_SHA:0:7})"
-            git push
-            echo "rozet push'landi: $N"
+            # B-RACE fix (ARENA3, 2026-07-17): koşu başladıktan sonra main'e inen
+            # herhangi bir commit push'u non-fast-forward reddettiriyor ve job
+            # SAHTE-kırmızı oluyordu (kanıt: aa9cfcd — 546/546 yeşil test, yalnız
+            # rozet push reddi). Bounded retry: her denemede yeni başa reset +
+            # rozeti yeniden hesapla. Rozet sed'i idempotent: araya giren başka
+            # bir badge commit'i aynı sayıyı yazdıysa diff boş kalır ve push
+            # "Everything up-to-date" ile temiz geçer.
+            PUSH_OK=0
+            for attempt in 1 2 3; do
+              if git push; then
+                PUSH_OK=1
+                echo "rozet push'landi: $N (deneme $attempt)"
+                break
+              fi
+              echo "push reddedildi (deneme $attempt) — yeni basta yeniden hesaplanacak"
+              git fetch origin main
+              git reset --hard origin/main
+              sed -i -E "s/tests-[0-9]+%20lib/tests-${N}%20lib/" README.md
+              if ! git diff --quiet README.md; then
+                git add README.md
+                git commit -m "chore(badge): tests rozeti -> ${N} lib (CI kanitli, ${GITHUB_SHA:0:7}, race-taze)"
+              fi
+              sleep 2
+            done
+            [ "$PUSH_OK" = "1" ] || { echo "FAIL: rozet 3 denemede pushlanamadi"; exit 1; }
           fi
 
   budzero:

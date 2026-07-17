@@ -19,10 +19,15 @@ cd "$REPO_ROOT"
 
 echo "[generate-sbom] SBOM üretimi başlatılıyor..."
 
-# 1. cargo-cyclonedx yükle (yoksa)
-if ! command -v cargo-cyclonedx >/dev/null 2>&1; then
-    echo "[generate-sbom] cargo-cyclonedx yükleniyor..."
-    cargo install --locked cargo-cyclonedx
+# 1. cargo-cyclonedx yükle (yoksa veya sürüm pinli değilse).
+# Sürüm pinli: CLI bayrakları sürümler arası değişebiliyor (run #728:
+# `--output-file` kaldırılmıştı), kapının deterministik kalması için pin ZORUNLU.
+# (PR #13 ARENA5 fix'inden taşıma — ARENA3 triyaj bakiyesi.)
+CYCLONEDX_VERSION="0.5.9"
+if ! command -v cargo-cyclonedx >/dev/null 2>&1 \
+    || ! cargo cyclonedx --version 2>/dev/null | grep -q "$CYCLONEDX_VERSION"; then
+    echo "[generate-sbom] cargo-cyclonedx $CYCLONEDX_VERSION (pinli) yükleniyor..."
+    cargo install --locked cargo-cyclonedx --version "$CYCLONEDX_VERSION"
 fi
 
 # 2. SBOM üret
