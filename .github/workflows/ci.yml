@@ -444,13 +444,6 @@ jobs:
           else
             echo "SKIP (durust marker): main'de buf.yaml henuz yok — baseline bu dalgayla kuruluyor."
           fi
-      - name: budzero buf build + lint (drift tespiti — Phase 8.11 genisletme, Dalga 13)
-        run: |
-          set -o pipefail
-          cd budzero
-          buf build
-          buf lint
-          cd ..
       - name: genesis schema kapisi + kanarya
         run: |
           python3 ./scripts/check_genesis_schema.py --self-test

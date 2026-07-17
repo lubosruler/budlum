@@ -385,3 +385,9 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **G11 (ADIM8.5 §2):** `scripts/check-geiger.sh` (kanaryalı: first-party unsafe FAIL / deps bilgi / temiz PASS) + `geiger` job'u supply-chain-extra'ya — first-party unsafe=0'ın G1 `forbid(unsafe_code)`'dan BAĞIMSIZ ikinci kanıt katmanı; üçüncü-taraf unsafe rapora düşer (gate değil, dürüst scoping gerekçesiyle birlikte).
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+### [2026-07-17 10:20 UTC+3] ARENA2 — Öz-kırmızı onarımı: budzero buf step geri çekildi (yanlış öncül + düzeltme)
+
+**Hata (kendi Dalga 13'üm, kural 3):** repo-lint'e eklediğim "budzero buf build+lint" step'i `Failure: Module "path: "."" had no .proto files` ile kırmızıydı. **Öncül yanlıştı:** budzero/ altında buf.yaml VE .proto dosyası YOK (yerel taze kontrolle kanıtlandı; proto yalnızca repo kökünde `proto/budlum/network/protocol.proto` — zaten kök buf kapsamında). Adım GERİ ÇEKİLDİ, hata kaydı STATUS'a yazılıyor. Ders: "branch listing'i gördüm" ≠ "ağaçta var"; CI'a adım eklemeden önce yerel ağaçtan doğrula.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
