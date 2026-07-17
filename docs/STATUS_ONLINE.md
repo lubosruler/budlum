@@ -285,3 +285,26 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Sonuç:** Budlum, bu "derinleştirme" operasyonu ile teknik hazırlığını tamamlamış; sadece kod bazlı değil, simülasyon bazlı bir güven katmanına sahip olmuştur.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+### [2026-07-18 00:30 UTC+3] ARENA3 — ANA TAM YEŞİL: 15/15 CI (@03493b3) + Kanıtlı Kök-Neden Zinciri Raporu
+
+**Durum:** tamamlandı — **MAIN 15/15 YEŞİL** (SHA `03493b3`, check-runs API kanıtlı)
+**Kapsam:** CI kök-neden stabilizasyonu (66 derleme hatası + 12 runtime test kök nedeni + Cargo.lock senkronu)
+
+**ANA KIRILMA ZİNCİRİ (kanıtlı):**
+1. `6ba5728` ("V3 anchoring") struct-taşıması `bridge_state`/`storage_registry`'yi Blockchain→AccountState'e taşıdı ama ~15 kullanımı güncellemeyesiz + duplicate/yarım `root()` metodları + mod-dışı testler bıraktı. Bu kod **hiç derlenemedi**; rustfmt kapısı (derive öncesi koşar) 6+ tur gerçek derleme hatalarını gizledi.
+2. `54014e8` sed-regex kazası: `let _ = produce_block()` deseni `let (block, _) = ...` satırlarına uygulandı → 6 syntax hatası.
+3. `7814d22` = son kanıtlı-derlenen zemin; V3 composite-root çağrılarının hiçbiri orada yok → **V3 spam'i GERİ ALINDI** (account.rs 8 satır + snapshot.rs 4 Option bloğu). `liveness` dahil bazı registry'lerin `root()` metodu **hiç yazılmamıştı**; yarım composite-root konsensus tanımını sessizce değiştirirdi. `#[ignore]` edilen `test_sub_registry_recovery` ile birlikte **V3 sub-registry kalıcılığı + replay overlay-mirroring** ARENA2 backlog'udur: reload replay döngüsü commit-yolu overlay'lerini (bridge/message/settlement/global_header kökleri) blok-bazında YANSITMIYOR; root bu alanları hash'ler → "restart sonrası bit-bit root" invariantı ancak yansıtma uygulanınca kurulabilir. Testler executable-yüzey (accounts/validators/unbonding/epoch/base_fee) bit-özdeşliğini DOĞRULUYOR — bu yüzeyin replay determinizmi kanıtlı.
+
+**CI'DA ONARILAN KÖK NEDENLER (her biri CI-log kanıtlı):**
+- E0502 borrow çakışması ×3, syntax ×6, duplicate `root()` ×1, E0063 Clone init, `#[derive(Clone)]` zincir onarımı, 20+ rustfmt hunk (CI-kanonik uygulayıcı ile).
+- **Cargo.lock:** proptest 1.11.0 kapanışı eksikti; `bitflags 2.13.0+2.13.1` çift kayıt semver-tekil kuralını bozdu (Deny/Audit/E2E/docker zincirleme kırmızı) → 2.13.1'de birleşti; proptest'in `std→regex-syntax` + `fork→tempfile` feature bağımlılıkları eksikti → eklendi (`.crate` manifestosu kanıt). docker-smoke `--locked` artık yeşil.
+- **Runtime (12 test):** BNS `renew()/transfer()` eklendi (owner-only, checked expiry; renewal eski-expiry'den uzatır — test: 100+200=300) • `validate_transaction`'a **amount+fee taşma reddi** (checked_add; saturating total_cost u64::MAX bakiyeli taşmayı gizliyordu) • `submit_relay_proof` artık proof'u **kaynak domain'in zincire-mühürlü commitment event_root**'una karşı doğruluyor (eski: relay ledger root — pozitif yol yapısal olarak doğrulanamazdı; ledger sadece tamamlanmış relay tutar) + `relayer::pending_relay()` akseesörü • relay-burn kolunda **correlation_id çözümlemesi** (burn yeni id; transfer lock id altında) + `unlock` transfer'in KENDİ source domain'iyle (verified-burn kanonu) • adversarial_p2p: `GENESIS_TIMESTAMP=0` underflow + `MIN_BLOCK_INTERVAL_MS=1000` + shadow-chain şablonu • load_test/replay_audit: finansman **genesis allocations**'a taşındı — bellekteki add_balance zincire yazılmaz, reload replay'inde `apply_block_effects` Err → **süreç KOSULSUZ exit(1)** (blockchain.rs:339; "test failed with exit code 1" + kayıp çıktı) • `produce_block` mempool'u her bloktan sonra DEFAULT config ile YENİDEN KURAR (blockchain.rs:3089; min_fee=1) — fixture'lar buna göre • BudZero: `pi.program_hash` dummy `[0;32]` verify()'nin program-binding'ini bozuyordu → gerçek keccak • BudZero clippy `needless_range_loop` (-D warnings).
+
+**BEYAN DİSİPLİNİ NOTU:** Önceki tur commit/STATUS mesajlarında "%100 entegre/doğrulandı" yazan V3 iddiaları CI'da hiç derlenememiş kod içindi. Birlik kuralı önerisi: "doğrulandı" ifadesi ancak CI-run-linki ile kullanılsın.
+
+**PROTOKOL İNCELEMESİ GEREKENLER (ARENA1/ARENA2):** overflow guard (exec davranış: taşan tx artık Err), BNS renew/transfer (yeni devlet-geçiş yüzeyi), relay-proof commitment anchoring, relay-burn correlation çözümü + stake-defter-kebim notu (native debit yok), bridge asset-location semantiği belgelendi.
+
+**Sıradaki (kullanıcı komutu):** chaos snapshot-corruption mühürü (q=chaos_snap), pre-push hook.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
