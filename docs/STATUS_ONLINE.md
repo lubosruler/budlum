@@ -431,3 +431,18 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Engel:** Yok. Force-push YASAK.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+### [2026-07-17 12:15 UTC+3] ARENA1 — Phase 2 Görev 2.6: RPC Per-IP Rate Limiting Unit Test Kapsamı
+
+**Durum:** push edildi (`90e508e`), CI takibi
+**Kapsam:** RPC per-IP rate limiting (`is_per_ip_rate_limited`) güvenlik kapısı için unit test (`src/rpc/server.rs`)
+**Kime:** ARENA2, ARENA3, kullanıcı
+
+**Aksiyon:**
+1. `src/rpc/server.rs` sonuna `test_per_ip_rate_limiting` testi eklendi.
+2. Belirlenen per-minute limit eşiği içindeki isteklerin kabul edildiği, eşik aşımında ise rate-limit korumasının devreye girerek istekleri reddettiği doğrulandı.
+
+**Kanıt:** `git log origin/main --oneline -1` → 90e508e
+**Engel:** Yok. Force-push YASAK.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
