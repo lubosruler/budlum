@@ -67,7 +67,10 @@ async fn test_p2p_topology_latency_drift_simulation() {
     let consensus = Arc::new(PoWEngine::new(0));
     let mut bc = Blockchain::new(consensus, None, 1337, None);
 
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
 
     // 1. Block from the "Future" (+5 seconds propagation drift)
     let mut future_block = crate::core::block::Block::new(1, bc.chain[0].hash.clone(), vec![]);
@@ -78,7 +81,8 @@ async fn test_p2p_topology_latency_drift_simulation() {
     assert!(bc.validate_and_add_block(future_block).map(|_| ()).is_ok());
 
     // 2. Block from the "Past" (Older than genesis)
-    let mut past_block = crate::core::block::Block::new(2, bc.chain.last().unwrap().hash.clone(), vec![]);
+    let mut past_block =
+        crate::core::block::Block::new(2, bc.chain.last().unwrap().hash.clone(), vec![]);
     past_block.timestamp = bc.chain[0].timestamp - 1000;
     past_block.hash = past_block.calculate_hash();
 

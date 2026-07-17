@@ -266,6 +266,7 @@ fn full_internal_relay_cycle_burn_unlock() {
 
     // 3. Burn on Domain 2
     let burn_event = bc
+        .state
         .bridge_state
         .burn_with_event(lock_msg.message_id, 2, 20, 0, 1000)
         .unwrap();
@@ -289,7 +290,11 @@ fn full_internal_relay_cycle_burn_unlock() {
 
     // 6. Verify effects:
     // - Bridge state: Unlocked
-    let t = bc.state.bridge_state.get_transfer(&lock_msg.message_id).unwrap();
+    let t = bc
+        .state
+        .bridge_state
+        .get_transfer(&lock_msg.message_id)
+        .unwrap();
     assert!(matches!(
         t.status,
         crate::cross_domain::bridge::BridgeStatus::Unlocked { domain: 1 }

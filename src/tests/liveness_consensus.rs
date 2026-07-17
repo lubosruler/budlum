@@ -32,7 +32,8 @@ fn chain_with_validators(producer: Address, absentee: Address) -> Blockchain {
 /// Produce `n` blocks, all authored by `producer`.
 fn produce_n(bc: &mut Blockchain, producer: Address, n: u64) {
     for _ in 0..n {
-        let _ = bc.produce_block(producer)
+        let _ = bc
+            .produce_block(producer)
             .expect("block production must succeed");
     }
 }

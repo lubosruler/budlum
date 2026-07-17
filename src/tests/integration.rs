@@ -387,7 +387,9 @@ mod integration_tests {
         conflicting_block.producer = Some(pubkey);
         conflicting_block.sign(&sig_key);
 
-        let result = blockchain.validate_and_add_block(conflicting_block).map(|_| ());
+        let result = blockchain
+            .validate_and_add_block(conflicting_block)
+            .map(|_| ());
         assert!(result.is_err());
         assert!(result
             .unwrap_err()

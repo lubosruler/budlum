@@ -540,20 +540,6 @@ impl StateSnapshotV2 {
         hasher.update(self.message_root);
         hasher.update(self.settlement_root);
         hasher.update(self.global_header_summary);
-
-        if let Some(ref r) = self.storage_registry {
-            hasher.update(r.root());
-        }
-        if let Some(ref r) = self.bridge_state {
-            hasher.update(r.root());
-        }
-        if let Some(ref r) = self.bns_registry {
-            hasher.update(r.root());
-        }
-        if let Some(ref r) = self.nft_registry {
-            hasher.update(r.root());
-        }
-
         hex::encode(hasher.finalize())
     }
 

@@ -1312,7 +1312,8 @@ mod settlement_prod_tests {
         let owner = Address::from([10u8; 32]);
         let recipient = Address::from([20u8; 32]);
         bc.state.bridge_state.register_asset(asset, 1).unwrap();
-        bc.state.bridge_state
+        bc.state
+            .bridge_state
             .lock(1, 2, 1, 0, asset, owner, recipient, 100, 500)
             .unwrap();
         let err = bc
@@ -1358,7 +1359,11 @@ mod settlement_prod_tests {
             .unwrap();
         let msg = event.message.unwrap();
         bc.state.bridge_state.mint(&msg).unwrap();
-        let err = bc.state.bridge_state.unlock(transfer.message_id, 1).unwrap_err();
+        let err = bc
+            .state
+            .bridge_state
+            .unlock(transfer.message_id, 1)
+            .unwrap_err();
         assert!(err.to_string().contains("not burned"));
     }
 
@@ -1401,7 +1406,11 @@ mod settlement_prod_tests {
             .unwrap();
         let msg = event.message.unwrap();
         bc.state.bridge_state.mint(&msg).unwrap();
-        let err = bc.state.bridge_state.burn(transfer.message_id, 9).unwrap_err();
+        let err = bc
+            .state
+            .bridge_state
+            .burn(transfer.message_id, 9)
+            .unwrap_err();
         assert!(err.to_string().contains("not minted"));
     }
 

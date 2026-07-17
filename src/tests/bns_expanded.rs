@@ -51,13 +51,13 @@ fn test_bns_subdomains_owner_only() {
         .unwrap();
 
     // Alice can create subdomain
-    reg.register_subdomain("alice.bud".to_string(), "app".to_string(), alice, bob)
+    reg.register_subdomain("alice.bud", "app".to_string(), bob, &alice)
         .unwrap();
 
-    assert_eq!(reg.resolve_subdomain("alice.bud", "app"), Some(bob));
+    assert_eq!(reg.resolve_subdomain("alice.bud", "app", 100), Some(bob));
 
     // Bob (not owner of parent) cannot create subdomain under alice.bud
-    let res = reg.register_subdomain("alice.bud".to_string(), "malicious".to_string(), bob, bob);
+    let res = reg.register_subdomain("alice.bud", "malicious".to_string(), bob, &bob);
     assert!(res.is_err());
 }
 
@@ -98,8 +98,7 @@ fn test_bns_full_resolve_with_storage() {
 
     reg.register("storage.bud".to_string(), alice, 0, 1000)
         .unwrap();
-    reg.set_storage("storage.bud", alice, cid, 1, 10)
-        .unwrap();
+    reg.set_storage("storage.bud", alice, cid, 1, 10).unwrap();
 
     let resolved = reg.resolve_full("storage.bud", 10).unwrap();
     assert_eq!(resolved.owner, alice);

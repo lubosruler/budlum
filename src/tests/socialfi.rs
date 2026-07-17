@@ -77,7 +77,8 @@ fn open_weighted_deal(
     fee: u64,
 ) {
     let shard_id = m.shards[0].shard_id;
-    bc.state.storage_registry
+    bc.state
+        .storage_registry
         .open_deal(
             42,
             m,

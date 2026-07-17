@@ -660,7 +660,10 @@ mod chaos_tests {
             settlement_node.domain_commitment_registry.len(),
             (num_blocks * 3) as usize
         );
-        assert_eq!(settlement_node.state.message_registry.len(), num_blocks as usize);
+        assert_eq!(
+            settlement_node.state.message_registry.len(),
+            num_blocks as usize
+        );
 
         let global_header_2 = settlement_node.seal_global_header(None).unwrap();
         assert_eq!(global_header_2.global_height, 1);
@@ -697,6 +700,7 @@ mod chaos_tests {
         for i in 1..=num_transfers {
             let asset = hash_fields_bytes(&[b"test-asset", &(i as u64).to_le_bytes()]);
             settlement_node
+                .state
                 .bridge_state
                 .register_asset(asset, pos_domain.id)
                 .unwrap();
@@ -705,6 +709,7 @@ mod chaos_tests {
             let recipient = Address::from([(i + 1) as u8; 32]);
 
             let (transfer, lock_event) = settlement_node
+                .state
                 .bridge_state
                 .lock(
                     pos_domain.id,

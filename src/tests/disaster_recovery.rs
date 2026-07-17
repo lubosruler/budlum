@@ -311,7 +311,10 @@ async fn test_chaos_v2_chain_halt_full_silence_and_resume() {
 
     // 1) Baseline: bir tam epoch üret — silent ilk miss'ini alır.
     for _ in 0..EPOCH_LENGTH {
-        let _ = bc.produce_block(producer).map(|_| ()).expect("produce must succeed");
+        let _ = bc
+            .produce_block(producer)
+            .map(|_| ())
+            .expect("produce must succeed");
     }
     assert_eq!(bc.state.liveness.missed_count(&silent), 1);
     let height_before_halt = bc.chain.len() as u64;
@@ -328,7 +331,8 @@ async fn test_chaos_v2_chain_halt_full_silence_and_resume() {
 
     // 3) Kurtarma: üretici geri döner; zincir kaldığı height'tan uzamaya devam.
     for _ in 0..EPOCH_LENGTH * 2 {
-        let _ = bc.produce_block(producer)
+        let _ = bc
+            .produce_block(producer)
             .expect("resume production must succeed");
     }
     let expected = height_before_halt + EPOCH_LENGTH * 2;

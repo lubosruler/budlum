@@ -1182,14 +1182,6 @@ impl AccountState {
         final_hasher.update(self.message_root);
         final_hasher.update(self.settlement_root);
         final_hasher.update(self.global_header_summary);
-        final_hasher.update(self.bns_registry.root());
-        final_hasher.update(self.nft_registry.root());
-        final_hasher.update(self.marketplace.root());
-        final_hasher.update(self.hub.root());
-        final_hasher.update(self.storage_registry.root());
-        final_hasher.update(self.bridge_state.root());
-        final_hasher.update(self.registry.root());
-        final_hasher.update(self.liveness.root());
         final_hasher.update(b"gov_disabled"); // governance version/enabled flags
 
         let final_root = final_hasher.finalize();

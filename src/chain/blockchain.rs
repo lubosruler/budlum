@@ -3969,6 +3969,7 @@ impl Clone for Blockchain {
             domain_commitment_registry: self.domain_commitment_registry.clone(),
             global_headers: self.global_headers.clone(),
             plugin_registry: DomainPluginRegistry::new(),
+            universal_relayer: self.universal_relayer.clone(),
             settlement_finality_hashes: self.settlement_finality_hashes.clone(),
             pending_slashing_evidence: self.pending_slashing_evidence.clone(),
             finality_aggregator: None,

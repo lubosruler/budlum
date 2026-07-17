@@ -41,7 +41,8 @@ fn test_multi_validator_permissionless_lifecycle_and_slashing() {
     // Produce blocks with v1 and v2 participating, absentee missing
     for i in 0..(EPOCH_LENGTH * 2) {
         let producer = if i % 2 == 0 { v1 } else { v2 };
-        let _ = bc.produce_block(producer)
+        let _ = bc
+            .produce_block(producer)
             .expect("block production succeeds");
     }
 

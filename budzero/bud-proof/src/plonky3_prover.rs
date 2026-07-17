@@ -2912,9 +2912,9 @@ mod tests {
         let wrong_root = 0xBAD_C0DE;
 
         vm.memory[256..264].copy_from_slice(&key.to_le_bytes());
-        for i in 0..64 {
+        for (i, sibling) in siblings.iter().enumerate() {
             let off = 264 + i * 8;
-            vm.memory[off..off + 8].copy_from_slice(&siblings[i].to_le_bytes());
+            vm.memory[off..off + 8].copy_from_slice(&sibling.to_le_bytes());
         }
         vm.registers[2] = wrong_root;
         vm.registers[3] = leaf;
