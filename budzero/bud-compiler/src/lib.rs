@@ -202,6 +202,82 @@ mod tests {
     }
 
     #[test]
+    fn test_integer_literal_boundary_values() {
+        // Covers the exact threshold where codegen switches from a
+        // single Load immediate to the base-2^30 decomposition.
+        let source = r#"
+            contract BoundaryTest {
+                pub fn main() {
+                    let a = 2147483647;          // i32::MAX
+                    let b = 2147483648;          // i32::MAX + 1
+                    let c = 4294967295;          // 0xFFFFFFFF
+                    let d = 4294967296;          // 2^32
+                    emit Result(a, b, c, d);
+                }
+            }
+        "#;
+
+        let bytecode = compile(source, IsaProfile::Production)
+            .expect("Should compile boundary literals");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("VM should run boundary literals");
+
+        assert_eq!(vm.events, vec![2147483647, 2147483648, 4294967295, 4294967296]);
+    }
+
+    #[test]
+    fn test_verify_merkle_proof_constant_path_ok() {
+        // Path must be a compile-time constant address that fits in i32.
+        let source = r#"
+            contract MerklePathOk {
+                pub fn main() {
+                    let ok = verify_merkle_proof(0, 0, 256);
+                    emit Result(ok);
+                }
+            }
+        "#;
+
+        let res = compile(source, IsaProfile::Production);
+        assert!(res.is_ok(), "constant i32 path should compile: {:?}", res.err());
+    }
+
+    #[test]
+    fn test_verify_merkle_proof_rejects_dynamic_path() {
+        // Dynamic path expressions are rejected to avoid passing a
+        // register number as the immediate path address.
+        let source = r#"
+            contract MerklePathDynamic {
+                pub fn main() {
+                    let addr = 256;
+                    let bad = verify_merkle_proof(0, 0, addr);
+                    emit Result(bad);
+                }
+            }
+        "#;
+
+        let res = compile(source, IsaProfile::Production);
+        assert!(res.is_err(), "dynamic path must fail compilation");
+        assert!(matches!(res.unwrap_err(), CompileError::CodegenError(_)));
+    }
+
+    #[test]
+    fn test_verify_merkle_proof_rejects_out_of_range_path() {
+        // Path addresses above i32::MAX cannot be encoded as an immediate.
+        let source = r#"
+            contract MerklePathBig {
+                pub fn main() {
+                    let bad = verify_merkle_proof(0, 0, 2147483648);
+                    emit Result(bad);
+                }
+            }
+        "#;
+
+        let res = compile(source, IsaProfile::Production);
+        assert!(res.is_err(), "path > i32::MAX must fail compilation");
+        assert!(matches!(res.unwrap_err(), CompileError::CodegenError(_)));
+    }
+
+    #[test]
     fn test_register_allocator_reclamation() {
         // Without reclamation, compiling this expression would require >32 registers
         // because each `+` would allocate a new temporary register.
