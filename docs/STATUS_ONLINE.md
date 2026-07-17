@@ -352,3 +352,23 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 - Denetim bulgusu ayrıca: devnet'in kendi CI'sı 4 job ve tag-pinned action kullanıyor (ana repo SHA-pinned + zizmor kapılı); devnet'te açık PR #1/#2 + terk dallar var — kullanıcı kararıyla arşivleme YOK.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+### [2026-07-18 21:15 UTC+3] ARENA3 — Multinode-Job İlk Koşusu Gerçek Defo Yakaladı + Dependabot Borç Triyajı (kullanıcı kararlı)
+
+**Durum:** düzeltmeler bu push'ta (Dockerfile + dependabot.yml); gerisi ayrı emir
+**Kapsam:** `Devnet Multi-Node Smoke` ilk gerçek koşu sonrası kök-neden onarımı + 4 Dependabot güvenlik zaafının triyajı
+
+**1) MULTINODE SMOKE — İLK KOŞU, İLK DEFO (iş bu yüzden vardı):**
+- İlk CI koşusunda (commit `01a67aa`, job 87990016262) 4 node da crash-loop'a düştü: `CRITICAL: Failed to initialize storage at /home/budlum/data/devnet-node1: Permission denied (os error 13)` — log kanıtlı.
+- Kök neden: `USER budlum` altındaki imajda `/home/budlum/data` ve `/home/budlum/secrets` dizinleri hiç oluşturulmamıştı; compose named-volume'ları ilk mount'ta root-sahiplilikle doğurdu → budlum yazamadı. **Compose tanımı hiç CI'da koşmadığı için bu defo yıllardır görünmezdi (devnet mirası).** Düzeltme: Dockerfile'da `mkdir -p data secrets && chown -R budlum:budlum /home/budlum` (USER'dan önce).
+- Derse dönüş: devnet'ten port edilen varlıklar "koştu kanıtlı" değildir; ilk koşunun kırmızı çıkması beklenen ve SAĞLIKLI sonuçtur (job kendini kanıtladı).
+
+**2) DEPENDABOT SECURITY UPDATES — İLK HASAT (özellik çalışıyor):**
+- Etkinleştirme anında 7 güvenlik işi tetiklendi: **3 başarılı PR** (#32 protobuf 2.28.0→3.7.2, #33 ring 0.16.20→0.17.14, #34 rustls-webpki 0.101.7→0.103.13 — hepsi /fuzz sade) + **4 "update_not_possible" kırmızısı**.
+- Başarısız 4 advisory (hepsi aynı kökte — libp2p 0.45 / hickory 0.24 transitive zinciri `/fuzz`'da): `lru 0.12.5` (fix≥0.16.3), `libp2p-gossipsub 0.48.0` (fix≥0.49.4), `yamux 0.12.1` (fix≥0.13.10), `hickory-proto 0.25.0` (fix≥0.26.1). Kök zincir: root workspace libp2p 0.55.0'da ve BudZero'da DEĞİL; fuzz/Cargo.lock uçurmuş durumda + advisory'ler libp2p ≥0.56 ailesi istiyor.
+- **KANITLI BORÇ (kullanıcı kararı: ignore+track):** `dependabot.yml /fuzz`'a 4 ignore kuralı eklendi (yorumda bu kayda atıf). Zafiyetler gizlenmiyor: budlum-core node Runtime'a DEĞİL, yalnız fuzz toolchain'ine dokunuyorlar; root lock'ta da izleri var (gossipsub 0.48.0, yamux 0.12.1 çift-kayıt, lru 0.12.5) → **koordineli libp2p-stack migrasyonu** (root pin ≥0.56 + hickory ≥0.26 + root&fuzz lock yenileme + ağ-uyumluluk doğrulaması) ayrı kullanıcı emri bekliyor; scope olarak SENSITIVE — körü körüne major bump YASAK.
+- Not: main branch protection'ın 15 zorunlu kontrolü hemen çalışmaya başladı — Dependabot PR'ları `mergeable_state: blocked` oldu (checks raporu bekleniyor); triyaj kullanıcı kararıyla "yeşil olunca merge".
+
+**3) NOT:** `5af46d9`'da rozet-bot yeni kanıt sayısını yazdı: `740 lib` (dolgu imhası 134 → gerçek fn); workspace CI-kanıtlı toplam: 740 core + 119 BudZero = **859**.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>

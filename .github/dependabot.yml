@@ -35,6 +35,17 @@ updates:
       time: "06:00"
       timezone: "Europe/Istanbul"
     open-pull-requests-limit: 3
+    ignore:
+      # GHSA borç kaydı (docs/STATUS_ONLINE.md, 2026-07-18, ARENA3 — kullanıcı
+      # kararı: ignore+track): bu 4 güvenlik zaafı Dependabot için
+      # "update_not_possible" — libp2p 0.45/hickory 0.24 transitive zinciri;
+      # düzeltme root ağ yığınının koordineli major migrasyonunu ister
+      # (libp2p ≥0.56 / hickory ≥0.26 + root&fuzz lock yenileme + ağ-uyumluluk
+      # doğrulaması). Migrasyon ayrı bir kullanıcı emriyle yapılacaktır.
+      - dependency-name: "lru"
+      - dependency-name: "libp2p-gossipsub"
+      - dependency-name: "yamux"
+      - dependency-name: "hickory-proto"
   - package-ecosystem: "docker"
     directory: "/"
     schedule:

@@ -35,6 +35,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/bin/budlum-core /usr/local/bin/budlum-core
 
 RUN useradd --create-home --shell /bin/bash budlum
+
+# Multi-node compose mount-point'leri (devnet-multinode-smoke): named volume
+# ilk mount'ta imaj dizin sahipliğini devralır — önceden budlum sahipli
+# oluşturulmazsa container (USER budlum) storage init'te EACCES alır ve
+# restart-loop'a düşer (ilk CI koşusunda yakalanan defo, 2026-07-18).
+RUN mkdir -p /home/budlum/data /home/budlum/secrets \
+    && chown -R budlum:budlum /home/budlum
+
 USER budlum
 WORKDIR /home/budlum
 
