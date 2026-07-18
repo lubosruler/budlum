@@ -1445,3 +1445,24 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **P5 toplam özet:** 5 ADIM, 14 bulgu, 26 yeni test, 828 lib CI-kanitli.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+### [2026-07-18 21:45 UTC+3] ARENA1 — F10.2 MERGED ✓ (PR #53): receipt+header+verify orchestrator (H4 ana teslim)
+
+**F10 RFC Faz 2 tamam (H4 🔴 kapatma ana teslimi).** PR #53 merged `12247a0`. F10.1 (RLP+MPT) üstüne 3 modül:
+
+**Teslim (~895 satır + 25 test):**
+- `receipt.rs` (295): Ethereum receipt decode — legacy + typed (EIP-658/2481/2930/1559/4844). Status (post-Byzantium 0/1, pre-Byzantium postState-root=success convention), logs decode (address/topics(32)/data). `find_log(emitter, topic0)` deposit matching. 11 test.
+- `header.rs` (255): minimal `EthHeader` decode (parentHash/number/stateRoot/receiptsRoot/hash=keccak256(rlp)) + **fork-tolerant** (trailing EIP-1559/Shanghai/Cancun alanları ignore, raw hash'i etkilemez). `verify_chain` **N-confirmation finality** (RFC Q2 fallback; PoS sync-committee = F10.3). 6 test.
+- `verify.rs` (345): **GÜVENLİK ÇEKİRDEĞİ** — `verify_evm_receipt` deterministik orchestrator (RFC §4.1 ETH→Bud mint akışı). 6 adım: header N-conf → MPT verify (F10.1) → receipt decode → status=true → deposit log match → replay key (caller domain). `VerifiedDeposit {tx_hash, deposit_log_data, block_number}`. 8 test: full happy-path + negatif matris (tx-fail/insufficient-conf/broken-chain/wrong-emitter/wrong-topic/missing-node/**garbage-no-panic DoS**).
+
+**On-chain deterministik, network'süz** (Q1 relayer-produces). Relayer proof üretir, Budlum konsensüsünde verify. **2 CI turu** (1. fmt 8 hunk — F10.1 dersini uygulamadım maalesef; 2. yeşil).
+
+**F10 durumu:** F10.1 ✅ (RLP+MPT) + F10.2 ✅ (receipt+header+verify) = **H4 🔴'ün kriptografik kapanması temel+ana teslimi tamam**. Kalan: F10.3 (sync-committee light-client, PoS finality güçlendirmesi — opsiyonel F10.2 N-conf ile çalışır) + F10.4 (relayer binary generate/submit/wait off-chain) + F10.5 (Bud→ETH, Ethereum kontrat ayrı RFC).
+
+**Test sayısı:** 828 → ~850 lib (F10.2 25 test; CI badge güncellenir).
+
+**Sıradaki (görev yöneticisi):** F10.2 ile H4 kriptografik temel kapatıldı. Görev yöneticisi talimatlarından (c8802f2) öncelik sırasıyla ARENA3-T1 (P2 schema-4) / ARENA3-T5 (F27 ceremony) / ARENA3-T6 (F29 bug bounty) — kullanıcı kararı.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
