@@ -638,3 +638,54 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Oturum sonu tablo:** main yeşil · alert 0 · rozet 755 · GAP-3/4 kapalı · GAP-1 RFC draft açık · GAP-2 halefte · tur13_5 flake sınıfı kapanmış sayılır (tekrar görülürse bu girdiye referans).
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+## [MÜHÜR] Phase 9.5 KAPANDI — denetim/test envanteri mühürlendi
+
+### [2026-07-18 16:40 UTC+3] ARENA3 — kullanıcı emri: tüm denetim/test işleri Phase 9.5'a işlendi; Phase 10 açılıyor
+
+**Emir:** "şu an bahsettiğin tüm denetim ve testler Phase9.5 olarak geçsin Phase10 hazır!" (ek: `docs/BUDLUM_PHASE10.md`)
+
+**Phase 9.5 mühür envanteri (bu workitem'ler kapanmış/arşiv referansıdır; Phase 10 altında yeni satır açılmaz):**
+
+| İş | Kanıt |
+|---|---|
+| ZK negative corpus (5 AIR-red, soundness bu sınıflarda temiz) | `a339a01`→`e7ac940` |
+| Snapshot chaos 7 test + GAP-1/2 pinleri | `44c8361` → 753 lib |
+| GAP-3+GAP-4 snapshot loader onarımı (karantina+self-heal, boot fail-loud) | `532ca51` (PR #48) |
+| sled lock-release flake kök-neden onarımı + 2 deterministik test | `593b156` → **755 lib** |
+| libp2p 0.55→0.56 koordineli migrasyon (gossipsub GHSA kapatıcı) | `820b03d` (PR #47) |
+| Dependabot güvenli-set merges (ring #33, p3-challenger #46, #35/#40/#42/#44) | `17634f6`, `9f53172`, … |
+| Alert board 22→0 (dismiss'ler kanıt-yorumlu: hickory tolerable, yamux not_used) | board=0 |
+| ARENA2 incident temizliği (3 revert, append-only) | `90bdb72`/`f339140`/`5933bcb` |
+| Devnet multinode smoke sürekli CI'da (5 kontrol) | phase-3 workflow her push'ta |
+| Badge-bot rozet hattı (PAT derogasyonlu, koruma-uyumlu) | 753→755 |
+| GAP-1 manifest-imza RFC'si (DRAFT — §7 4 açık soru kullanıcıda) | `docs/RFC_GAP1_SNAPSHOT_MANIFEST_SIGNATURE.md` |
+
+**Mühür kapanış durumu:** main `d928ac9` tam yeşil (12/12 + smoke + multinode + supply-chain) · rozet 755 lib · alert 0 · çalışma ağacı temiz.
+
+---
+
+## Phase 10 AÇILDI — doküman repoda + kod doğrulama raporu
+
+**Doküman:** `docs/BUDLUM_PHASE10.md` (4 bölüm: AI inference layer · B.U.D. marketplace/provenance · eksiklik analizi · modül ayrımı kuralı).
+
+**Bölüm 3.4 madde 1 doğrulaması (kaynak-kanıtlı, bu oturum):**
+- **RPC sayısı 9, 7 değil:** api.rs'ye `bud_storageOpenDeal`, `bud_storageGetEconomicsSummary`, `bud_storageGetEconomicsEvents` eklenmiş — doküman eski README'ye dayanıyordu. `bud_storageAnswerChallenge`'ın range_hash-only olduğu api.rs:272'de bizzat yorumda itiraf edilmiş (Bölüm 3.2 madde 3 doğrulandı).
+- **`ContentManifest` (src/storage/manifest.rs:50-55) owner alanı YOK** — doğrulandı: alanlar yalnız `manifest_id/total_size/shard_count/shards`. İzin/consent katmanı owner'ı sıfırdan ekleyecek (manifest'e alan mı, ayrı registry mi — tasarım kararı).
+- **`StorageRegistry` (src/domain/storage_deal.rs:235) sağlayıcı-ekonomisi doğrulandı** (deal+challenge, tüketici erişim ödemesi yok — Bölüm 2 katmanı ayrı inşa edilecek).
+- **RoleId deseni hazır:** `RoleId(pub u32)` + sabitler VALIDATOR=1/VERIFIER=2/RELAYER=3/PROVER=4/STORAGE_OPERATOR=5 (`src/registry/role.rs:54-68`), `PermissionlessRegistry` generic `(RoleId, Address)` — `AiVerifier`/`BudStorageNode` eklemek desene oturuyor. Soru: AI verifier için yeni ID (6) mi, yoksa VERIFIER(2)'nin genişletilmesi mi? (PHASE10 `RoleId::AiVerifier` diyor → yeni ID yönünde.)
+- **Sayı düzeltmesi:** dokümandaki "452 lib" güncel değil — mühür anı sayısı **755 lib** (badge-bot `d8084aa` kanıtlı).
+
+**P10 modül-ayrımı (Bölüm 4) mevcut durum:** Core + BudZero zaten ayrı CI gate deseninde; B.U.D. (e2e `src/tests/bud_e2e.rs` Core suite içinde koşuyor) ve BNS (henüz kod yok) ayrıştırılacak. Kök README dashboard'a dönüşecek — toplam satırı modül uyarı satırlarının yerini almayacak kuralı işlenecek.
+
+**Görev önerisi (kullanıcı onayına):**
+- **ARENA3 adaylığım:** Bölüm 2 kripto primitifleri (AccessGrant imzası + key-wrapping tasarımı — GAP-1 HSM-seam ile örtüşüyor) + Bölüm 4 mühendisliği (modül README/CI gate/dashboard — workflows+CI domain'im) hard-enforcement (şifreleme) Faz-2 tasarımı.
+- **Halef (ARENA2) adayı:** AI Inference layer zincir tipleri + rpc (`bud_ai_request` host-call + outcome finalize) — chain/rpc domain'i.
+- **ARENA1:** cross_domain ile temas noktaları (B.U.D. asset ↔ input_ref köprülemesi gerekirse).
+- **BNS:** ayrı talimat turu (doküman 4.4 — mimari donmuş değil, başlama YOK).
+
+**Kullanıcı kararı bekleniyor:** görev dağılımı onayı + ilk sprint kapsamı (önerim: ben Bölüm 4 mühendisliği + AccessGrant RFC taslağı ile açıyorum; implementasyon onay sonrası).
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
