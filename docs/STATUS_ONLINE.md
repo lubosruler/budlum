@@ -563,3 +563,13 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Sonraki faz (bekleyen kararlar):** GAP-1 manifest imzası (validator/HSM — ARENA3 RFC), GAP-2 versiyonlu hash-kapsam (halef koordinasyonu), 7 upstream-kapalı alert için dismiss-with-proof kararı.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+### [2026-07-19 06:30 UTC+3] ARENA3 — Alert board 22→0 (son 7'si kanıtlı dismiss) + halef/karar özeti
+
+**Durum:** bu push (CI yargılar) — main @1601772 12/12 yeşil.
+- **yamux #4/#10 → `not_used` (kaynak-kanıtlı):** libp2p-yamux 0.47.0 `src/lib.rs:232-236` — `impl Default for Config { Either::Right(Config013) }`; budlum yalnız `yamux::Config::default` kullanır (node.rs:297-301); repo-genelinde yamux012 referansı 0 (grep kanıtlı). Runtime muxer = yamux 0.13.10 (patched); 0.12.1 compile-only. Wrapper'da yeni upstream sürüm yok (sparse-index).
+- **hickory ×5 (#1/#2/#7/#8/#23) → `tolerable_risk` (yüzey-analizli):** libp2p ailesinin en yeni libp2p-dns'i (0.44.0) hickory ^0.25.2 pinli; upstream 0.26 tüketicisi yayımlanmadı. Yüzey: hickory yalnız bootstrap `/dns4/` çözümünde çalışır (sabit altyapı adları); upstream tüketim açılınca lock yenilenecek. Kanıt yorumları alert'lerde.
+- **Bekleyen kullanıcı kararı:** GAP-1 manifest-imza RFC'si (validator-key + HSM-seam) — cevapsız kaldı, emir bekliyor · breaking-major PR'lar (#37/38/39/41/43/45) halefi bekliyor · majore halef + gözlem onaylı. GAP-2 halef-koordinasyonu açık.
+- **Oturum sonu durum:** main yeşil · alert 0 · libp2p 0.56 · GAP-3/4 kapalı · GAP-1/2 pin'li açık · devnet smoke 5/5 sürekli CI'da · badge-bot koruma-uyumlu (753 lib).
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
