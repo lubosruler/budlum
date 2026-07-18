@@ -276,15 +276,15 @@ pub enum ChainCommand {
     },
     NftGet {
         id: u64,
-        response: oneshot::Sender<Option<crate::nft::types::Nft>>,
+        response: oneshot::Sender<Option<crate::socialfi::types::Nft>>,
     },
     NftGetByOwner {
         owner: Address,
-        response: oneshot::Sender<Vec<crate::nft::types::Nft>>,
+        response: oneshot::Sender<Vec<crate::socialfi::types::Nft>>,
     },
     NftGetFeed {
         limit: usize,
-        response: oneshot::Sender<Vec<crate::nft::types::Nft>>,
+        response: oneshot::Sender<Vec<crate::socialfi::types::Nft>>,
     },
     MarketGetOffers {
         response: oneshot::Sender<Vec<crate::marketplace::DataOffer>>,
@@ -1313,7 +1313,7 @@ impl ChainHandle {
         rx.await.unwrap_or(0)
     }
 
-    pub async fn nft_get(&self, id: u64) -> Option<crate::nft::types::Nft> {
+    pub async fn nft_get(&self, id: u64) -> Option<crate::socialfi::types::Nft> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx
@@ -1322,7 +1322,7 @@ impl ChainHandle {
         rx.await.unwrap_or(None)
     }
 
-    pub async fn nft_get_by_owner(&self, owner: Address) -> Vec<crate::nft::types::Nft> {
+    pub async fn nft_get_by_owner(&self, owner: Address) -> Vec<crate::socialfi::types::Nft> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx
@@ -1334,7 +1334,7 @@ impl ChainHandle {
         rx.await.unwrap_or_default()
     }
 
-    pub async fn nft_get_feed(&self, limit: usize) -> Vec<crate::nft::types::Nft> {
+    pub async fn nft_get_feed(&self, limit: usize) -> Vec<crate::socialfi::types::Nft> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx

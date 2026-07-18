@@ -427,7 +427,7 @@ pub struct StateSnapshotV2 {
     #[serde(default)]
     pub bns_registry: Option<crate::bns::BnsRegistry>,
     #[serde(default)]
-    pub nft_registry: Option<crate::nft::NftRegistry>,
+    pub nft_registry: Option<crate::socialfi::NftRegistry>,
     #[serde(default)]
     pub marketplace: Option<crate::marketplace::MarketplaceRegistry>,
     #[serde(default)]

@@ -1,7 +1,10 @@
+//! SocialFi modulu — Phase 10 kategorizasyonu (C1): src/nft -> src/socialfi
+//! rename'i (kullanici: scope_v1). Yalniz modul yolu degisti; RPC method
+//! string'leri ve tipler ayni (kamusal kirilma yok).
 pub mod types;
 
 use crate::core::address::Address;
-pub use crate::nft::types::{Nft, NftError};
+pub use crate::socialfi::types::{Nft, NftError};
 use crate::storage::content_id::ContentId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

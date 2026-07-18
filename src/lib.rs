@@ -20,12 +20,12 @@ pub mod hub;
 pub mod marketplace;
 pub mod mempool;
 pub mod network;
-pub mod nft;
 pub mod prover;
 pub mod registry;
 pub mod relayer;
 pub mod rpc;
 pub mod settlement;
+pub mod socialfi;
 pub mod storage;
 pub mod tokenomics;
 

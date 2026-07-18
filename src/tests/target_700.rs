@@ -15,7 +15,7 @@ use crate::core::account::AccountState;
 use crate::core::address::Address;
 use crate::cross_domain::relayer::{RelayerConfig, UniversalRelayer};
 use crate::marketplace::MarketplaceRegistry;
-use crate::nft::NftRegistry;
+use crate::socialfi::NftRegistry;
 use crate::storage::content_id::ContentId;
 
 fn addr(b: u8) -> Address {
