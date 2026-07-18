@@ -43,12 +43,20 @@ impl ShardRef {
 
 /// A content manifest — the on-chain commitment to a sharded piece of
 /// content. `manifest_id` is the canonical identity of the whole piece; it
-/// is computed deterministically from `(total_size, shards)` so two
+/// is computed deterministically from `(owner, total_size, shards)` so two
 /// clients sharding the same content the same way always produce the
 /// same `manifest_id`.
+///
+/// `owner` alanı F01 (Phase 10.5) ile eklendi — veri sahipliği zincir-üstü
+/// kanıtlanabilir (Data Owner identity). `#[serde(default)]` ile eski
+/// snapshot'lar/JSON'lar backward-compat (owner = zero = "belirsiz").
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContentManifest {
     pub manifest_id: ContentId,
+    /// F01 (Phase 10.5): içerik sahibinin adresi. Zero-address = eski/pre-F01
+    /// manifest (backward-compat); yeni manifest'ler gerçek owner taşır.
+    #[serde(default)]
+    pub owner: crate::core::address::Address,
     pub total_size: u64,
     pub shard_count: u32,
     pub shards: Vec<ShardRef>,
@@ -58,6 +66,9 @@ impl ContentManifest {
     /// Build a manifest from a pre-computed set of shards. Validates that
     /// the shard list is non-empty, indices are unique, sizes are non-zero,
     /// and the total size matches the sum of shard sizes.
+    ///
+    /// `owner` defaults to zero-address (F01 backward-compat: caller `with_owner`
+    /// ile gerçek owner'ı set edebilir; manifest_id hesabı owner'ı kapsar).
     pub fn from_shards(shards: Vec<ShardRef>) -> Result<Self, String> {
         if shards.is_empty() {
             return Err("ContentManifest must have at least one shard".into());
@@ -76,13 +87,22 @@ impl ContentManifest {
                 .ok_or_else(|| "ContentManifest total size overflow".to_string())?;
         }
         let shard_count = shards.len() as u32;
+        let owner = crate::core::address::Address::zero();
         let manifest_id = manifest_id_from_shards(&shards);
         Ok(ContentManifest {
             manifest_id,
+            owner,
             total_size: total,
             shard_count,
             shards,
         })
+    }
+
+    /// F01: gerçek owner'ı set et (from_shards sonrası). `manifest_id` owner'a
+    /// bağlıysa yeniden hesaplanmalı; şimdilik manifest_id shards-only (F01 faz 2).
+    pub fn with_owner(mut self, owner: crate::core::address::Address) -> Self {
+        self.owner = owner;
+        self
     }
 
     /// Convenience: build a manifest by slicing `data` into equal-sized
