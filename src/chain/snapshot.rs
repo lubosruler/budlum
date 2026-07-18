@@ -533,10 +533,7 @@ fn hash_serializable<H: sha3::Digest, T: serde::Serialize>(hasher: &mut H, val: 
 
 /// C3 GAP-2 helper: `Option<T>` → tag (0=None / 1=Some) + serialize.
 /// None ve Some(default) farklı hash verir (forgery yüzeyi kapalı).
-fn hash_opt_serializable<H: sha3::Digest, T: serde::Serialize>(
-    hasher: &mut H,
-    opt: &Option<T>,
-) {
+fn hash_opt_serializable<H: sha3::Digest, T: serde::Serialize>(hasher: &mut H, opt: &Option<T>) {
     match opt {
         None => hasher.update(&[0u8]),
         Some(val) => {
