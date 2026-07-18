@@ -1065,6 +1065,31 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 
 ---
 
+### [2026-07-18 12:51 UTC+3] ARENA1 — B2 → GAP-2'ye ERTENLDİ (kullanıcı kararı, CI scope kanıtıyla) · P0 Transport (ARENA2) shipped
+
+**Karar (ask_user, `defer_gap2`):** B2 (cross_domain AssetId alias→struct, bridge R3 kapanışı) **GAP-2'ye ertelendi** — ARENA3'ün önerdiği plan. Sebep: benim `partial_b2_now` ("bağımsız/minimal") tahminim **CI ile çürütüldü** — fix **30 E0308 compile hatası, 8 dosyada** (test yardımcıları + inline hash literal'ları). Bu ARENA3'ün "unify GAP-2 scope'unu patlatır / B2 GAP-2'de (bridge_state snapshot alanıyla birlikte) gider" gerekçesini **doğruladı**. Kör 30-site migration (lokal compiler yok) mainnet-prep için çok riskli (point #2/#6).
+
+**PR #49 (draft, korundu):** `arena1/cross_domain-b2-json-safe` @ `62409c1` — AssetId struct tanımı + bridge.rs 2 byte-dilim + 2 test coercion + B2 test'i (rustfmt + 30 site KIRMIZI). GAP-2'de ARENA3 bu WIP'i migration haritasıyla devralır.
+
+**GAP-2 migration haritası (ARENA3 için — 30 E0308, dosya:sayı):**
+- **Yardımcı fonksiyonlar (düzeltilince çoğu çağrı yerini onarır):**
+  - `src/tests/bridge_lifecycle.rs:18 fn asset_id() -> [u8;32]` → `-> AssetId { AssetId(<body>) }` (14 çağrı)
+  - `src/tests/relayer_e2e.rs:22 fn asset(id) -> Hash32` → `-> AssetId { AssetId(<body>) }` (4 çağrı)
+  - `src/cross_domain/bridge_relayer.rs:459 fn asset(id) -> AssetId { hash(&[id]) }` → body `AssetId(hash(&[id]))`
+- **Inline literal wrap (`AssetId(hash_fields_bytes(...))` deseni, bridge.rs test'inde yapıldı):**
+  - `src/tests/chaos.rs` (143,151,525,527,705,719), `src/tests/pow_light_client.rs` (65,68), `src/tests/bridge_negatives.rs` (88,102), `src/rpc/tests.rs` (423), `src/tests/bridge_lifecycle.rs` kalan inline.
+- **Production (az — tip-notasyonu çoğunlukla güvenli, az coercion):** `src/chain/blockchain.rs` (1227/1252 civarı), `src/rpc/api.rs:102`, `src/cross_domain/bridge_relayer.rs:460`.
+- **rustfmt (PR #49'da):** bridge.rs 470/548/559 — log'dan birebir diff alındı (array çok-satır, let-json tek-satır, trailing blank).
+- Fix pattern mekanik (`AssetId(...)` / `.into()`); lokal compiler olmadan çoklu CI turu gerekir → GAP-2'de ARENA3 koordineli (bridge_state snapshot alanıyla) tek seferde.
+
+**Paralel ilerleme (main `26fd48c`):** ARENA2 **P0 Transport Option A (lossless P2P) + Phase 10 §1 AI Inference Verifier primitifleri** shipledi (`src/ai/`), socialfi rename (C1), onarımlar. Ekip çok-cepheli ilerliyor.
+
+**Sıradaki (ARENA1):** P1 marketplace primitifleri (RFC §3.2) — P0 (ARENA3, `775ab3a`) main'de, kapı açık. B2 GAP-2'ye ayrıldı; P1'e engel değil.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
 ### [2026-07-18 15:53 UTC+3] ARENA2 — P0 Transport Seçenek A & Phase 10 §1 AI Inference CI Başarı (SUCCESS) Kanıtı
 
 **CI Doğrulama Kanıtı (Tek Hakem Kuralı - Kural 3):**
