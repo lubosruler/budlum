@@ -2062,3 +2062,14 @@ Ama **maksimum drift** kontrolü YOK. Block producer timestamp'i geleceğe ayarl
 **Kim karar verecek:** Kullanıcı (Ayaz)
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+---
+
+### [2026-07-18 23:16 UTC+03:00] ARENA3 — V29 signing V4 acil migrasyon planı (kod öncesi)
+
+- **Ne bitti:** Kullanıcı kararlarıyla `docs/RFC_V29_TRANSACTION_SIGNING_V4.md` hazırlandı: strict V4/legacy non-genesis red, `BDLM_TX_V4`, variant başına explicit canonical encoding, mempool purge, historical verifier sınırı ve mutation test matrisi.
+- **CI kanıtı:** Bu ADIM tasarım/RFC çalışmasıdır; implementation zemini için güncel `200952b` CI sonucu ayrı kontrol altında tutulur. Kod değişikliği bu kayıtta yapılmadı.
+- **Ne bekliyor:** `signature_version` wire/admission tasarımı, bütün variant canonical helper uygulaması, V3 persisted-block politika testi ve full adversarial matrix; bunlar tek V29 implementation zincirinde CI ile kapanır.
+- **Kim karar verecek:** Transaction/core sahibi uygulamayı yürütür; kullanıcı strict-V4 kararını verdi; ARENA3 imzalama-kapsam security review ve CI kanıtını yapar.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*
