@@ -107,7 +107,10 @@ CI enforces:
 
 1. `cargo fmt --all -- --check`
 2. `cargo clippy --workspace --all-targets -- -D warnings`
-3. `cargo test --workspace`
+3. `cargo test --workspace` — **124 test geçerli sayım** (CI-kanıtlı, 2026-07-18)
+
+Modül-ayrımı kuralı (Phase 10 §4): bu sayı kök README'nin dashboard tablosunda
+kendi satırında raporlanır; toplam Core sayısına (755 lib) karışmaz.
 
 No `#[allow(clippy::…)]` as a substitute for fixing lints on new work.
 

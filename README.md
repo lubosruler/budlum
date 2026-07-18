@@ -17,6 +17,24 @@ Budlum is a research-grade Layer-1 that does **not** replace other chains. It **
 
 ---
 
+## Module dashboard (Phase 10 §4)
+
+Kural: **toplam satırı hiçbir modül uyarı satırının yerini almaz.** "Kaç test var"
+sorusuna toplam cevap verir; "hangisine güvenilir" sorusunun cevabı her zaman
+modül satırında (ve modül README'sinde) kalır.
+
+| Modül | Test | Kapı (isim-kilitli) | Durum |
+| --- | --- | --- | --- |
+| Budlum Core | **755 lib** (`cargo test --lib`, CI-kanıtlı) | `Budlum Core` job (fmt + clippy + test) | v0.3-dev devnet candidate |
+| BudZero (BudZKVM) | **124** (`cargo test --workspace`, CI-kanıtlı) | `BudZero / BudZKVM` job | Z-B 64-derinlik Production-gated — ayrıntı: `budzero/README.md` |
+| B.U.D. | **12 zorunlu** (9 invariant + 3 e2e) | `B.U.D. E2E Invariants` job + `scripts/check-bud-e2e.sh` | devnet-only; sahte-yeşil riski işaretli — `src/storage/README.md` |
+| BNS (`.bud`) | **8 test** (`test_bns_*`) | `BNS Name Registry` job + `scripts/check-bns-gate.sh` | iskelet mevcut; genişletme ayrı talimat — `src/bns/README.md` |
+
+Not: Core'un 755 sayısı B.U.D. ve BNS testlerini de içerir (paylaşılan lib suite);
+modül satırları kendi isim-kilitli kapılarını ayrıca raporlar.
+
+---
+
 ## Why Budlum
 
 | Problem today | Budlum shift |

@@ -179,6 +179,30 @@ jobs:
           cargo test --lib bud_e2e 2>&1 | tee /tmp/bud-e2e.txt
           bash ./scripts/check-bud-e2e.sh /tmp/bud-e2e.txt
 
+  # ============================ Phase 10 / Bolum 4 (BNS gate) ============================
+  bns-gate:
+    # Phase 10 Bolum 4 modul-ayrimi: BNS'in kendi CI gate'i (B.U.D. kapi deseni).
+    # Isim kanaryasi: bir test silinir/yeniden adlandirilirsa kapi FAIL olur.
+    name: BNS Name Registry (8/8 isim-kilitli) (Phase 10)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: Kapi kanaryasi (vacuous degil kaniti)
+        run: bash ./scripts/check-bns-gate.sh --self-test
+      - name: bns — 8 test (isim kanaryali)
+        run: |
+          cargo test --lib bns 2>&1 | tee /tmp/bns-gate.txt
+          bash ./scripts/check-bns-gate.sh /tmp/bns-gate.txt
+
   # ============================ Phase 8 / Faz 1 (P0) ============================
   # Strict mod: aşağıdaki tüm job'lar ilk günden FAIL kapısıdır (Phase 8.5 ruhu).
   # Kapıların "boş" (vacuous) olmadığı kanarya testleriyle her koşuda kanıtlanır.

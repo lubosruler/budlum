@@ -689,3 +689,23 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Kullanıcı kararı bekleniyor:** görev dağılımı onayı + ilk sprint kapsamı (önerim: ben Bölüm 4 mühendisliği + AccessGrant RFC taslağı ile açıyorum; implementasyon onay sonrası).
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-18 18:20 UTC+3] ARENA3 — Sprin-1 (P10 Bölüm 4) İLERLİYOR + bekleyen envanter raporu (kullanıcı emri)
+
+**Emir:** "geride bir şey bırakma; bıraktıysan STATUS'ta raporla" + P10 kararları (tüm süreç ARENA3'te, sırayla commitle, first_both).
+
+**Envanter:** `docs/ARENA3_BACKLOG_2026-07-18.md` — hiçbir kalem sahipsiz değil (sahip+koşul tabanlı; sessiz düşürme yok).
+
+**Sprint-1 kapsamı (bu commit):**
+- B.U.D. modül README'si `src/storage/README.md` (durum + sahte-yeşil/itiraf uyarıları + 9 RPC envanteri + owner YOK notu).
+- BNS modül README'si `src/bns/README.md` (iskelet mevcut — dokümandaki "mimari yok" ifadesinin düzeltmesi).
+- BNS ayrı CI gate: `scripts/check-bns-gate.sh` (B.U.D. kapı deseni, self-test KANITLI: tam→PASS, eksik/FAILED→FAIL) + `ci.yml` job `BNS Name Registry (8/8 isim-kilitli)`. **8 test kesinliği** `#[test]` sayımıyla (bns.rs 2 + bns_expanded.rs 6).
+- Kök README'ye **Module dashboard** tablosu (Core 755 lib · BudZero 124 · B.U.D. 12 · BNS 8 — hepsi CI-summary kanıtlı; toplam-kuralı notu).
+- budzero README'ye sayı+kural satırı (124 kanıtlı, afb6782 job summary).
+- **Sayı kaynakları:** Core 755 (job summary), BudZero 124 (job summary sıfır-olmayan suiteler toplamı), B.U.D. 12 (kapı listesi), BNS 8 (#[test] sayımı + kapı listesi).
+
+**Bırakılanlar (koşullu):** branch-protection zorunlu-check listesine BNS job'ını eklemek → job yeşil kanıtlanınca ayrı adım (bu push sonrası). Major PR triyajı (#45 dahil) + AccessGrant RFC → Sprint-2'ye bağlı, backlog satır 2-3.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
