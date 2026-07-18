@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 pub mod ai;
 pub mod bns;
-pub mod bud;
+pub mod bud_marketplace;
 pub mod chain;
 pub mod cli;
 pub mod consensus;
