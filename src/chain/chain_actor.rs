@@ -134,10 +134,10 @@ pub enum ChainCommand {
         oneshot::Sender<Result<u64, String>>,
     ),
     /// Phase 10: Get MarketplaceRegistry for RPC reads (cloned).
-    GetMarketplaceRegistry(oneshot::Sender<crate::bud_marketplace::MarketplaceRegistry>),
+    GetMarketplaceRegistry(oneshot::Sender<crate::storage::marketplace::MarketplaceRegistry>),
     /// Phase 10: Set MarketplaceRegistry after RPC mutations (consensus write).
     SetMarketplaceRegistry(
-        crate::bud_marketplace::MarketplaceRegistry,
+        crate::storage::marketplace::MarketplaceRegistry,
         oneshot::Sender<()>,
     ),
     RegisterBridgeAsset {
@@ -283,15 +283,15 @@ pub enum ChainCommand {
     },
     NftGet {
         id: u64,
-        response: oneshot::Sender<Option<crate::socialfi::types::Nft>>,
+        response: oneshot::Sender<Option<crate::nft::types::Nft>>,
     },
     NftGetByOwner {
         owner: Address,
-        response: oneshot::Sender<Vec<crate::socialfi::types::Nft>>,
+        response: oneshot::Sender<Vec<crate::nft::types::Nft>>,
     },
     NftGetFeed {
         limit: usize,
-        response: oneshot::Sender<Vec<crate::socialfi::types::Nft>>,
+        response: oneshot::Sender<Vec<crate::nft::types::Nft>>,
     },
     MarketGetOffers {
         response: oneshot::Sender<Vec<crate::marketplace::DataOffer>>,
@@ -977,19 +977,19 @@ impl ChainHandle {
     }
 
     /// Phase 10: Get MarketplaceRegistry for RPC reads (cloned).
-    pub async fn get_marketplace_registry(&self) -> crate::bud_marketplace::MarketplaceRegistry {
+    pub async fn get_marketplace_registry(&self) -> crate::storage::marketplace::MarketplaceRegistry {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx
             .send(ChainCommand::GetMarketplaceRegistry(tx))
             .await;
-        rx.await.unwrap_or_else(|_| crate::bud_marketplace::MarketplaceRegistry::new())
+        rx.await.unwrap_or_else(|_| crate::storage::marketplace::MarketplaceRegistry::new())
     }
 
     /// Phase 10: Set MarketplaceRegistry after RPC mutations (consensus write).
     pub async fn set_marketplace_registry(
         &self,
-        registry: crate::bud_marketplace::MarketplaceRegistry,
+        registry: crate::storage::marketplace::MarketplaceRegistry,
     ) {
         let (tx, rx) = oneshot::channel();
         let _ = self
@@ -1343,7 +1343,7 @@ impl ChainHandle {
         rx.await.unwrap_or(0)
     }
 
-    pub async fn nft_get(&self, id: u64) -> Option<crate::socialfi::types::Nft> {
+    pub async fn nft_get(&self, id: u64) -> Option<crate::nft::types::Nft> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx
@@ -1352,7 +1352,7 @@ impl ChainHandle {
         rx.await.unwrap_or(None)
     }
 
-    pub async fn nft_get_by_owner(&self, owner: Address) -> Vec<crate::socialfi::types::Nft> {
+    pub async fn nft_get_by_owner(&self, owner: Address) -> Vec<crate::nft::types::Nft> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx
@@ -1364,7 +1364,7 @@ impl ChainHandle {
         rx.await.unwrap_or_default()
     }
 
-    pub async fn nft_get_feed(&self, limit: usize) -> Vec<crate::socialfi::types::Nft> {
+    pub async fn nft_get_feed(&self, limit: usize) -> Vec<crate::nft::types::Nft> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx

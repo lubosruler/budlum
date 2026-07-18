@@ -696,7 +696,7 @@ fn storage_economics_event_to_json(
 }
 
 /// Marketplace-specific helpers
-fn data_asset_to_json(asset: &crate::bud_marketplace::DataAsset) -> serde_json::Value {
+fn data_asset_to_json(asset: &crate::storage::marketplace::DataAsset) -> serde_json::Value {
     serde_json::json!({
         "assetId": format!("0x{}", hex::encode(asset.asset_id)),
         "owner": format!("0x{}", asset.owner.to_hex()),
@@ -707,7 +707,7 @@ fn data_asset_to_json(asset: &crate::bud_marketplace::DataAsset) -> serde_json::
     })
 }
 
-fn storage_commitment_to_json(commitment: &crate::bud_marketplace::StorageCommitment) -> serde_json::Value {
+fn storage_commitment_to_json(commitment: &crate::storage::marketplace::StorageCommitment) -> serde_json::Value {
     serde_json::json!({
         "assetId": format!("0x{}", hex::encode(commitment.asset_id)),
         "contentHash": format!("0x{}", hex::encode(commitment.content_hash)),
@@ -717,19 +717,19 @@ fn storage_commitment_to_json(commitment: &crate::bud_marketplace::StorageCommit
     })
 }
 
-fn access_grant_to_json(grant: &crate::bud_marketplace::AccessGrant) -> serde_json::Value {
+fn access_grant_to_json(grant: &crate::storage::marketplace::AccessGrant) -> serde_json::Value {
     let grantee_json = match &grant.grantee {
-        crate::bud_marketplace::Grantee::RoleId(rid) => {
+        crate::storage::marketplace::Grantee::RoleId(rid) => {
             serde_json::json!({ "type": "RoleId", "value": rid.value() })
         }
-        crate::bud_marketplace::Grantee::Address(addr) => {
+        crate::storage::marketplace::Grantee::Address(addr) => {
             serde_json::json!({ "type": "Address", "value": format!("0x{}", addr.to_hex()) })
         }
     };
     let scope_json = match &grant.scope {
-        crate::bud_marketplace::GrantScope::ReadOnce => serde_json::json!("ReadOnce"),
-        crate::bud_marketplace::GrantScope::ReadUntilBlock(h) => serde_json::json!({ "ReadUntilBlock": h }),
-        crate::bud_marketplace::GrantScope::Perpetual => serde_json::json!("Perpetual"),
+        crate::storage::marketplace::GrantScope::ReadOnce => serde_json::json!("ReadOnce"),
+        crate::storage::marketplace::GrantScope::ReadUntilBlock(h) => serde_json::json!({ "ReadUntilBlock": h }),
+        crate::storage::marketplace::GrantScope::Perpetual => serde_json::json!("Perpetual"),
     };
     serde_json::json!({
         "assetId": format!("0x{}", hex::encode(grant.asset_id)),
@@ -740,12 +740,12 @@ fn access_grant_to_json(grant: &crate::bud_marketplace::AccessGrant) -> serde_js
     })
 }
 
-fn access_revocation_to_json(rev: &crate::bud_marketplace::AccessRevocation) -> serde_json::Value {
+fn access_revocation_to_json(rev: &crate::storage::marketplace::AccessRevocation) -> serde_json::Value {
     let grantee_json = match &rev.grantee {
-        crate::bud_marketplace::Grantee::RoleId(rid) => {
+        crate::storage::marketplace::Grantee::RoleId(rid) => {
             serde_json::json!({ "type": "RoleId", "value": rid.value() })
         }
-        crate::bud_marketplace::Grantee::Address(addr) => {
+        crate::storage::marketplace::Grantee::Address(addr) => {
             serde_json::json!({ "type": "Address", "value": format!("0x{}", addr.to_hex()) })
         }
     };
@@ -756,7 +756,7 @@ fn access_revocation_to_json(rev: &crate::bud_marketplace::AccessRevocation) -> 
     })
 }
 
-fn marketplace_listing_to_json(listing: &crate::bud_marketplace::MarketplaceListing) -> serde_json::Value {
+fn marketplace_listing_to_json(listing: &crate::storage::marketplace::MarketplaceListing) -> serde_json::Value {
     serde_json::json!({
         "assetId": format!("0x{}", hex::encode(listing.asset_id)),
         "price": listing.price,
@@ -764,7 +764,7 @@ fn marketplace_listing_to_json(listing: &crate::bud_marketplace::MarketplaceList
     })
 }
 
-fn parse_grantee(val: serde_json::Value) -> Result<crate::bud_marketplace::Grantee, ErrorObjectOwned> {
+fn parse_grantee(val: serde_json::Value) -> Result<crate::storage::marketplace::Grantee, ErrorObjectOwned> {
     let grantee_type = val.get("type").and_then(|v| v.as_str()).ok_or_else(|| {
         ErrorObjectOwned::owned(-32602, "Grantee missing 'type' field (RoleId or Address)", None::<()>)
     })?;
@@ -776,7 +776,7 @@ fn parse_grantee(val: serde_json::Value) -> Result<crate::bud_marketplace::Grant
             let role_id = grantee_value.as_u64().ok_or_else(|| {
                 ErrorObjectOwned::owned(-32602, "Grantee RoleId must be a number", None::<()>)
             })? as u32;
-            Ok(crate::bud_marketplace::Grantee::RoleId(crate::registry::RoleId::new(role_id)))
+            Ok(crate::storage::marketplace::Grantee::RoleId(crate::registry::RoleId::new(role_id)))
         }
         "Address" => {
             let addr_str = grantee_value.as_str().ok_or_else(|| {
@@ -786,23 +786,23 @@ fn parse_grantee(val: serde_json::Value) -> Result<crate::bud_marketplace::Grant
             let addr = crate::core::address::Address::from_hex(clean).map_err(|e| {
                 ErrorObjectOwned::owned(-32602, format!("Invalid address: {e}"), None::<()>)
             })?;
-            Ok(crate::bud_marketplace::Grantee::Address(addr))
+            Ok(crate::storage::marketplace::Grantee::Address(addr))
         }
         _ => Err(ErrorObjectOwned::owned(-32602, "Grantee type must be RoleId or Address", None::<()>)),
     }
 }
 
-fn parse_grant_scope(val: serde_json::Value) -> Result<crate::bud_marketplace::GrantScope, ErrorObjectOwned> {
+fn parse_grant_scope(val: serde_json::Value) -> Result<crate::storage::marketplace::GrantScope, ErrorObjectOwned> {
     if val.is_string() {
         let s = val.as_str().unwrap();
         match s {
-            "ReadOnce" => Ok(crate::bud_marketplace::GrantScope::ReadOnce),
-            "Perpetual" => Ok(crate::bud_marketplace::GrantScope::Perpetual),
+            "ReadOnce" => Ok(crate::storage::marketplace::GrantScope::ReadOnce),
+            "Perpetual" => Ok(crate::storage::marketplace::GrantScope::Perpetual),
             _ => Err(ErrorObjectOwned::owned(-32602, "GrantScope string must be ReadOnce or Perpetual", None::<()>)),
         }
     } else if val.is_object() {
         if let Some(read_until) = val.get("ReadUntilBlock").and_then(|v| v.as_u64()) {
-            Ok(crate::bud_marketplace::GrantScope::ReadUntilBlock(read_until))
+            Ok(crate::storage::marketplace::GrantScope::ReadUntilBlock(read_until))
         } else {
             Err(ErrorObjectOwned::owned(-32602, "GrantScope object must have ReadUntilBlock field", None::<()>))
         }
@@ -2581,8 +2581,8 @@ impl BudlumApiServer for RpcServer {
 
     async fn data_asset_register(
         &self,
-        asset: crate::bud_marketplace::DataAsset,
-        commitment: crate::bud_marketplace::StorageCommitment,
+        asset: crate::storage::marketplace::DataAsset,
+        commitment: crate::storage::marketplace::StorageCommitment,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         // Verify commitment matches asset
         if commitment.asset_id != asset.asset_id {
@@ -2646,7 +2646,7 @@ impl BudlumApiServer for RpcServer {
 
     async fn access_grant_submit(
         &self,
-        grant: crate::bud_marketplace::AccessGrant,
+        grant: crate::storage::marketplace::AccessGrant,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         // Verify owner signature matches asset owner
         // TODO: Verify Ed25519 signature over grant fields using asset.owner
@@ -2673,7 +2673,7 @@ impl BudlumApiServer for RpcServer {
     async fn access_grant_query(
         &self,
         asset_id: String,
-        grantee: crate::bud_marketplace::Grantee,
+        grantee: crate::storage::marketplace::Grantee,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         let clean = asset_id.strip_prefix("0x").unwrap_or(&asset_id);
         let bytes = hex::decode(clean).map_err(|e| {
@@ -2705,7 +2705,7 @@ impl BudlumApiServer for RpcServer {
 
     async fn access_grant_revoke(
         &self,
-        revocation: crate::bud_marketplace::AccessRevocation,
+        revocation: crate::storage::marketplace::AccessRevocation,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         let mut market = self.chain.get_marketplace_registry().await;
         market
@@ -2727,7 +2727,7 @@ impl BudlumApiServer for RpcServer {
 
     async fn marketplace_list(
         &self,
-        listing: crate::bud_marketplace::MarketplaceListing,
+        listing: crate::storage::marketplace::MarketplaceListing,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         let mut market = self.chain.get_marketplace_registry().await;
         market

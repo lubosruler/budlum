@@ -427,13 +427,13 @@ pub struct StateSnapshotV2 {
     #[serde(default)]
     pub bns_registry: Option<crate::bns::BnsRegistry>,
     #[serde(default)]
-    pub nft_registry: Option<crate::socialfi::NftRegistry>,
+    pub nft_registry: Option<crate::nft::NftRegistry>,
     // --- schema_version 3 (Phase 10): B.U.D. Data Marketplace (Provenance + Access Control)
     // New comprehensive marketplace registry with DataAsset, AccessGrant, AccessRevocation, MarketplaceListing.
     // Replaces the old simple `DataOffer`-only marketplace. `#[serde(default)]` for backward compatibility
     // with schema≤3 snapshots (old snapshots deserialize with this field as None).
     #[serde(default)]
-    pub marketplace_v4: Option<crate::bud_marketplace::MarketplaceRegistry>,
+    pub marketplace_v4: Option<crate::storage::marketplace::MarketplaceRegistry>,
     // Legacy marketplace (simple DataOffer model) — kept for schema≤3 backward compatibility.
     // New snapshots (schema_version >= 4) should use `marketplace_v4` instead.
     #[serde(default)]

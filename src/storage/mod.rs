@@ -16,12 +16,13 @@
 //! `domain/` because the data shapes it owns are consensus types, not
 //! transport types).
 //!
-//! The Phase 10 B.U.D. Marketplace is a separate project module at
-//! `crate::bud_marketplace`; it is intentionally not owned by storage.
+//! The B.U.D. data marketplace primitives (Phase 10) live in
+//! [`marketplace`] — provenance, access grants, and marketplace listings.
 
 pub mod content_id;
 pub mod db;
 pub mod manifest;
+pub mod marketplace;
 pub mod traits;
 
 pub use content_id::{ContentId, DEFAULT_CHUNK_SIZE_BYTES};

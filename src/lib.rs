@@ -18,14 +18,13 @@ pub mod hub;
 pub mod marketplace;
 pub mod mempool;
 pub mod network;
-pub mod socialfi;
+pub mod nft;
 pub mod prover;
 pub mod registry;
 pub mod relayer;
 pub mod rpc;
 pub mod settlement;
 pub mod storage;
-pub mod bud_marketplace;
 pub mod tokenomics;
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 # Budlum — Phase10
-## AI Execution Layer + B.U.D. Veri Marketplace + Mevcut Kod Durumu Eksiklik Analizi
+## AI Inference Layer + B.U.D. Veri Marketplace + Mevcut Kod Durumu Eksiklik Analizi
 
 **Repo:** github.com/budlum-xyz/budlum
 **Bu doküman 4 bölümden oluşuyor:** (1) AI inference katmanı talimatı,
@@ -12,7 +12,7 @@ okuyun.**
 
 ---
 
-# BÖLÜM 1 — AI Execution Layer Talimatı
+# BÖLÜM 1 — AI Inference/Compute Katmanı Talimatı
 
 **Kapsam:** On-chain AI inference — akıllı kontratlar AI model çağırabilsin.
 Mevcut mimariye ek, izole modül; repositioning değil.
@@ -164,7 +164,7 @@ struct MarketplaceListing {
 6. **Faz 2:** içerik şifreli, sadece `wrapped_key` sahibi çözebilir (hard
    enforcement).
 
-**AI Execution Layer entegrasyonu (zorunlu):** `AiInferenceRequest.input_ref`
+**AI Inference Layer entegrasyonu (zorunlu):** `AiInferenceRequest.input_ref`
 bir B.U.D. `DataAsset`'ine işaret ediyorsa, `AiVerifier` hesaplamadan önce
 geçerli `AccessGrant` kontrolü yapmak ZORUNDA.
 
@@ -222,7 +222,7 @@ olarak bu dosyaların gerçek içeriğini gösterin ve doğrulatın.**
    sadece "bir parçası saklanıyor" garantisi var. Ekip bunu "sahte-yeşil
    yol riski" diye açıkça işaretlemiş (vision §9.1) — gizlemiyorlar, bu
    olumlu.
-4. **AI Execution Layer / `RoleId::AiVerifier` tamamen yok.** Roadmap
+4. **AI Inference Layer / `RoleId::AiVerifier` tamamen yok.** Roadmap
    tablosunda açıkça "AI execution layer: ❌ Araştırma" yazıyor. Bölüm
    1'in tamamı sıfırdan yazılacak.
 5. **Marketplace yönü ters.** Mevcut `StorageRegistry` bir **sağlayıcı**
@@ -252,7 +252,7 @@ gerçek bir izin garantisi isteniyorsa zorunlu.**
    tanımlarını gösterip `owner` alanını doğrulat.
 2. `AccessGrant`'i Faz 1'den itibaren şifreleme temelli tasarla — soft
    enforcement adımını atla (egemenlik kuralı zaten dayatıyor).
-3. `RoleId::AiVerifier` + AI Execution Layer'ı sıfırdan ekle (Bölüm 1).
+3. `RoleId::AiVerifier` + AI Inference Layer'ı sıfırdan ekle (Bölüm 1).
 4. "`RetrievalChallenge` gerçek Proof-of-Storage değil" uyarısını AI/
    marketplace dokümantasyonuna da taşı — AI'nin kullandığı B.U.D.
    verisinin bütünlüğü henüz tam kanıtlanmış değil.

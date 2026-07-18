@@ -29,9 +29,6 @@ modül satırında (ve modül README'sinde) kalır.
 | BudZero (BudZKVM) | **124** (`cargo test --workspace`, CI-kanıtlı) | `BudZero / BudZKVM` job | Z-B 64-derinlik Production-gated — ayrıntı: `budzero/README.md` |
 | B.U.D. | **12 zorunlu** (9 invariant + 3 e2e) | `B.U.D. E2E Invariants` job + `scripts/check-bud-e2e.sh` | devnet-only; sahte-yeşil riski işaretli — `src/storage/README.md` |
 | BNS (`.bud`) | **8 test** (`test_bns_*`) | `BNS Name Registry` job + `scripts/check-bns-gate.sh` | iskelet mevcut; genişletme ayrı talimat — `src/bns/README.md` |
-| AI Execution Layer | henüz ayrı test/gate yok | planlanan ayrı gate | tasarım/P0 transport önkoşullu — `src/ai_execution/README.md` |
-| B.U.D. Marketplace | P1/P2 onarım bloklayıcısı | ayrı gate planlanmalı | production-ready değil — `src/bud_marketplace/README.md` |
-| SocialFi | shared Core suite içinde | ayrı gate planlanmalı | NFT + hard-prune yaşam döngüsü — `src/socialfi/README.md` |
 
 Not: Core'un 755 sayısı B.U.D. ve BNS testlerini de içerir (paylaşılan lib suite);
 modül satırları kendi isim-kilitli kapılarını ayrıca raporlar.
