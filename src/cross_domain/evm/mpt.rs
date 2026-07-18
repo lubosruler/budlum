@@ -489,23 +489,31 @@ mod tests {
 
     #[test]
     fn verify_inline_branch_child() {
-        // Branch'in child'ı hash yerine inline leaf (≤32 byte RLP).
-        // Küçük leaf node inline olabilir.
-        let key = b"x";
-        let value = b"v";
-        let nibbles = to_nibbles(&keccak256(key));
-        // Leaf node sadece 1-nibble path + 1-byte value → RLP küçük → inline.
-        let inline_leaf = leaf_node_bytes(&nibbles[1..], value);
+        // Branch'in child'ı hash yerine inline leaf (≤32 byte RLP). Gerçek
+        // Ethereum leaf'leri 64-nibble path'le inline olmaz; burada yapay kısa
+        // path ile inline mekanizmasını test ediyoruz (walk + resolve_ref yolu).
+        // path = 2 nibble [0xa, 0xb], value = 1 byte → küçük leaf.
+        let inline_leaf = leaf_node_bytes(&[0xa, 0xb], b"v");
         assert!(inline_leaf.len() <= 32, "precondition: inline-able");
 
+        // Branch'in 5. child slot'una inline leaf koy; path = [5, 0xa, 0xb].
         let mut children: [Option<Vec<u8>>; 16] = Default::default();
-        children[nibbles[0] as usize] = Some(inline_leaf.clone());
+        children[5] = Some(inline_leaf.clone());
         let branch_bytes = branch_node_bytes(children, None);
         let root = keccak256(&branch_bytes);
 
-        let proof = vec![branch_bytes]; // leaf inline → proof'ta ayrı değil
-        let result = verify(&proof, &root, key).unwrap();
-        assert_eq!(result, value);
+        // verify keccak256(key)'i path yapar — biz doğrudan walk ile test edelim
+        // çünkü key'den path = keccak256(key) geliyor ve yapay path'e uymaz.
+        let mut node_map: HashMap<[u8; 32], Vec<u8>> = HashMap::new();
+        node_map.insert(keccak256(&branch_bytes), branch_bytes.clone());
+
+        let root_item = rlp_decode(&branch_bytes).unwrap();
+        let path = vec![5u8, 0xa, 0xb];
+        let result = walk(&root_item, &path, &node_map).unwrap();
+        assert_eq!(result, b"v");
+
+        // root hash doğrulama
+        assert_eq!(keccak256(&branch_bytes), root);
     }
 
     // ---- fuzz-benzeri: rastgele node bytes → hata (panic değil) ----
