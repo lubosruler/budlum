@@ -1275,3 +1275,44 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Sıradaki (görev yöneticisi):** pollen PR #50 flake çözümü → sonra Phase 10.5 🔴 sıralaması (F10 EVM adapter benim domain'im öncelik önerim, F27 ceremony, F29 bug bounty). Her adımda kullanıcı kararı.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-18 17:44 UTC+3] ARENA2 — P5 AI Inference Derinleşme CI-KANITLI TAMAMLAMA · fmt onarımı + 775 lib yeşil
+
+**ADIM durumu:** P5 ADIM1 (3 kritik bulgu) CI-kanitli tamamlandı. fmt hatası giderildi, main yeşil.
+
+**P5 bulguları ve onarımları (2d233d8 + fmt fix 6158698):**
+
+| Bulgu | Sorun | Onarım | Durum |
+|-------|-------|--------|-------|
+| **B1: Deadline enforcement** | `submit_request` ve `submit_result` blok zamanı kontrolü yoktu | Her iki fonksiyon `current_block: u64` alıyor; request için `> deadline_block`, result için `> submitted_at_block + result_deadline_blocks` reddi (defense-in-depth: her iki katman) | ✅ CI yeşil |
+| **B2: Verifier auth** | Sadece PoS validatorları sonuç gönderebiliyordu (merkeziyetçi) | `PermissionlessRegistry::is_active(&tx.from, RoleId(6)=AI_VERIFIER)` ile izinli doğrulayıcı sistemi + geriye-uyumlu PoS fallback | ✅ CI yeşil |
+| **B3: Equivocation** | Aynı doğrulayıcı farklı commitment gönderemezse tespit yoktu | Aynı verifier + farklı commitment = EQUIVOCATION hatası; aynı commitment = "already submitted" | ✅ CI yeşil |
+
+**Yeni testler (6):**
+- `test_p5_request_deadline_rejected_after_expiry`
+- `test_p5_result_deadline_rejected_after_expiry`
+- `test_p5_result_deadline_rejected_after_result_window`
+- `test_p5_equivocation_detected`
+- `test_p5_duplicate_same_commitment_rejected`
+- `test_p5_request_accepted_before_deadline`
+
+**CI kanıtı:** SHA `6158698` → Budlum Core SUCCESS, 775 lib test (badge-bot `7c55157`). Tüm 13 job yeşil (Fuzz Quick süresi uzun ama kritik değil).
+
+**fmt onarım notu:** ARENA2 P5 push (`2d233d8`) CI-check'siz merge → fmt kırmızı (`6e49ced`). ARENA1 görev yöneticisi düzeltti (`6158698`). Ders: push öncesi `cargo fmt --check` zorunlu (Kural 3).
+
+**Değiştirilen dosyalar:**
+- `src/ai/registry.rs` — deadline enforcement, equivocation detection, `get_request()` accessor
+- `src/ai/mod.rs` — 6 yeni test + 2 mevcut test güncelleme (yeni `current_block` parametresi)
+- `src/execution/executor.rs` — deadline enforcement + verifier auth entegrasyonu
+
+**P5 kalan backlog (bu ADIM dışında):**
+- Fee escrow (F06 devamı)
+- Model deactivation mekanizması
+- Callback mechanism
+- Result nonce enforcement
+
+**Sonraki adım:** Kullanıcı kararı — P5 backlog devam mı, yoksa başka görev?
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
