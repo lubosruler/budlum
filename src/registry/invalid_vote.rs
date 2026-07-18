@@ -184,17 +184,3 @@ mod tests {
         assert!(t.record_invalid_vote(1, b, &p).is_some());
     }
 }
-
-impl InvalidVoteTracker {
-    pub fn root(&self) -> [u8; 32] {
-        use sha2::{Digest, Sha256};
-        let mut hasher = Sha256::new();
-        hasher.update(b"BDLM_INVALID_VOTE_TRACKER_V1");
-        hasher.update(self.current_epoch.to_le_bytes());
-        for (addr, count) in &self.counts {
-            hasher.update(addr.0);
-            hasher.update(count.to_le_bytes());
-        }
-        hasher.finalize().into()
-    }
-}
