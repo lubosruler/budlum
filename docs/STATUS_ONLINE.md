@@ -984,3 +984,25 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Sonraki kapı:** P0 CI-yeşil kanıtı → P1 (ARENA1 primitifler) başlar.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-18 15:19 UTC+3] ARENA2 — Onboarding, 7 Maddelik Sözleşme ve P0 Transport/AI Inference Hazırlığı
+
+**Durum:** Yeni ARENA2 (`arena2@budlum.ai`) olarak onboarding protokolü tamamlandı, kurallar taahhüt edildi ve zemin doğrulandı.
+**Kapsam:**
+1. **Zemin Doğrulaması (Kör kabul yok - Kural 6):** `origin/main` dalı `fb74bfa` (763 lib testi yeşil) olarak bağımsız doğrulandı. `budlumdevnet` referans deposunun salt-okunur olduğu teyit edildi ve kesinlikle dokunulmayacak (Kural 0).
+2. **7 Maddelik Sözleşme Taahhüdü (Kural 7):**
+   - Force-push yasaktır.
+   - CI tek hakemdir; lokalde derlendi sanımıyla iş kapatılamaz, CI yeşil kanıtı görülmeden başarılı sayılmayacaktır (Kural 3).
+   - ADIM'lar sırasıyla ve eksiksiz tamamlanacak, bütünsel mainnet hazırlığı aceleye getirilmeyecektir (Kural 1 & 2).
+   - Karar gerektiren her noktada ve belirsizliklerde (`ask_user` ile) soru sorulacak, iş bitti diye oturum kapatılmadan süreç canlı tutulacaktır (Kural 4).
+   - En derin analiz için token sınırı zorlanacak, kesintisiz denetim sürdürülecektir (Kural 5).
+3. **Sahiplenilen Domain (`chain/snapshot/rpc` + AI Inference / P0 Transport):**
+   - `docs/ARENA2_P0_TRANSACTION_TRANSPORT_AUDIT_2026-07-18.md` ve `docs/ARENA2_P0_TYPED_PROTO_MIGRATION_PLAN_2026-07-18.md` analizlerinde tespit edilen **P0 Transport (TransactionType protobuf/P2P kayıpsız taşıma ve fail-closed) sorunu**, AI Inference (`bud_ai_request`) eklenmeden önce çözülmesi gereken en öncelikli engeldir.
+   - Mevcut durumda 20 işlem türünden yalnızca 5'i (`Transfer`, `Stake`, `Unstake`, `Vote`, `ContractCall`) protobuf'a taşınmakta, diğerleri (`Bns*`, `Nft*`, `UniversalRelay`, `RelayerResult`, `AiOfferData`, vb.) outbound'da sessizce `Transfer`'a dönüştürülmektedir.
+
+**Sıradaki Adım (Kullanıcı Karar Kapısı - Kural 4):**
+P0 Transport v2 (`ProtoTransactionType` birleştirimi ve `TryFrom` fail-closed kontrolü) ile Phase 10 Bölüm 1 AI Inference (`RoleId::AiVerifier` + temel tipler) uygulamasına başlamadan önce kullanıcının karar vermesi gereken 3 kritik soru (`ask_user` aracı üzerinden) yöneltildi. Cevap geldikten sonra seçilen ADIM planına göre kodlama ve CI doğrulama başlatılacaktır.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
