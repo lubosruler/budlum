@@ -45,6 +45,7 @@ pub mod hardening;
 pub mod integration;
 #[cfg(test)]
 pub mod liveness_consensus;
+pub mod migration_v2;
 #[cfg(test)]
 pub mod permissionless;
 #[cfg(test)]
