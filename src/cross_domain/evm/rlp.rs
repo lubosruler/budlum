@@ -337,7 +337,7 @@ mod tests {
 
     #[test]
     fn kat_decode_roundtrip_long_string() {
-        let s = b"Lorem ipsum dolor sit amet, consectetur adipisicing elit").to_vec();
+        let s = b"Lorem ipsum dolor sit amet, consectetur adipisicing elit".to_vec();
         let item = RlpItem::Bytes(s);
         let enc = encode(&item);
         assert_eq!(decode(&enc).unwrap(), item);
