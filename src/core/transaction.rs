@@ -310,47 +310,25 @@ impl Transaction {
         tx.hash = tx.calculate_hash();
         tx
     }
+    /// V29: canonical V4 signing preimage. Every execution-relevant variant
+    /// field is committed explicitly; serde/bincode/JSON are never used as a
+    /// consensus signing encoding.
     pub fn signing_hash(&self) -> [u8; 32] {
+        let mut preimage = Vec::new();
+        put_u8(&mut preimage, transaction_type_tag(&self.tx_type));
+        put_fixed(&mut preimage, self.from.as_bytes());
+        put_fixed(&mut preimage, self.to.as_bytes());
+        put_u64(&mut preimage, self.amount);
+        put_u64(&mut preimage, self.fee);
+        put_u64(&mut preimage, self.nonce);
+        put_bytes(&mut preimage, &self.data);
+        put_u128(&mut preimage, self.timestamp);
+        put_u64(&mut preimage, self.chain_id);
+        encode_transaction_type_payload(&self.tx_type, &mut preimage);
+
         let mut hasher = Sha3_256::new();
-        hasher.update(b"BDLM_TX_V3");
-        hasher.update(self.from.as_bytes());
-        hasher.update(self.to.as_bytes());
-        hasher.update(self.amount.to_le_bytes());
-        hasher.update(self.fee.to_le_bytes());
-        hasher.update(self.nonce.to_le_bytes());
-        hasher.update(&self.data);
-        hasher.update(self.timestamp.to_le_bytes());
-        hasher.update(self.chain_id.to_le_bytes());
-
-        let type_byte = match &self.tx_type {
-            TransactionType::Transfer => 0,
-            TransactionType::Stake => 1,
-            TransactionType::Unstake => 2,
-            TransactionType::Vote => 3,
-            TransactionType::ContractCall => 4,
-            TransactionType::BnsRegister => 5,
-            TransactionType::BnsSetContent => 6,
-            TransactionType::BnsRegisterSubdomain => 7,
-            TransactionType::BnsSetStorage => 8,
-            TransactionType::NftMint => 9,
-            TransactionType::NftTransfer => 10,
-            TransactionType::NftBurn => 11,
-            TransactionType::NftBoost { .. } => 12,
-            TransactionType::NftUpdateLight { .. } => 13,
-            TransactionType::NftTag { .. } => 14,
-            TransactionType::UniversalRelay(_) => 15,
-            TransactionType::RelayerResult(_) => 16,
-            TransactionType::AiOfferData { .. } => 17,
-            TransactionType::AiPurchaseData { .. } => 18,
-            TransactionType::HubRegisterApp { .. } => 19,
-            TransactionType::AiModelRegister(_) => 20,
-            TransactionType::AiInferenceRequest(_) => 21,
-            TransactionType::AiInferenceResult(_) => 22,
-            TransactionType::AiFeeReclaim(_) => 23,
-            TransactionType::AiModelDeactivate(_) => 24,
-        };
-        hasher.update([type_byte]);
-
+        hasher.update(b"BDLM_TX_V4");
+        hasher.update(preimage);
         hasher.finalize().into()
     }
     pub fn calculate_hash(&self) -> String {
@@ -554,5 +532,114 @@ mod tests {
 
         assert!(!tx.verify());
         assert!(!tx.is_valid());
+    }
+}
+
+// V29 canonical signing helpers. All variable-sized values carry a u64 LE
+// length; enum and Option values have explicit tags.
+fn put_u8(out: &mut Vec<u8>, value: u8) { out.push(value); }
+fn put_u32(out: &mut Vec<u8>, value: u32) { out.extend_from_slice(&value.to_le_bytes()); }
+fn put_u64(out: &mut Vec<u8>, value: u64) { out.extend_from_slice(&value.to_le_bytes()); }
+fn put_i64(out: &mut Vec<u8>, value: i64) { out.extend_from_slice(&value.to_le_bytes()); }
+fn put_u128(out: &mut Vec<u8>, value: u128) { out.extend_from_slice(&value.to_le_bytes()); }
+fn put_fixed(out: &mut Vec<u8>, value: &[u8]) { out.extend_from_slice(value); }
+fn put_bytes(out: &mut Vec<u8>, value: &[u8]) { put_u64(out, value.len() as u64); put_fixed(out, value); }
+fn put_string(out: &mut Vec<u8>, value: &str) { put_bytes(out, value.as_bytes()); }
+fn put_option_fixed32(out: &mut Vec<u8>, value: Option<[u8; 32]>) { match value { Some(v) => { put_u8(out, 1); put_fixed(out, &v); }, None => put_u8(out, 0) } }
+fn put_option_address(out: &mut Vec<u8>, value: Option<Address>) { match value { Some(v) => { put_u8(out, 1); put_fixed(out, v.as_bytes()); }, None => put_u8(out, 0) } }
+fn transaction_type_tag(tx_type: &TransactionType) -> u8 { match tx_type {
+    TransactionType::Transfer => 0, TransactionType::Stake => 1, TransactionType::Unstake => 2,
+    TransactionType::Vote => 3, TransactionType::ContractCall => 4, TransactionType::BnsRegister => 5,
+    TransactionType::BnsSetContent => 6, TransactionType::BnsRegisterSubdomain => 7,
+    TransactionType::BnsSetStorage => 8, TransactionType::NftMint => 9, TransactionType::NftTransfer => 10,
+    TransactionType::NftBurn => 11, TransactionType::NftBoost { .. } => 12,
+    TransactionType::NftUpdateLight { .. } => 13, TransactionType::NftTag { .. } => 14,
+    TransactionType::UniversalRelay(_) => 15, TransactionType::RelayerResult(_) => 16,
+    TransactionType::AiOfferData { .. } => 17, TransactionType::AiPurchaseData { .. } => 18,
+    TransactionType::HubRegisterApp { .. } => 19, TransactionType::AiModelRegister(_) => 20,
+    TransactionType::AiInferenceRequest(_) => 21, TransactionType::AiInferenceResult(_) => 22,
+    TransactionType::AiFeeReclaim(_) => 23, TransactionType::AiModelDeactivate(_) => 24,
+} }
+fn encode_chain(chain: ExternalChain, out: &mut Vec<u8>) { match chain {
+    ExternalChain::Ethereum => put_u8(out, 0), ExternalChain::Solana => put_u8(out, 1),
+    ExternalChain::Bitcoin => put_u8(out, 2), ExternalChain::Avalanche => put_u8(out, 3),
+    ExternalChain::Polygon => put_u8(out, 4), ExternalChain::Arbitrum => put_u8(out, 5),
+    ExternalChain::Optimism => put_u8(out, 6), ExternalChain::Custom(id) => { put_u8(out, 7); put_u32(out, id); }
+} }
+fn encode_message_kind(kind: &crate::cross_domain::message::MessageKind, out: &mut Vec<u8>) { use crate::cross_domain::message::MessageKind; match kind {
+    MessageKind::BridgeLock => put_u8(out, 0), MessageKind::BridgeMint => put_u8(out, 1),
+    MessageKind::BridgeBurn => put_u8(out, 2), MessageKind::BridgeUnlock => put_u8(out, 3),
+    MessageKind::Custom(bytes) => { put_u8(out, 4); put_bytes(out, bytes); }
+} }
+fn encode_message(message: &crate::cross_domain::message::CrossDomainMessage, out: &mut Vec<u8>) {
+    put_fixed(out, &message.message_id); put_option_fixed32(out, message.correlation_id);
+    put_u32(out, message.source_domain); put_u32(out, message.target_domain);
+    put_u64(out, message.source_height); put_u32(out, message.event_index); put_u64(out, message.nonce);
+    put_fixed(out, message.sender.as_bytes()); put_fixed(out, message.recipient.as_bytes());
+    put_fixed(out, &message.payload_hash); encode_message_kind(&message.kind, out); put_u64(out, message.expiry_height);
+}
+fn encode_app_category(category: &crate::hub::types::AppCategory, out: &mut Vec<u8>) { use crate::hub::types::AppCategory; put_u8(out, match category { AppCategory::SocialFi => 0, AppCategory::DeFi => 1, AppCategory::Storage => 2, AppCategory::Gaming => 3, AppCategory::Infrastructure => 4, AppCategory::Other => 5 }); }
+fn encode_model_spec(spec: &crate::ai::types::AiModelSpec, out: &mut Vec<u8>) {
+    put_fixed(out, &spec.model_id.0); put_fixed(out, &spec.model_hash); put_fixed(out, spec.owner.as_bytes());
+    put_u32(out, spec.min_verifier_count); put_u32(out, spec.agreement_threshold);
+    put_u64(out, spec.max_input_ref_bytes); put_u64(out, spec.max_output_ref_bytes);
+    put_u64(out, spec.request_deadline_blocks); put_u64(out, spec.result_deadline_blocks);
+    put_u32(out, spec.version); put_u8(out, u8::from(spec.active));
+}
+fn encode_transaction_type_payload(tx_type: &TransactionType, out: &mut Vec<u8>) { match tx_type {
+    TransactionType::Transfer | TransactionType::Stake | TransactionType::Unstake | TransactionType::Vote |
+    TransactionType::ContractCall | TransactionType::BnsRegister | TransactionType::BnsSetContent |
+    TransactionType::BnsRegisterSubdomain | TransactionType::BnsSetStorage | TransactionType::NftMint |
+    TransactionType::NftTransfer | TransactionType::NftBurn => {},
+    TransactionType::NftBoost { nft_id, amount } => { put_u64(out, *nft_id); put_u64(out, *amount); },
+    TransactionType::NftUpdateLight { nft_id, delta_mcd } => { put_u64(out, *nft_id); put_i64(out, *delta_mcd); },
+    TransactionType::NftTag { nft_id, tag } => { put_u64(out, *nft_id); put_string(out, tag); },
+    TransactionType::UniversalRelay(ext) => { encode_chain(ext.chain, out); put_string(out, &ext.target_address); put_bytes(out, &ext.payload); put_u64(out, ext.external_nonce); },
+    TransactionType::RelayerResult(res) => { encode_chain(res.chain, out); put_string(out, &res.tx_hash); put_u8(out, u8::from(res.success)); match &res.message { Some(msg) => { put_u8(out, 1); encode_message(msg, out); }, None => put_u8(out, 0) }; put_bytes(out, &res.receipt_proof); put_fixed(out, &res.external_state_root); },
+    TransactionType::AiOfferData { cid, price } => { put_fixed(out, &cid.0); put_u64(out, *price); },
+    TransactionType::AiPurchaseData { offer_id } => put_u64(out, *offer_id),
+    TransactionType::HubRegisterApp { name, category, website_url, manifest_id } => { put_string(out, name); encode_app_category(category, out); put_string(out, website_url); match manifest_id { Some(id) => { put_u8(out, 1); put_fixed(out, &id.0); }, None => put_u8(out, 0) }; },
+    TransactionType::AiModelRegister(spec) => encode_model_spec(spec, out),
+    TransactionType::AiInferenceRequest(req) => { put_fixed(out, &req.request_id.0); put_fixed(out, req.requester.as_bytes()); put_fixed(out, &req.model_id.0); put_fixed(out, &req.input_commitment); put_bytes(out, req.input_ref.as_slice()); put_u64(out, req.max_fee); put_option_address(out, req.callback); put_u64(out, req.submitted_at_block); put_u64(out, req.deadline_block); },
+    TransactionType::AiInferenceResult(res) => { put_fixed(out, &res.request_id.0); put_fixed(out, res.verifier.as_bytes()); put_fixed(out, &res.output_commitment); put_bytes(out, res.output_ref.as_slice()); put_u64(out, res.result_nonce); put_bytes(out, &res.signature); put_u64(out, res.submitted_at_block); },
+    TransactionType::AiFeeReclaim(request_id) => put_fixed(out, &request_id.0),
+    TransactionType::AiModelDeactivate(model_id) => put_fixed(out, &model_id.0),
+} }
+
+#[cfg(test)]
+mod v29_signing_tests {
+    use super::*;
+
+    fn signed_variant(tx_type: TransactionType) -> Transaction {
+        let keypair = KeyPair::generate().unwrap();
+        let from = Address::from(keypair.public_key_bytes());
+        let mut tx = Transaction::new_with_fee(from, Address::from([7u8; 32]), 0, 1, 0, vec![]);
+        tx.tx_type = tx_type;
+        tx.sign(&keypair);
+        assert!(tx.verify());
+        tx
+    }
+
+    #[test]
+    fn v29_nft_boost_payload_tampering_invalidates_signature() {
+        let mut tx = signed_variant(TransactionType::NftBoost { nft_id: 7, amount: 100 });
+        let original_hash = tx.hash.clone();
+        tx.tx_type = TransactionType::NftBoost { nft_id: 7, amount: 999_999 };
+        assert_ne!(tx.calculate_hash(), original_hash);
+        assert!(!tx.verify());
+    }
+
+    #[test]
+    fn v29_nft_tag_payload_tampering_invalidates_signature() {
+        let mut tx = signed_variant(TransactionType::NftTag { nft_id: 7, tag: "safe".into() });
+        tx.tx_type = TransactionType::NftTag { nft_id: 7, tag: "tampered".into() };
+        assert!(!tx.verify());
+    }
+
+    #[test]
+    fn v29_ai_fee_reclaim_payload_tampering_invalidates_signature() {
+        let mut tx = signed_variant(TransactionType::AiFeeReclaim(crate::ai::types::AiRequestId([1u8; 32])));
+        tx.tx_type = TransactionType::AiFeeReclaim(crate::ai::types::AiRequestId([2u8; 32]));
+        assert!(!tx.verify());
     }
 }
