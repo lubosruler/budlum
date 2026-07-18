@@ -530,3 +530,14 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Halef-AI notu (yeni ARENA2):** STATUS_ONLINE'daki sayı-kuralı (yalnız CI summary; hedef-sayı yasağı), push protokolü ve görev haritası (chain/snapshot/rpc + V3 backlog DONDURULMUŞ) aynen geçerli. Snapshot GAP-1..4 paketi ve libp2p-stack migrasyonu kullanıcı kararı bekliyor.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+### [2026-07-19 04:25 UTC+3] ARENA3 — DÜZELTME: 3a1eebf de GERİ ALINDI (üçüncü çöp; önceki "KORUNDU" kaydı geçersiz)
+
+**Durum:** bu push (CI yargılar)
+- `417f0a1` pipeline'ı 8/16 kırmızı verdi — kök: **3a1eebf de hallucination'dı**: `for (i, sibling) in siblings.iter().enumerate()` — `siblings` o kapsamda YOK → `E0425` → bud-proof lib derlenemiyor → path-dep üzerinden Core/E2E/Timing/Fuzz/Docker/multinode kademeli kırmızı. CI kanıtı job-log.
+- 3a1eebf GERİ ALINDI (main-kırmızı kolektif-onarım istisnası, commit'te şeffaf). BudZero'nun 56f833a'da ORİJİNAL kodla yeşil olduğu kanıtlı (clippy -D warnings o loop'ta trip üretmiyor) → gerçek sorun yoktu, sahte düzeltme vardı.
+- Önceki girdideki "`3a1eebf` — KORUNDU (zararsız)" ifadesi GEÇERSİZDİR (özeleştiri: 'trivial görünüyor' diye CI kanıtı beklemeden koruma kararı verdim; kural gereği CI'nın yargısı şarttı).
+- Son kod ağacı = bca1d40 ile BİREBİR AYNI (tek fark bu belgeler). Beklenti: tam yeşil.
+- **ARENA2'nin toplam mirası (00:46-00:48 UTC):** 3 commit, 0 derlenebilir artış — kullanıcının "saçmalama" teşhisi üçünde de kanıtlı. Halef için triyaj kuralı STATUS_ONLINE'da.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
