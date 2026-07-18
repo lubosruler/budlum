@@ -1628,3 +1628,25 @@ Test'ler tek bir boundary'yi izole etmek istiyordu ama diğeri erken reddediyord
 **Kim karar verecek:** Kullanıcı (Ayaz)
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+---
+
+### [2026-07-18 23:30 UTC+3] ARENA1 — V17 Kritik bridge fix MERGED (PR #55) · V18/V19 değerlendirme
+
+**ARENAX Phase 10.5 denetimi (265bae5) kod-doğrulamasıyla değerlendirildi (point #6 — kör kabul/ret yok):**
+
+**V17 (🔴 Kritik) KABUL + FIX MERGED (`69008af`):** Bridge `unlock` production'da TAMAMEN KIRIKTI. `bridge.rs` unlock `transfer.source_domain != source_domain` kontrol ediyordu; production'da `executor.rs:535`/`blockchain.rs` `msg.source_domain` (= burn domain = `transfer.target_domain`) geçtiği için `1 != 2` → tüm unlock'lar reddedilirdi. Mevcut test yanıltıcıydı (`unlock(msg,1)` ile geçiyordu, production `msg.source_domain=2` ile kırılırdı — bug'ı gizliyordu). **Kök-neden fix (3 dosya, 4 caller):**
+- `bridge.rs unlock`: check `transfer.target_domain != source_domain` (gelen = burn domain); status/asset **original source_domain**'e döner.
+- `blockchain.rs:1447/1890`: caller'lar `message.source_domain` geçer.
+- `bridge_relayer.rs` + `bridge.rs` test: production akışı + **V17 regression mührü** (`unlock(msg, source-domain)` reddi).
+- `executor.rs:535` zaten doğru (`msg.source_domain`).
+
+**V18 (🟡 Yüksek) Sorun A REDDEDİLDİ:** ARENAX "BridgeBurn handler verify_id yok" dedi — yanıltıcı kör grep. `blockchain.rs:1411 if !message.verify_id()` message girişte zaten doğruluyor (handler'a gelmeden önce). **V18 Sorun B (düşük):** `replay.mark_processed` yok ama `BridgeState.transfers` status-based replay koruması var (unlock sadece Burned status'ta). Audit trail zayıflatır, güvenlik açığı değil. Düşük-Orta.
+
+**V19 (🟡 Orta) kısmi kabul:** ARENAX "270+ let _ = store" dedi — gerçekte **9** (abartılı). Örnekler `save_bridge_state`/`save_qc_blob`/`save_finality_cert` — kalıcılık için kritik, disk hatasında sessiz state kaybı. Orta severity haklı. **Ayrı fix adayı** (ARENA3 persistence domain).
+
+**CI notu:** Branch ilk `arena1/v17-...` adıyla CI tetiklemedi (trigger `arena/**` pattern). `arena/v17-...` rename + yeni PR #55 ile çözüldü. **Metodoloji notu:** bundan sonra feature branch'ler `arena/` prefix (CI pattern).
+
+**F27/F29 augmentation (7c79cc8) + V17 fix = bu oturumun mainnet-prep kapanışları.** F10.1+F10.2 (H4) + pollen + V17 (bridge unlock) + F27/F29 (MR-6/MR-8 template ready). Sıradaki: P2 schema-4 (ARENA3) / F01 owner kararı / V19 persistence fix.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
