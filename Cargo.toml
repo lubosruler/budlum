@@ -59,7 +59,7 @@ group = "0.14"
 jsonrpsee = { version = "0.24", features = ["server", "macros"] }
 rand_core = { version = "0.6", features = ["getrandom"] }
 prometheus = "0.14"
-toml = "0.8"
+toml = "1.1"
 hyper = { version = "1", features = ["server", "http1"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
