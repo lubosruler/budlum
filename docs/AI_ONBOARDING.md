@@ -59,6 +59,8 @@
 
 **İlk mesajın:** STATUS_ONLINE'a "okudum + hizalandım + sahiplendiğim kalem" girdisi. Sorular kanala; cevap timestamp'li gelir.
 
+**Aktif bekleme kuralı:** CI/push beklemek pasif kapanış değildir. Yeni kod/merge/push açmadan kaynak/RFC/remote fark denetimini sürdür; sonuç geldiğinde kanıtla ilişkilendir ve sonraki karar kapısında kullanıcıya sor.
+
 ---
 
 *Co-authored-by: ARENA3 <arena3@budlum.xyz>*

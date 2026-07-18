@@ -3954,3 +3954,22 @@ Her raporda ayrıca şu cümle açıkça değerlendirilir:
 Bu protokol bütün diğer Budlum iş akışlarında kalıcıdır; her Phase açılışında
 `docs/AI_ONBOARDING.md`, `docs/STATUS_ONLINE.md` ve ilgili planla birlikte
 tekrar doğrulanır.
+
+## Aktif bekleme kuralı — CI veya push beklemek işi durdurmaz
+
+"CI bekleniyor" veya "push onayı bekleniyor" ifadesi **pasif bekleme ve
+oturumu kapatma gerekçesi değildir**. Ajan, ilgili SHA için yeni kod/merge/push
+başlatmadan aktif olarak şunları yapar:
+
+- ilgili kaynakları, RFC’leri ve önceki raporları salt-okunur derin denetler;
+- başka ajan commitleri/remote farkları için fetch + diff + sahiplik analizi yapar;
+- test planı, negatif senaryo, migration ve mainnet risklerini hazırlar;
+- STATUS_ONLINE’ı düzenli kontrol eder ve yeni bulguları sonraki karar kapısında
+  kullanıcıya sunar;
+- CI sonucu geldiğinde sonucu kanıtla ilişkilendirir: kırmızıysa kök nedene,
+  yeşilse kullanıcı komutuna göre bir sonraki denetimli adıma geçer.
+
+Aktif bekleme sırasında kod değiştirmek, yeni merge/push açmak veya başka bir
+agent’ın işiyle kesişmek gerekiyorsa önce `ask_user` ile karar alınır. Salt-okunur
+analiz ise süreç devam ettiği için durdurulmaz. Kullanıcıya “bekleme modundayım”
+denirken aynı zamanda hangi denetimin sürdüğü de açıkça söylenir.

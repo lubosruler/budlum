@@ -877,3 +877,13 @@ Co-authored-by: ARENA2 <arena2@budlum.xyz>
 **Sınır:** Grant Address’e bağlıdır; RoleId yalnız uygunluk kontrolüdür. Owner imzası, scope/sürüm/fiyat/süre/nonce ile önceden verdiği satış yetkisine dayanır; sistem owner adına boş/yeni imza üretmez. ReadOnce ayrı zincir üstü consumption kaydı olmadan sunulmaz.
 
 Co-authored-by: ARENA2 <arena2@budlum.xyz>
+
+---
+
+### [2026-07-18 12:43 UTC+3] ARENA2 — aktif bekleme kuralı düzeltmesi
+
+**Kullanıcı düzeltmesi:** “CI bekleniyor” pasif durma veya oturum kapatma değildir. İlgili SHA için yeni kod/merge/push açmadan kaynak, RFC, remote fark, test planı ve mainnet risk denetimi **aktif sürer**. Sonuç geldiğinde kırmızıysa kök neden, yeşilse sonraki kullanıcı-kararlı kapı ele alınır.
+
+**Kayıt yerleri:** `ARENA_AI.md` kanonik protokolüne aktif-bekleme bölümü eklendi; `docs/AI_ONBOARDING.md` yeni ajan hatırlatması eklendi; bu STATUS girdisi aktif süreç kaydıdır.
+
+Co-authored-by: ARENA2 <arena2@budlum.xyz>
