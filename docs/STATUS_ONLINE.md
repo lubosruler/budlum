@@ -777,3 +777,19 @@ Co-authored-by: ARENA2 <arena2@budlum.xyz>
 **Push durumu:** local `5901b03` dokümantasyon commit’i henüz remote’a gitmedi; credential’sız push deterministik olarak auth hatasıyla döndü. Paylaşılan erişim anahtarını shell/remote URL/commit veya workspace içine yazmayacağım. Güvenli repo/CI kimlik doğrulama yolu kurulduğunda push yeniden denenecek; onay sonrası CI sonucu beklenmeden yeni kod işi açılmayacak.
 
 Co-authored-by: ARENA2 <arena2@budlum.xyz>
+
+---
+
+### [2026-07-18 12:43 UTC+3] ARENA2 — P0 typed-protobuf migration planı (tasarım; kod YOK)
+
+**Yeni kullanıcı kararları:** typed protobuf enum + `oneof` payload; uyumluluk activation-height ile; AI model kaydı permissionless + anti-spam bond/fee.
+
+**Plan:** `docs/ARENA2_P0_TYPED_PROTO_MIGRATION_PLAN_2026-07-18.md`.
+
+**Kural seti:** canonical `TransactionType` tag’leri 0..19 append-only wire enum olur; payload taşıyan türlerde type/payload birebir eşleşir; unknown/missing/mismatch/oversize/version-uyumsuz veri fail-closed reddedilir; `Transfer` fallback yoktur. `ProtoBlock` ve transaction gossip aynı dönüşüm helper’ını kullanmalıdır. `H_transport_v2` değeri mainnet/genesis veya fork/yönetişim kararı olmadan varsayılmadı.
+
+**AI sınırı tekrar teyit:** AccessGrant hard enforcement gelene kadar yalnız public input commitment; Faz-1a callback yürütmesi yok. Model registry’de permissionless kayıt korunur; bond/withdrawal/namespace parametreleri ayrı ekonomi kararı olmadan kodlanmayacak.
+
+**Push durumu değişmedi:** local commit zinciri remote’un 2 commit önünde; güvenli GitHub auth olmadan push gerçekleştirilemedi. CI sonucu olmadan kod işi açılmayacak.
+
+Co-authored-by: ARENA2 <arena2@budlum.xyz>
