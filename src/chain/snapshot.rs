@@ -339,7 +339,7 @@ pub const MIN_SUPPORTED_STATE_SNAPSHOT_SCHEMA_VERSION: u32 = 2;
 
 /// Current durable snapshot schema emitted by this binary. This is the
 /// ConsensusStateV2 migration target for Phase 2 §1.4.
-pub const CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION: u32 = 3;
+pub const CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION: u32 = 4;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateSnapshotV2MigrationReport {
@@ -444,8 +444,65 @@ pub struct StateSnapshotV2 {
     pub external_roots:
         Option<BTreeMap<crate::domain::types::DomainId, crate::domain::types::Hash32>>,
 
+    // --- C4 GAP-1 (Phase 10.5 P2): manifest signature (schema-4 wire). ---
+    // RFC_GAP1 §7 (Faz 1: Ed25519 tek-imza + trust-list + AllowUnsigned geçişi).
+    // `#[serde(default)]` → legacy schema-3 snapshot'lar (alan yok) None ile yüklenir.
+    /// Snapshot'ı imzalayan party'nin Ed25519 pubkey'i (trust-list'ten). None =
+    /// AllowUnsigned (devnet / legacy-import geçiş penceresi).
+    #[serde(default)]
+    pub manifest_signer: Option<[u8; 32]>,
+    /// `sign(calculate_digest())` Ed25519 imzası (64 byte). None = AllowUnsigned.
+    #[serde(default)]
+    pub manifest_signature: Option<Vec<u8>>,
+    /// Trust policy: AllowUnsigned (devnet/geçiş) | RequireSigned (production).
+    /// Default AllowUnsigned → backward-compat (legacy snapshot'lar yüklenir).
+    #[serde(default)]
+    pub trust_policy: SnapshotTrustPolicy,
+
     pub snapshot_hash: String,
 }
+
+/// C4 GAP-1 trust policy (RFC_GAP1 §7.1: C-hibrit Faz-1 trust modeli).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum SnapshotTrustPolicy {
+    /// İmza opsiyonel: digest eşleşiyorsa OK (devnet / legacy-import penceresi).
+    /// Mainnet build'inde derleme-uyarısı (production'da RequireSigned).
+    #[default]
+    AllowUnsigned,
+    /// İmza ZORUNLU: manifest_signer trust-list'te + Ed25519 verify geçmeli.
+    /// İmzasız/bozuk snapshot → `verify_authentic` Err → loader karantina.
+    RequireSigned,
+}
+
+/// C4 GAP-1 manifest-authenticity hatası (loader karantina sınıfı).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SnapshotAuthError {
+    DigestMismatch,
+    MissingSigner,
+    MissingSignature,
+    SignerNotTrusted,
+    InvalidSignerKey,
+    InvalidSignatureLength,
+    SignatureInvalid,
+}
+
+impl std::fmt::Display for SnapshotAuthError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SnapshotAuthError::DigestMismatch => write!(f, "snapshot digest mismatch"),
+            SnapshotAuthError::MissingSigner => write!(f, "RequireSigned: manifest_signer missing"),
+            SnapshotAuthError::MissingSignature => {
+                write!(f, "RequireSigned: manifest_signature missing")
+            }
+            SnapshotAuthError::SignerNotTrusted => write!(f, "manifest signer not in trust list"),
+            SnapshotAuthError::InvalidSignerKey => write!(f, "invalid signer pubkey"),
+            SnapshotAuthError::InvalidSignatureLength => write!(f, "invalid signature length"),
+            SnapshotAuthError::SignatureInvalid => write!(f, "signature verification failed"),
+        }
+    }
+}
+
+impl std::error::Error for SnapshotAuthError {}
 
 /// Atomic tokenomics-burn restore block (Phase 0.16, Decision 2.3). These three
 /// values are ALWAYS captured and restored together to avoid double-burning.
@@ -464,6 +521,26 @@ pub struct StateSnapshotV2Params {
     pub finalized_height: u64,
     pub finalized_hash: String,
     pub finality_certificates: Vec<FinalityCert>,
+}
+
+/// C3 GAP-2 helper: herhangi bir `Serialize` tipini bincode → hasher.
+/// Deterministik (struct field order sabit; bincode canonical).
+fn hash_serializable<H: sha3::Digest, T: serde::Serialize>(hasher: &mut H, val: &T) {
+    let bytes = bincode::serialize(val).unwrap_or_default();
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(&bytes);
+}
+
+/// C3 GAP-2 helper: `Option<T>` → tag (0=None / 1=Some) + serialize.
+/// None ve Some(default) farklı hash verir (forgery yüzeyi kapalı).
+fn hash_opt_serializable<H: sha3::Digest, T: serde::Serialize>(hasher: &mut H, opt: &Option<T>) {
+    match opt {
+        None => hasher.update(&[0u8]),
+        Some(val) => {
+            hasher.update(&[1u8]);
+            hash_serializable(hasher, val);
+        }
+    }
 }
 
 impl StateSnapshotV2 {
@@ -533,15 +610,29 @@ impl StateSnapshotV2 {
             registry: Some(account_state.registry.clone()),
             liveness: Some(account_state.liveness.clone()),
             invalid_votes: Some(account_state.invalid_votes.clone()),
+            // C4 GAP-1: default AllowUnsigned (devnet). Production loader signer
+            // enjekte eder + trust_policy=RequireSigned set eder.
+            manifest_signer: None,
+            manifest_signature: None,
+            trust_policy: SnapshotTrustPolicy::AllowUnsigned,
             snapshot_hash: String::new(),
         };
         snapshot.snapshot_hash = snapshot.calculate_hash();
         snapshot
     }
 
-    fn calculate_hash(&self) -> String {
+    /// C2/C3 (P2 schema-4): ham digest. schema_version'a göre dallanır:
+    /// - `< 4`: legacy digest (backward-compat — eski disk snapshot'ları verify).
+    /// - `>= 4`: GAP-2 genişletilmiş digest (`budlum.snapshot.v4` prefix + 15
+    ///   önce-hash'lenmemiş alan). Forgery surface kapanması (RFC_GAP1 §"Ek eksik").
+    pub fn calculate_digest(&self) -> [u8; 32] {
         use sha3::{Digest, Sha3_256};
         let mut hasher = Sha3_256::new();
+        // Schema-4 domain-separation prefix (RFC_ACCESSGRANT_V2 §4, f40f5f6 dersi:
+        // tek-taraflı root değişikliği YASAK — prefix ile koordineli bump).
+        if self.schema_version >= 4 {
+            hasher.update(b"budlum.snapshot.v4");
+        }
         hasher.update(self.schema_version.to_le_bytes());
         hasher.update(self.height.to_le_bytes());
         hasher.update(self.block_hash.as_bytes());
@@ -594,11 +685,86 @@ impl StateSnapshotV2 {
         hasher.update(self.message_root);
         hasher.update(self.settlement_root);
         hasher.update(self.global_header_summary);
-        hex::encode(hasher.finalize())
+
+        // --- C3 GAP-2: schema-4'te önce-hash'lenmemiş 15 alan (forgery surface
+        //     kapanması). Legacy (schema<4) bu bloğu atlar → backward-compat. ---
+        if self.schema_version >= 4 {
+            hash_serializable(&mut hasher, &self.tokenomics);
+            hash_opt_serializable(&mut hasher, &self.tokenomics_burn);
+            hash_opt_serializable(&mut hasher, &self.registry);
+            hash_opt_serializable(&mut hasher, &self.liveness);
+            hash_opt_serializable(&mut hasher, &self.invalid_votes);
+            hash_opt_serializable(&mut hasher, &self.bns_registry);
+            hash_opt_serializable(&mut hasher, &self.nft_registry);
+            hash_opt_serializable(&mut hasher, &self.marketplace);
+            hash_opt_serializable(&mut hasher, &self.hub);
+            hash_opt_serializable(&mut hasher, &self.storage_registry);
+            hash_opt_serializable(&mut hasher, &self.ai_registry);
+            hash_opt_serializable(&mut hasher, &self.bridge_state);
+            hash_opt_serializable(&mut hasher, &self.message_registry);
+            hash_opt_serializable(&mut hasher, &self.external_roots);
+            // finality_certificates: Vec — len-prefix + her elem serialize.
+            let fc_bytes = bincode::serialize(&self.finality_certificates).unwrap_or_default();
+            hasher.update((fc_bytes.len() as u64).to_le_bytes());
+            hasher.update(&fc_bytes);
+            hasher.update(self.created_at.to_le_bytes());
+        }
+
+        hasher.finalize().into()
+    }
+
+    fn calculate_hash(&self) -> String {
+        hex::encode(self.calculate_digest())
     }
 
     pub fn verify(&self) -> bool {
         self.snapshot_hash == self.calculate_hash()
+    }
+
+    /// C4 GAP-1: manifest-authenticity doğrulaması (RFC_GAP1 §7.1 Faz-1).
+    ///
+    /// - `AllowUnsigned` → `verify()` (digest) geçiyorsa OK (signer/sig yok kabul).
+    /// - `RequireSigned` → `manifest_signer` set + `manifest_signature` geçerli
+    ///   Ed25519(`calculate_digest()`, signer) + signer trust-list'te olmalı.
+    ///
+    /// `trust_list` = None → herhangi bir signer kabul (test/devnet); production'da
+    /// loader config'ten trust-list verir (genesis bundle + CLI override, §7.2).
+    pub fn verify_authentic(
+        &self,
+        trust_list: Option<&[[u8; 32]]>,
+    ) -> Result<(), SnapshotAuthError> {
+        if !self.verify() {
+            return Err(SnapshotAuthError::DigestMismatch);
+        }
+        match self.trust_policy {
+            SnapshotTrustPolicy::AllowUnsigned => Ok(()),
+            SnapshotTrustPolicy::RequireSigned => {
+                let signer = self
+                    .manifest_signer
+                    .ok_or(SnapshotAuthError::MissingSigner)?;
+                let sig = self
+                    .manifest_signature
+                    .as_ref()
+                    .ok_or(SnapshotAuthError::MissingSignature)?;
+                if let Some(list) = trust_list {
+                    if !list.iter().any(|pk| pk == &signer) {
+                        return Err(SnapshotAuthError::SignerNotTrusted);
+                    }
+                }
+                // Ed25519 verify (ed25519-dalek; crypto crate reuse).
+                use ed25519_dalek::{Signature, Verifier, VerifyingKey};
+                let vk = VerifyingKey::from_bytes(&signer)
+                    .map_err(|_| SnapshotAuthError::InvalidSignerKey)?;
+                let sig_arr: [u8; 64] = sig
+                    .as_slice()
+                    .try_into()
+                    .map_err(|_| SnapshotAuthError::InvalidSignatureLength)?;
+                let signature = Signature::from_bytes(&sig_arr);
+                let digest = self.calculate_digest();
+                vk.verify(&digest, &signature)
+                    .map_err(|_| SnapshotAuthError::SignatureInvalid)
+            }
+        }
     }
 
     /// Fallible serialization for the durable snapshot-production path (Phase 0.32):
@@ -638,10 +804,10 @@ impl StateSnapshotV2 {
         let mut notes = Vec::new();
         if self.schema_version < CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION {
             notes.push(
-                "schema-2 snapshot accepted through serde defaults; rewrite through current binary to persist schema-3 registry/liveness/tokenomics fields".to_string(),
+                "schema<4 snapshot accepted through serde defaults; rewritten to schema-4 with GAP-2 digest + AllowUnsigned (C6 legacy-import)".to_string(),
             );
         } else {
-            notes.push("snapshot already at current schema".to_string());
+            notes.push("snapshot already at current schema-4".to_string());
         }
 
         Ok(StateSnapshotV2MigrationReport {
@@ -654,10 +820,32 @@ impl StateSnapshotV2 {
     }
 
     pub fn from_bytes(data: &[u8]) -> Result<Self, String> {
-        let snapshot: StateSnapshotV2 = serde_json::from_slice(data)
+        let mut snapshot: StateSnapshotV2 = serde_json::from_slice(data)
             .map_err(|e| format!("Failed to parse snapshot V2: {e}"))?;
         snapshot.migration_report()?;
+        // C6 legacy-import (RFC_GAP1 §7.3 AllowUnsigned geçiş penceresi):
+        // schema<4 snapshot'lar eski digest ile geldi; yeni kod schema-4 digest
+        // verir. snapshot_hash'i recompute + AllowUnsigned (devnet geçişi).
+        // RequireSigned production loader imza bekler (sign_manifest).
+        if snapshot.schema_version < CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION {
+            snapshot.schema_version = CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION;
+            snapshot.snapshot_hash = snapshot.calculate_hash();
+        }
         Ok(snapshot)
+    }
+
+    /// C4 GAP-1: snapshot'ı imzala (production loader/HSM signer).
+    pub fn sign_manifest(
+        &mut self,
+        secret_key: &ed25519_dalek::SigningKey,
+        signer_pubkey: [u8; 32],
+    ) {
+        use ed25519_dalek::Signer;
+        let digest = self.calculate_digest();
+        let signature = secret_key.sign(&digest).to_bytes();
+        self.manifest_signer = Some(signer_pubkey);
+        self.manifest_signature = Some(signature.to_vec());
+        self.trust_policy = SnapshotTrustPolicy::RequireSigned;
     }
 }
 #[cfg(test)]
@@ -797,7 +985,7 @@ mod tests {
         let bytes_v99 = serde_json::to_vec(&snapshot).unwrap();
         assert!(StateSnapshotV2::from_bytes(&bytes_v99)
             .unwrap_err()
-            .contains("current max supported is 3"));
+            .contains("current max supported is 4"));
 
         snapshot.schema_version = 2;
         let report = snapshot.migration_report().unwrap();
@@ -808,7 +996,7 @@ mod tests {
         );
         assert!(report.migrated);
         assert!(report.requires_backup);
-        assert!(report.notes[0].contains("schema-2 snapshot accepted"));
+        assert!(report.notes[0].contains("schema<4 snapshot accepted"));
 
         snapshot.schema_version = CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION;
         let bytes_current = serde_json::to_vec(&snapshot).unwrap();
@@ -841,5 +1029,132 @@ mod tests {
         assert_eq!(restored.block_reward, 12345);
         assert!(restored.tokenomics_burn.is_some());
         assert!(restored.verify());
+    }
+
+    // --- C3/C4 GAP-1/GAP-2 tests (P2 schema-4) ---
+
+    #[test]
+    fn test_gap2_schema4_digest_includes_bns_field() {
+        // GAP-2 pin: schema-4 digest bns_registry'yi kapsar. None vs Some(default)
+        // farklı tag (0 vs 1) → farklı digest (forgery surface kapalı).
+        let account_state = AccountState::new();
+        let mut s1 = StateSnapshotV2::from_state(
+            &account_state,
+            StateSnapshotV2Params {
+                height: 10,
+                block_hash: "h".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 0,
+                finalized_hash: "f".into(),
+                finality_certificates: vec![],
+            },
+        );
+        s1.schema_version = 4;
+        let s2 = s1.clone();
+        s1.bns_registry = None; // None vs Some(default) → farklı tag
+        assert_ne!(s1.calculate_digest(), s2.calculate_digest());
+    }
+
+    #[test]
+    fn test_gap2_legacy_schema3_vs_schema4_digest_differ() {
+        let account_state = AccountState::new();
+        let mut s = StateSnapshotV2::from_state(
+            &account_state,
+            StateSnapshotV2Params {
+                height: 5,
+                block_hash: "h".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 0,
+                finalized_hash: "f".into(),
+                finality_certificates: vec![],
+            },
+        );
+        s.schema_version = 3;
+        let legacy = s.calculate_digest();
+        s.schema_version = 4;
+        assert_ne!(legacy, s.calculate_digest());
+    }
+
+    #[test]
+    fn test_gap1_allow_unsigned_ok() {
+        let account_state = AccountState::new();
+        let snapshot = StateSnapshotV2::from_state(
+            &account_state,
+            StateSnapshotV2Params {
+                height: 1,
+                block_hash: "h".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 0,
+                finalized_hash: "f".into(),
+                finality_certificates: vec![],
+            },
+        );
+        assert!(snapshot.verify_authentic(None).is_ok());
+    }
+
+    #[test]
+    fn test_gap1_require_signed_sign_verify_roundtrip() {
+        use ed25519_dalek::{Signer, SigningKey};
+        let account_state = AccountState::new();
+        let mut snapshot = StateSnapshotV2::from_state(
+            &account_state,
+            StateSnapshotV2Params {
+                height: 1,
+                block_hash: "h".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 0,
+                finalized_hash: "f".into(),
+                finality_certificates: vec![],
+            },
+        );
+        snapshot.trust_policy = SnapshotTrustPolicy::RequireSigned;
+        assert_eq!(
+            snapshot.verify_authentic(None).unwrap_err(),
+            SnapshotAuthError::MissingSigner
+        );
+        let signing_key = SigningKey::from_bytes(&[1u8; 32]);
+        let verifying_key = ed25519_dalek::VerifyingKey::from(&signing_key);
+        let mut pk = [0u8; 32];
+        pk.copy_from_slice(verifying_key.as_bytes());
+        snapshot.sign_manifest(&signing_key, pk);
+        assert!(snapshot.verify_authentic(Some(&[pk])).is_ok());
+        assert_eq!(
+            snapshot.verify_authentic(Some(&[[99u8; 32]])).unwrap_err(),
+            SnapshotAuthError::SignerNotTrusted
+        );
+    }
+
+    #[test]
+    fn test_gap1_forged_signature_rejected() {
+        use ed25519_dalek::{Signer, SigningKey};
+        let account_state = AccountState::new();
+        let mut snapshot = StateSnapshotV2::from_state(
+            &account_state,
+            StateSnapshotV2Params {
+                height: 1,
+                block_hash: "h".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 0,
+                finalized_hash: "f".into(),
+                finality_certificates: vec![],
+            },
+        );
+        let wrong_key = SigningKey::from_bytes(&[2u8; 32]);
+        let wrong_vk = ed25519_dalek::VerifyingKey::from(&wrong_key);
+        let mut wrong_pk = [0u8; 32];
+        wrong_pk.copy_from_slice(wrong_vk.as_bytes());
+        let wrong_sig = wrong_key.sign(b"wrong-message").to_bytes();
+        snapshot.manifest_signer = Some(wrong_pk);
+        snapshot.manifest_signature = Some(wrong_sig.to_vec());
+        snapshot.trust_policy = SnapshotTrustPolicy::RequireSigned;
+        assert_eq!(
+            snapshot.verify_authentic(Some(&[wrong_pk])).unwrap_err(),
+            SnapshotAuthError::SignatureInvalid
+        );
     }
 }

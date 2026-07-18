@@ -10,6 +10,7 @@ use crate::core::hash::hash_fields_bytes;
 use crate::cross_domain::event_tree::{DomainEvent, DomainEventKind, DomainEventTree};
 use crate::cross_domain::message::{CrossDomainMessage, CrossDomainMessageParams, MessageKind};
 use crate::cross_domain::relayer::RelayerConfig;
+use crate::cross_domain::AssetId;
 use crate::domain::types::{DomainId, Hash32};
 use crate::storage::db::Storage;
 use std::sync::Arc;
@@ -19,8 +20,8 @@ fn hash(label: &[u8]) -> Hash32 {
     hash_fields_bytes(&[label])
 }
 
-fn asset(id: u8) -> Hash32 {
-    hash(&[id])
+fn asset(id: u8) -> crate::cross_domain::AssetId {
+    crate::cross_domain::AssetId(hash(&[id]))
 }
 
 fn owner() -> Address {
@@ -39,11 +40,11 @@ fn make_lock_event(
     source_domain: DomainId,
     target_domain: DomainId,
     height: u64,
-    asset_id: Hash32,
+    asset_id: AssetId,
 ) -> (DomainEvent, CrossDomainMessage) {
     let payload_hash = hash_fields_bytes(&[
         b"BDLM_BRIDGE_PAYLOAD_V1",
-        &asset_id,
+        asset_id.as_ref(),
         &1000u128.to_le_bytes(),
     ]);
     let message = CrossDomainMessage::new(CrossDomainMessageParams {

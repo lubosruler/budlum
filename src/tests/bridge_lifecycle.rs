@@ -15,8 +15,8 @@ fn addr(b: u8) -> Address {
     Address::from([b; 32])
 }
 
-fn asset_id() -> [u8; 32] {
-    [42u8; 32]
+fn asset_id() -> crate::cross_domain::AssetId {
+    crate::cross_domain::AssetId([42u8; 32])
 }
 
 /// Bridge end-to-end: register domains, register the asset, lock through
@@ -129,7 +129,7 @@ fn bridge_sweep_is_height_aware_and_idempotent() {
 
     // Re-register the asset to get a fresh one for the second lock:
     // the sweep test is simpler with two distinct assets.
-    let asset_b = [43u8; 32];
+    let asset_b = crate::cross_domain::AssetId([43u8; 32]);
     bc.register_bridge_asset(asset_b, 1).unwrap();
     bc.lock_bridge_transfer(1, 2, 21, 0, asset_b, owner, recipient, 50, 500)
         .unwrap();

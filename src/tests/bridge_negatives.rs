@@ -84,7 +84,7 @@ fn honest_fixture(register_relayer: bool) -> Fixture {
         bc.register_consensus_domain(d).unwrap();
     }
 
-    let asset_id = hash(b"NEG_ASSET");
+    let asset_id = crate::cross_domain::AssetId(hash(b"NEG_ASSET"));
     bc.register_bridge_asset(asset_id, 1).unwrap();
 
     let relayer = relayer_addr();
