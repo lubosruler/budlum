@@ -56,6 +56,10 @@ jobs:
           echo "Kanarya OK: --all-features beklendigi gibi compile_error ile rededildi (PQ backend'ler mutually exclusive)."
       - name: Test
         run: cargo test --lib --verbose 2>&1 | tee /tmp/libtests.log
+      - name: cargo doc (Madde 6 — public API dokümantasyon)
+        run: |
+          RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features 2>&1 | tee /tmp/doc.log
+          echo "cargo doc: warnings as errors — passed"
       - name: Test rozeti tazeleme — main push + sayi degisimi (Phase 8.4/Q5)
         # Loop guard ×3 + KIRMIZI KORUMASI: success() AÇIK zorunlu — step-level `if:`
         # default success() kosulunu EZER (CI kanit: run a601dcf — ea27afd'nin KIRMIzI
