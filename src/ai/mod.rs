@@ -173,40 +173,49 @@ mod tests {
 
         // Minority verifier submits different commitment
         registry
-            .submit_result(AiInferenceResult {
-                request_id: req_id,
-                verifier: v_minority,
-                output_commitment: [88u8; 32],
-                output_ref: BoundedBytes::try_new(b"wrong".to_vec()).unwrap(),
-                result_nonce: 1,
-                signature: vec![1],
-                submitted_at_block: 15,
-            }, 15)
+            .submit_result(
+                AiInferenceResult {
+                    request_id: req_id,
+                    verifier: v_minority,
+                    output_commitment: [88u8; 32],
+                    output_ref: BoundedBytes::try_new(b"wrong".to_vec()).unwrap(),
+                    result_nonce: 1,
+                    signature: vec![1],
+                    submitted_at_block: 15,
+                },
+                15,
+            )
             .unwrap();
 
         // Majority verifiers submit consensus commitment
         registry
-            .submit_result(AiInferenceResult {
-                request_id: req_id,
-                verifier: v1,
-                output_commitment: [99u8; 32],
-                output_ref: BoundedBytes::try_new(b"correct".to_vec()).unwrap(),
-                result_nonce: 2,
-                signature: vec![2],
-                submitted_at_block: 16,
-            }, 16)
+            .submit_result(
+                AiInferenceResult {
+                    request_id: req_id,
+                    verifier: v1,
+                    output_commitment: [99u8; 32],
+                    output_ref: BoundedBytes::try_new(b"correct".to_vec()).unwrap(),
+                    result_nonce: 2,
+                    signature: vec![2],
+                    submitted_at_block: 16,
+                },
+                16,
+            )
             .unwrap();
 
         let outcome = registry
-            .submit_result(AiInferenceResult {
-                request_id: req_id,
-                verifier: v2,
-                output_commitment: [99u8; 32],
-                output_ref: BoundedBytes::try_new(b"correct".to_vec()).unwrap(),
-                result_nonce: 3,
-                signature: vec![3],
-                submitted_at_block: 17,
-            }, 17)
+            .submit_result(
+                AiInferenceResult {
+                    request_id: req_id,
+                    verifier: v2,
+                    output_commitment: [99u8; 32],
+                    output_ref: BoundedBytes::try_new(b"correct".to_vec()).unwrap(),
+                    result_nonce: 3,
+                    signature: vec![3],
+                    submitted_at_block: 17,
+                },
+                17,
+            )
             .unwrap();
 
         let finalized = outcome.expect("Should finalize after two matching results");

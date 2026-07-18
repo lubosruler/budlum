@@ -140,9 +140,7 @@ impl AiRegistry {
         let entries = self.results.entry(result.request_id).or_default();
         if let Some(existing) = entries.iter().find(|r| r.verifier == result.verifier) {
             if existing.output_commitment == result.output_commitment {
-                return Err(
-                    "Verifier has already submitted a result for this request".into(),
-                );
+                return Err("Verifier has already submitted a result for this request".into());
             } else {
                 return Err(format!(
                     "EQUIVOCATION: verifier {:?} submitted conflicting commitments for request {} — dispute flagged",
