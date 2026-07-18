@@ -82,11 +82,14 @@ mod poa_isolation_tests {
             1,
             "Only permissionless validator should be in active set"
         );
-        assert_eq!(active[0], permissionless_validator);
+        assert_eq!(
+            active[0].address, permissionless_validator,
+            "Active validator address must match the permissionless validator"
+        );
 
         // PoA üyesi active validators listesinde olmamalı
         assert!(
-            !active.contains(&poa_member),
+            !active.iter().any(|v| v.address == poa_member),
             "PoA member must NOT appear in permissionless active validator set"
         );
     }
