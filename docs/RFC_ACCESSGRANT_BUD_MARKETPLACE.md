@@ -108,9 +108,20 @@ pub struct StorageCommitment {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(default)]
 pub enum GrantScope {
-    ReadOnce,                     // Tek okuma (challenge/verify için)
+    ReadOnce,                     // Tek okuma (challenge/verify için) — off-chain local counter + audit log
     ReadUntilBlock(u64),          // Belirli blok yüksekliğine kadar
     Perpetual,                    // Süresiz (Faz 2'de wrapped_key ile sınırlı)
+}
+```
+
+> **KARAR (2026-07-18):** `ReadOnce` enforcement **off-chain local counter + audit log** — gas maliyeti yok. Storage node / AI Verifier kendi local state'inde takip eder. Revocation zamanında local state temizlenir. On-chain counter gas maliyetli olduğu için tercih edilmedi.
+
+```rust
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(default)]
+pub enum Grantee {
+    RoleId(RoleId),               // AI_VERIFIER(6), BUD_STORAGE_NODE(7), vb.
+    Address(Address),             // EOA / Contract — Faz 1'den desteklenir
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -118,18 +129,21 @@ pub enum GrantScope {
 pub struct AccessGrant {
     pub asset_id: [u8; 32],
     pub owner_signature: Signature,     // Owner'ın Ed25519 imzası (asset_id + grantee + scope + granted_at_block üzerinde)
-    pub grantee: RoleId,                // AI_VERIFIER(6) | BUD_STORAGE_NODE(7) | Address (genişletilebilir)
+    pub grantee: Grantee,               // RoleId VEYA Address — wire formatında Option ile genişletilebilir
     pub scope: GrantScope,
     pub wrapped_key: Option<Vec<u8>>,   // Faz 1: None; Faz 2: şifrelenmiş DEK (Data Encryption Key)
     pub granted_at_block: u64,
 }
+```
+
+> **KARAR (2026-07-18):** Grantee tipi `enum Grantee { RoleId, Address }` — Faz 1'den her ikisi desteklenir. Mevcut `PermissionlessRegistry` RoleId tabanlı; Address grantee'ler için ayrı `AddressGranteeRegistry` (basit BTreeMap) eklenir.
 
 impl Default for AccessGrant {
     fn default() -> Self {
         Self {
             asset_id: [0; 32],
             owner_signature: Signature::default(),
-            grantee: RoleId(0),
+            grantee: Grantee::RoleId(RoleId(0)),
             scope: GrantScope::Perpetual,
             wrapped_key: None,
             granted_at_block: 0,
@@ -161,6 +175,8 @@ pub struct MarketplaceListing {
     pub auto_grant_on_payment: bool,    // true: ödeme anında AccessGrant otomatik üretilir
 }
 ```
+
+> **KARAR (2026-07-18):** Protocol fee **sabit %2.5** (governance/config ile ayarlanabilir `MarketplaceParams::protocol_fee_bps = 250`). `bud_marketplacePurchase` transaction fee'sinin üzerine eklenir, protokol treasury'sine gider. Owner fiyatına (`price`) ek olarak alınır.
 
 ---
 
@@ -229,7 +245,7 @@ Faz 1'e ek olarak:
 | `bud_dataAssetRegister` | DataAsset + StorageCommitment kaydı | `DataAsset`, `StorageCommitment` | `asset_id` |
 | `bud_dataAssetGet` | Asset metadata çekme | `asset_id` | `DataAsset` |
 | `bud_accessGrantSubmit` | AccessGrant kaydetme (owner imzalı) | `AccessGrant` | `grant_id` (hash) |
-| `bud_accessGrantQuery` | Grantee için grant sorgulama | `asset_id`, `grantee: RoleId` | `Option<AccessGrant>` |
+| `bud_accessGrantQuery` | Grantee için grant sorgulama | `asset_id`, `grantee: Grantee` | `Option<AccessGrant>` |
 | `bud_accessGrantRevoke` | AccessRevocation kaydetme | `AccessRevocation` | `revocation_id` |
 | `bud_marketplaceList` | Asset'i marketplace'e ekleme | `MarketplaceListing` | `listing_id` |
 | `bud_marketplaceGet` | Listing sorgulama | `asset_id` | `Option<MarketplaceListing>` |
@@ -310,12 +326,15 @@ pub struct StateSnapshotV2 {
 
 ---
 
-## 10. Açık Sorular (Kullanıcı/Halef Kararı)
+## 10. Açık Sorular — TÜMÜ KARARLANDI ✅ (2026-07-18)
 
-1. **GrantScope `ReadOnce` implementasyonu:** Storage node / AI Verifier "okundu" durumunu nasıl takip eder? On-chain counter mı, off-chain local state mi? (Öneri: off-chain local + audit log; on-chain counter gas maliyetli)
-2. **Grantee tipi:** Şu an `RoleId` (AI_VERIFIER=6, BUD_STORAGE_NODE=7). İleride `Address` (EOA/contract) desteği eklensin mi? (Öneri: evet, generic `Grantee: enum { RoleId, Address }` — wire formatı `Option` ile genişletilebilir)
-3. **Marketplace fee modeli:** `bud_marketplacePurchase` protokol fee'si alsın mı? (Öneri: evet, `MarketplaceListing.protocol_fee_bps` — owner fiyatına ek)
-4. **Faz 2 şifreleme standardı:** AES-256-GCM + HPKE (RFC 9180) mi, ECIES mi? (Öneri: HPKE — modern, HSM uyumlu, ARENA3 domain'i)
+1. **GrantScope `ReadOnce` implementasyonu:** **KARAR: Off-chain local counter + audit log** — gas maliyeti yok. Storage node / AI Verifier kendi local state'inde takip eder. Revocation zamanında local state temizlenir.
+
+2. **Grantee tipi:** **KARAR: Enum Grantee { RoleId, Address }** — Faz 1'den her ikisi desteklenir. Mevcut `PermissionlessRegistry` RoleId tabanlı; Address grantee'ler için ayrı `AddressGranteeRegistry` eklenir.
+
+3. **Marketplace fee modeli:** **KARAR: Sabit protocol fee %2.5** (governance/config ile ayarlanabilir `MarketplaceParams::protocol_fee_bps = 250`). `bud_marketplacePurchase` transaction fee'sinin üzerine eklenir.
+
+4. **Faz 2 şifreleme standardı:** **BEKLEYEN** — HPKE (RFC 9180) önerili (modern, HSM uyumlu, ARENA3 domain'i). Faz 2 ayrı talimat turunda kesinleşecek.
 
 ---
 
