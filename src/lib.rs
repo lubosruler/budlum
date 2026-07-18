@@ -5,7 +5,7 @@
 #![forbid(unsafe_code)]
 pub mod ai;
 pub mod bns;
-pub mod bud;
+pub mod bud_marketplace;
 pub mod chain;
 pub mod cli;
 pub mod consensus;
@@ -17,7 +17,6 @@ pub mod error;
 pub mod execution;
 pub mod gateway;
 pub mod hub;
-pub mod marketplace;
 pub mod mempool;
 pub mod network;
 pub mod prover;

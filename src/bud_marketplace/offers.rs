@@ -1,3 +1,9 @@
+//! Phase 5 §5.5 AI Data Marketplace — satıcı-teklifi (DataOffer) ekonomisi.
+//!
+//! C3 kaydı: Phase 10 kategorizasyonunda `src/marketplace` → buraya taşındı
+//! (kullanıcı: mkt_migrate). Tipler davranış-değişmeden taşındı; v2
+//! AccessGrant (APPROVED RFC) modeliyle birleştirme P1/P2 tasarım konusudur.
+
 use crate::core::address::Address;
 use crate::storage::content_id::ContentId;
 use serde::{Deserialize, Serialize};

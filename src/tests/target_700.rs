@@ -14,7 +14,7 @@ use crate::bns::{BnsError, BnsRegistry};
 use crate::core::account::AccountState;
 use crate::core::address::Address;
 use crate::cross_domain::relayer::{RelayerConfig, UniversalRelayer};
-use crate::marketplace::MarketplaceRegistry;
+use crate::bud_marketplace::MarketplaceRegistry;
 use crate::socialfi::NftRegistry;
 use crate::storage::content_id::ContentId;
 
