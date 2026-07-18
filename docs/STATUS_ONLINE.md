@@ -573,3 +573,44 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 - **Oturum sonu durum:** main yeşil · alert 0 · libp2p 0.56 · GAP-3/4 kapalı · GAP-1/2 pin'li açık · devnet smoke 5/5 sürekli CI'da · badge-bot koruma-uyumlu (753 lib).
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+## 2026-07-18 — GAP-1 RFC + HALEF EL KİTABI (kullanıcı onaylı iki emir)
+
+### [2026-07-18 09:25 UTC+3] ARENA3 — taze tam-tarama + GAP-1 RFC taslağı + halef devir notu
+
+**Durum:** Kullanıcı emri: "iki emri de gerçekleştir + hafızanı kontrol et, tüm GitHub'ı tekrar oku". Tarama tamam, RFC draft push'lanıyor.
+**Kime:** kullanıcı, ARENA1, ARENA2-halef
+
+**NOT — tarih düzeltmesi:** Bir önceki girdide "2026-07-19 06:30" damgası yanlış yazılmış; gerçek oturum tarihi **2026-07-18** (bu girdinin düzeltmesi; audit trail korunuyor, eski satır silinmedi).
+
+**Taze tarama sonuçları (hafıza doğrulaması):**
+- main HEAD = `b07111a` — 12/12 yeşil teyitli (son run'da BudZero, Fuzz Quick, Cargo Deny ×2, Docker Security, Dep-Audit+SBOM, B.U.D. E2E, Secret Scan, Budlum Core, Repo Lint, Coverage, Timing-Safe hepsi OK). Kimse yeni push yapmamış.
+- Dependabot **alert board = 0** (kalıcı).
+- Açık PR tablosu (taze CI): **#45 toml 14/0 YEŞİL** (major-semver; TOML 1.1 davranış değişikliği incelemede — merge kararı hâlâ "majors wait_for_successor" kapsamında, kullanıcı+halef) · **#43 tower KIRMIZI** (dependabot recreate sonrası `c129ded`: Budlum Core, Fuzz, E2E, Timing, Coverage, docker-smoke, multinode FAIL → gerçek kırılım sınıfı, stale-base değil) · #37 sha2 / #38 p3-maybe-rayon / #39 p3-field / #41 p3-commit KIRMIZI (değerlendirme kuyruğunda) · #36 itertools kırmızı (bilinen gerçek kırılım).
+- Çalışma ağacı: `scripts/pre-push-check.sh` mode-only diff göründü (içerik 0/0) → checkout'la temizlendi, kayıp yok.
+
+### GAP-1 RFC taslağı — `docs/RFC_GAP1_SNAPSHOT_MANIFEST_SIGNATURE.md`
+
+- **Model:** C-hibrit fazlı öneri — Faz 1: Ed25519 tek-imza + yükseklik-sınırlı trust-list (`ConsensusSigner` yolu → PKCS#11 HSM/KeyPairSigner aynı kod yolu); Faz 2: BLS quorum (mainnet state-sync öncesi, halef+ARENA3 ortak).
+- **Wire:** schema_version 4 — `manifest_signer: Option<[u8;32]>` + `manifest_signature: Option<Vec<u8>>` (serde-default, schema≤3 uyumlu).
+- **Doğrulama:** yeni `verify_authentic(policy)` — mevcut `verify()` integrity katmanı olarak DEĞİŞMEDEN kalır; auth-hata sınıfı GAP-3 karantina döngüsüne bağlanır (sessiz fallback YOK, fail-closed).
+- **Politika:** `AllowUnsigned` (devnet-only) / `RequireTrusted { yükseklik-sınırlı keys }` / `RequireQuorum` (şema-rezerve).
+- **Kullanıcı onayı bekleyen 4 açık soru** RFC §7'de (trust model onayı · genesis'e `snapshot_trust` eklensin mi · imzasız geçiş penceresi kapsamı · GAP-2'nin schema-4 birleşimi mi yoksa ayrı schema-5 mi — öneri: tek schema-4).
+- **Uygulama planı 4 PR:** P1 wire+policy (ARENA3) · P2 loader/boot entegrasyonu (ARENA3) · P3 GAP-2 kapsam (halef+ARENA3) · P4 pin dönüşümü + chaos negatifleri (ARENA3).
+
+### HALEF EL KİTABI (yeni ARENA2 için devir notu)
+
+**Domain sınırları:** chain/snapshot/rpc + V3 backlog (**DONDURULMUŞ — dokunma**, kullanıcı kararı). `calculate_hash`/schema genişletme sahipliği halefte; imza/doğrulama ARENA3'te → GAP-2 = ortak PR (P3).
+**Kurallar:** devnet repo salt-okunur · force-push YASAK (rebase yerine `git merge origin/main`) · push öncesi fetch · başkasının commit'ini CI kanıtı görmeden "trivial" sayma · test sayısı yalnız CI summary satırından · CI duvar-süresi ~12 dk/SHA, Fuzz Quick değişken.
+**Bekleyen işler (öncelik sırası):**
+1. **GAP-2 kapsam genişletme** — RFC §7 Soru 4 kararından sonra P3 ortak PR (alan listesi: tokenomics, burn, registry, liveness, invalid_votes, bns, nft, marketplace, hub, storage_registry, bridge_state, message_registry, external_roots, finality_certificates, created_at; domain-separation prefix'i RFC §4.1).
+2. **Major PR triyajı:** #45 yeşil (TOML 1.1 davranış-farkı incelemesi + merge adayı) · #36/#37/#38/#39/#41/#43 kırmızı — stale-base deseniyle gerçek kırılımı ayırt etme rehberi: dependabot dalı pre-pow-pin tabanlıysa (@dependabot recreate ile tazelenir) smoke'lar "PoS banner/0→0 FAIL" verir; recreate SONRASI hâlâ kırmızıysa gerçek kırılımdır (#43 böyle — tower 0.5 gerçek kırılım sınıfı).
+3. **PoS-producer BACKLOG:** daemon'a validator_keys/HSM enjeksiyonu + genesis'e test-validator anahtarı eşitlemesi + multinode smoke'un PoW/difficulty-0 pininden PoS'e taşınması (compose şu an `--consensus=pow --difficulty=0` pinli; genesis.rs sentetik 0x02 keypairsiz).
+4. **GAP-1 RFC onayı gelirse** P2 entegrasyonunda loader/boot tarafı ARENA3 ile koordineli (boot çağrı noktası blockchain.rs ~255-300, GAP-3 mimarisi).
+**Kapanmış referanslar:** GAP-3/4 = `532ca51` · libp2p 0.56 = `820b03d` · ARENA2 incident revert'leri = `90bdb72`/`f339140`/`5933bcb` (kanıt dosyası yukarıdaki girişte) · lib rozeti = 753 (CI summary otoritesi).
+
+**Bekleyen kullanıcı kararı:** RFC §7'deki 4 açık soru (üstte özetli) — onay gelirse P1 hemen başlar.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
