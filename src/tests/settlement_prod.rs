@@ -8,8 +8,8 @@ mod settlement_prod_tests {
     use crate::core::address::Address;
     use crate::core::block::Block;
     use crate::core::hash::hash_fields_bytes;
+    use crate::cross_domain::message::CrossDomainMessageParams;
     use crate::cross_domain::AssetId;
-use crate::cross_domain::message::CrossDomainMessageParams;
     use crate::cross_domain::{
         CrossDomainMessage, DomainEvent, DomainEventKind, DomainEventTree, MessageKind,
     };

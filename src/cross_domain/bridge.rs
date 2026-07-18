@@ -25,7 +25,10 @@ impl AssetId {
         }
         let bytes = hex::decode(s).map_err(|e| e.to_string())?;
         if bytes.len() != 32 {
-            return Err(format!("Invalid asset id length: expected 32, got {}", bytes.len()));
+            return Err(format!(
+                "Invalid asset id length: expected 32, got {}",
+                bytes.len()
+            ));
         }
         let mut id = [0u8; 32];
         id.copy_from_slice(&bytes);
@@ -82,8 +85,8 @@ mod asset_id_serde {
 
     pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<[u8; 32], D::Error> {
         let s = String::deserialize(d)?;
-        let bytes = hex::decode(s.strip_prefix("0x").unwrap_or(&s))
-            .map_err(serde::de::Error::custom)?;
+        let bytes =
+            hex::decode(s.strip_prefix("0x").unwrap_or(&s)).map_err(serde::de::Error::custom)?;
         if bytes.len() != 32 {
             return Err(serde::de::Error::custom(format!(
                 "Invalid asset id length: expected 32, got {}",
@@ -475,7 +478,11 @@ impl BridgeState {
 }
 
 pub fn bridge_payload_hash(asset_id: AssetId, amount: u128) -> Hash32 {
-    hash_fields_bytes(&[b"BDLM_BRIDGE_PAYLOAD_V1", asset_id.as_ref(), &amount.to_le_bytes()])
+    hash_fields_bytes(&[
+        b"BDLM_BRIDGE_PAYLOAD_V1",
+        asset_id.as_ref(),
+        &amount.to_le_bytes(),
+    ])
 }
 
 fn status_bytes(status: &BridgeStatus) -> Vec<u8> {

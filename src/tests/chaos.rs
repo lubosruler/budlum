@@ -698,7 +698,10 @@ mod chaos_tests {
         let mut transfers_data = Vec::new();
 
         for i in 1..=num_transfers {
-            let asset = AssetId(hash_fields_bytes(&[b"test-asset", &(i as u64).to_le_bytes()]));
+            let asset = AssetId(hash_fields_bytes(&[
+                b"test-asset",
+                &(i as u64).to_le_bytes(),
+            ]));
             settlement_node
                 .state
                 .bridge_state
