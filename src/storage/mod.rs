@@ -28,6 +28,6 @@ pub mod traits;
 pub use content_id::{ContentId, DEFAULT_CHUNK_SIZE_BYTES};
 pub use manifest::{manifest_id_from_shards, ContentManifest, ShardRef};
 pub use marketplace::{
-    DataAsset, StorageCommitment, AccessGrant, AccessRevocation, MarketplaceListing,
-    MarketplaceRegistry, MarketplaceParams, GrantScope, Grantee, MarketplaceError,
+    AccessGrant, AccessRevocation, DataAsset, GrantScope, Grantee, MarketplaceError,
+    MarketplaceListing, MarketplaceParams, MarketplaceRegistry, StorageCommitment,
 };

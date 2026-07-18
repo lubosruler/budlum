@@ -183,8 +183,8 @@ pub struct MarketplaceParams {
 impl Default for MarketplaceParams {
     fn default() -> Self {
         Self {
-            protocol_fee_bps: 250,    // 2.5%
-            min_price: 1_000,         // 0.001 $BUD
+            protocol_fee_bps: 250,          // 2.5%
+            min_price: 1_000,               // 0.001 $BUD
             max_price: 100_000_000_000_000, // 100M $BUD (total supply)
         }
     }
@@ -240,8 +240,14 @@ impl MarketplaceRegistry {
 
     /// Submit an owner-signed access grant.
     /// Validates: owner signature, asset exists, grant not duplicate.
-    pub fn submit_grant(&mut self, grant: AccessGrant, block_height: u64) -> Result<(), MarketplaceError> {
-        let asset = self.data_assets.get(&grant.asset_id)
+    pub fn submit_grant(
+        &mut self,
+        grant: AccessGrant,
+        block_height: u64,
+    ) -> Result<(), MarketplaceError> {
+        let asset = self
+            .data_assets
+            .get(&grant.asset_id)
             .ok_or(MarketplaceError::AssetNotFound(grant.asset_id))?;
 
         // Verify owner signature matches asset owner
@@ -274,7 +280,12 @@ impl MarketplaceRegistry {
 
     /// Check if a grantee has ANY valid grant for an asset (respecting revocations).
     /// Returns the most permissive valid grant if multiple exist.
-    pub fn has_valid_grant(&self, asset_id: &Hash32, grantee: &Grantee, current_block: u64) -> Option<&AccessGrant> {
+    pub fn has_valid_grant(
+        &self,
+        asset_id: &Hash32,
+        grantee: &Grantee,
+        current_block: u64,
+    ) -> Option<&AccessGrant> {
         let grants = self.query_grants(asset_id, grantee);
         if grants.is_empty() {
             return None;
@@ -282,10 +293,12 @@ impl MarketplaceRegistry {
 
         // Get revoked grantees for this asset
         let revoked = self.revocations.get(asset_id).cloned().unwrap_or_default();
-        let revoked_grantees: std::collections::HashSet<&Grantee> = revoked.iter().map(|r| &r.grantee).collect();
+        let revoked_grantees: std::collections::HashSet<&Grantee> =
+            revoked.iter().map(|r| &r.grantee).collect();
 
         // Filter out revoked grants
-        let valid_grants: Vec<&AccessGrant> = grants.into_iter()
+        let valid_grants: Vec<&AccessGrant> = grants
+            .into_iter()
             .filter(|g| !revoked_grantees.contains(&g.grantee))
             .filter(|g| match &g.scope {
                 GrantScope::ReadOnce => {
@@ -309,7 +322,8 @@ impl MarketplaceRegistry {
     /// Revoke a grant (blocks future access).
     pub fn revoke_grant(&mut self, revocation: AccessRevocation) -> Result<(), MarketplaceError> {
         // Verify asset exists
-        self.data_assets.get(&revocation.asset_id)
+        self.data_assets
+            .get(&revocation.asset_id)
             .ok_or(MarketplaceError::AssetNotFound(revocation.asset_id))?;
 
         let revs = self.revocations.entry(revocation.asset_id).or_default();
@@ -324,18 +338,26 @@ impl MarketplaceRegistry {
 
     /// List an asset on the marketplace.
     pub fn list_asset(&mut self, listing: MarketplaceListing) -> Result<(), MarketplaceError> {
-        let asset = self.data_assets.get(&listing.asset_id)
+        let asset = self
+            .data_assets
+            .get(&listing.asset_id)
             .ok_or(MarketplaceError::AssetNotFound(listing.asset_id))?;
 
         if !asset.owner == listing.asset_id { // placeholder - actual owner check needed
-            // The listing should be created by the asset owner
+             // The listing should be created by the asset owner
         }
 
         if listing.price < self.params.min_price {
-            return Err(MarketplaceError::PriceBelowMinimum(listing.price, self.params.min_price));
+            return Err(MarketplaceError::PriceBelowMinimum(
+                listing.price,
+                self.params.min_price,
+            ));
         }
         if listing.price > self.params.max_price {
-            return Err(MarketplaceError::PriceAboveMaximum(listing.price, self.params.max_price));
+            return Err(MarketplaceError::PriceAboveMaximum(
+                listing.price,
+                self.params.max_price,
+            ));
         }
 
         self.marketplace_listings.insert(listing.asset_id, listing);
@@ -355,10 +377,14 @@ impl MarketplaceRegistry {
         buyer: &Address,
         block_height: u64,
     ) -> Result<Option<AccessGrant>, MarketplaceError> {
-        let listing = self.marketplace_listings.get(asset_id)
+        let listing = self
+            .marketplace_listings
+            .get(asset_id)
             .ok_or(MarketplaceError::AssetNotListed(*asset_id))?;
 
-        let asset = self.data_assets.get(asset_id)
+        let asset = self
+            .data_assets
+            .get(asset_id)
             .ok_or(MarketplaceError::AssetNotFound(*asset_id))?;
 
         // TODO: Transfer price + protocol_fee from buyer to asset.owner + protocol treasury
@@ -592,7 +618,11 @@ mod tests {
         // Different grantee still works
         let grant2 = test_grant(Grantee::Address(Address::from([2u8; 32])));
         reg.submit_grant(grant2, 201).unwrap();
-        let valid = reg.has_valid_grant(&asset.asset_id, &Grantee::Address(Address::from([2u8; 32])), 300);
+        let valid = reg.has_valid_grant(
+            &asset.asset_id,
+            &Grantee::Address(Address::from([2u8; 32])),
+            300,
+        );
         assert!(valid.is_some());
     }
 
@@ -655,11 +685,17 @@ mod tests {
         reg.submit_grant(grant, 100).unwrap();
 
         // Before deadline: valid
-        assert!(reg.has_valid_grant(&asset.asset_id, &Grantee::RoleId(RoleId(6)), 150).is_some());
+        assert!(reg
+            .has_valid_grant(&asset.asset_id, &Grantee::RoleId(RoleId(6)), 150)
+            .is_some());
         // At deadline: valid (inclusive)
-        assert!(reg.has_valid_grant(&asset.asset_id, &Grantee::RoleId(RoleId(6)), 200).is_some());
+        assert!(reg
+            .has_valid_grant(&asset.asset_id, &Grantee::RoleId(RoleId(6)), 200)
+            .is_some());
         // After deadline: invalid
-        assert!(reg.has_valid_grant(&asset.asset_id, &Grantee::RoleId(RoleId(6)), 201).is_none());
+        assert!(reg
+            .has_valid_grant(&asset.asset_id, &Grantee::RoleId(RoleId(6)), 201)
+            .is_none());
     }
 
     #[test]
@@ -676,7 +712,8 @@ mod tests {
             signature: vec![0u8; 64],
         };
 
-        reg1.register_asset(asset.clone(), commitment.clone(), 100).unwrap();
+        reg1.register_asset(asset.clone(), commitment.clone(), 100)
+            .unwrap();
         reg2.register_asset(asset, commitment, 100).unwrap();
 
         assert_eq!(reg1.root(), reg2.root());
