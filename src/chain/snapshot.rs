@@ -1036,7 +1036,7 @@ mod tests {
     #[test]
     fn test_gap2_schema4_digest_includes_bns_field() {
         // GAP-2 pin: schema-4 digest bns_registry'yi kapsar. None vs Some(default)
-        // farkli digest (forgery surface kapali).
+        // farklı tag (0 vs 1) → farklı digest (forgery surface kapalı).
         let account_state = AccountState::new();
         let mut s1 = StateSnapshotV2::from_state(
             &account_state,
@@ -1051,8 +1051,8 @@ mod tests {
             },
         );
         s1.schema_version = 4;
-        let mut s2 = s1.clone();
-        s2.bns_registry = Some(crate::bns::BnsRegistry::new());
+        let s2 = s1.clone();
+        s1.bns_registry = None; // None vs Some(default) → farklı tag
         assert_ne!(s1.calculate_digest(), s2.calculate_digest());
     }
 
