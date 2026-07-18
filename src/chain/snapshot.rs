@@ -539,7 +539,21 @@ impl StateSnapshotV2 {
         snapshot
     }
 
+    /// Phase 10.5 P2 schema-4 dispatch: schema-3 snapshot'lar eski digest'i
+    /// kullanır (backward-compat), schema-4+ yeni genişletilmiş digest'i.
+    /// GAP-2 (15 yeni alan) yalnızca v4'te kapsanır — forgery surface kapanır.
     fn calculate_hash(&self) -> String {
+        if self.schema_version >= 4 {
+            self.calculate_digest_v4()
+        } else {
+            self.calculate_digest_v3()
+        }
+    }
+
+    /// Schema-3 digest (Phase 0.16'dan beri sabit). Yeni alanlar
+    /// (tokenomics/registry/bns/pollen/hub/.../created_at) BURADA YOK —
+    /// GAP-2 bunları v4'te kapatır.
+    fn calculate_digest_v3(&self) -> String {
         use sha3::{Digest, Sha3_256};
         let mut hasher = Sha3_256::new();
         hasher.update(self.schema_version.to_le_bytes());
@@ -594,6 +608,96 @@ impl StateSnapshotV2 {
         hasher.update(self.message_root);
         hasher.update(self.settlement_root);
         hasher.update(self.global_header_summary);
+        hex::encode(hasher.finalize())
+    }
+
+    /// Schema-4 digest (Phase 10.5 P2 GAP-2): `budlum.snapshot.v4` domain-
+    /// separation prefix + v3'ün tüm alanları + GAP-2'nin 15 yeni alanı.
+    /// Bu alanlara yapılan enjeksiyon artık `verify()`'i geçemiyor (forgery
+    /// surface kapandı). `bincode` deterministik serileştirme (zaten Serialize).
+    fn calculate_digest_v4(&self) -> String {
+        use sha3::{Digest, Sha3_256};
+        let mut hasher = Sha3_256::new();
+        // Domain-separation prefix (RFC_ACCESSGRANT_V2 §4, f40f5f6 dersi:
+        // tek-taraflı root değişikliği YASAK — koordineli bump).
+        hasher.update(b"budlum.snapshot.v4");
+        // schema_version digest'e girer → v4 olduğunu mühürler.
+        hasher.update(self.schema_version.to_le_bytes());
+        // --- v3 alanlarının tamamı (calculate_digest_v3 ile aynı sıra) ---
+        hasher.update(self.height.to_le_bytes());
+        hasher.update(self.block_hash.as_bytes());
+        hasher.update(self.genesis_hash.as_bytes());
+        hasher.update(self.chain_id.to_le_bytes());
+
+        let mut balance_keys: Vec<_> = self.balances.keys().collect();
+        balance_keys.sort();
+        for key in balance_keys {
+            hasher.update(key.0);
+            hasher.update(self.balances[key].to_le_bytes());
+        }
+        let mut nonce_keys: Vec<_> = self.nonces.keys().collect();
+        nonce_keys.sort();
+        for key in nonce_keys {
+            hasher.update(key.0);
+            hasher.update(self.nonces[key].to_le_bytes());
+        }
+        let mut validator_keys: Vec<_> = self.validators.keys().collect();
+        validator_keys.sort();
+        for key in validator_keys {
+            hasher.update(key.0);
+            let v = &self.validators[key];
+            hasher.update(v.stake.to_le_bytes());
+            hasher.update([v.active as u8]);
+            hasher.update([v.slashed as u8]);
+            hasher.update([v.jailed as u8]);
+            hasher.update(v.jail_until.to_le_bytes());
+            hasher.update(&v.bls_public_key);
+            hasher.update(&v.pop_signature);
+            hasher.update(&v.pq_public_key);
+        }
+        for entry in &self.unbonding_queue {
+            hasher.update(entry.address.0);
+            hasher.update(entry.amount.to_le_bytes());
+            hasher.update(entry.release_epoch.to_le_bytes());
+        }
+        hasher.update(self.finalized_height.to_le_bytes());
+        hasher.update(self.finalized_hash.as_bytes());
+        hasher.update(self.epoch_index.to_le_bytes());
+        hasher.update(self.last_epoch_time.to_le_bytes());
+        hasher.update(self.base_fee.to_le_bytes());
+        hasher.update(self.block_reward.to_le_bytes());
+        hasher.update(self.bridge_root);
+        hasher.update(self.message_root);
+        hasher.update(self.settlement_root);
+        hasher.update(self.global_header_summary);
+
+        // --- GAP-2 yeni alanları (Phase 10.5 P2): forgery surface kapanması ---
+        // Her Option<T>: tag (0=None / 1=Some) + bincode(T). None ile Some(Default)
+        // farklı digest verir (boş vs default-state ayrımı).
+        hash_option_bincode(&mut hasher, &self.tokenomics_burn);
+        hash_option_bincode(&mut hasher, &self.registry);
+        hash_option_bincode(&mut hasher, &self.liveness);
+        hash_option_bincode(&mut hasher, &self.invalid_votes);
+        hash_option_bincode(&mut hasher, &self.bns_registry);
+        hash_option_bincode(&mut hasher, &self.nft_registry);
+        hash_option_bincode(&mut hasher, &self.marketplace);
+        hash_option_bincode(&mut hasher, &self.hub);
+        hash_option_bincode(&mut hasher, &self.storage_registry);
+        hash_option_bincode(&mut hasher, &self.ai_registry);
+        hash_option_bincode(&mut hasher, &self.bridge_state);
+        hash_option_bincode(&mut hasher, &self.message_registry);
+        hash_option_bincode(&mut hasher, &self.external_roots);
+        // tokenomics (Option değil, doğrudan struct) — her zaman digest'te.
+        hasher.update(bincode::serialize(&self.tokenomics).unwrap_or_default());
+        // finality_certificates (Vec) — len-prefix + her elem bincode.
+        let fc_len = self.finality_certificates.len() as u64;
+        hasher.update(fc_len.to_le_bytes());
+        for cert in &self.finality_certificates {
+            hasher.update(bincode::serialize(cert).unwrap_or_default());
+        }
+        // created_at (u128) — v3'te YOKTU, v4'te kapsandı (timestamp forgery kapandı).
+        hasher.update(self.created_at.to_le_bytes());
+
         hex::encode(hasher.finalize())
     }
 
@@ -660,6 +764,24 @@ impl StateSnapshotV2 {
         Ok(snapshot)
     }
 }
+
+/// GAP-2 helper: `Option<T: Serialize>`'i deterministik olarak hasher'a yazar.
+/// `None` -> `[0x00]`; `Some(v)` -> `[0x01] ++ bincode(v)`. None ile Some(Default)
+/// farkli digest uretir (bos-state vs default-state karismaz).
+fn hash_option_bincode<H, T>(hasher: &mut H, opt: &Option<T>)
+where
+    H: sha3::Digest,
+    T: serde::Serialize,
+{
+    match opt {
+        None => hasher.update(&[0u8]),
+        Some(v) => {
+            hasher.update(&[1u8]);
+            hasher.update(&bincode::serialize(v).unwrap_or_default());
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -841,5 +963,72 @@ mod tests {
         assert_eq!(restored.block_reward, 12345);
         assert!(restored.tokenomics_burn.is_some());
         assert!(restored.verify());
+    }
+
+    /// GAP-2 pin (Phase 10.5 P2): schema-4 digest'inin 15 yeni alani kapsadigini
+    /// mühürler. v3 digest forgery surface (hash'lenmemis alan enjeksiyonu) v4'te
+    /// kapandi. Bu test schema_version=4 ile calisir; CURRENT henuz 3 oldugu icin
+    /// v4 digest devreye girer ve bir GAP-2 alaninin degisimi digest'i degistirir.
+    #[test]
+    fn gap2_schema4_digest_covers_new_fields() {
+        let mut snapshot = StateSnapshotV2::from_account_state(
+            &AccountState::new(),
+            StateSnapshotV2Params {
+                height: 100,
+                block_hash: "h100".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 99,
+                finalized_hash: "f99".into(),
+                finality_certificates: vec![],
+            },
+        );
+        // Schema'yi 4'e zorla (CURRENT henuz 3 ama dispatch >= 4 kontrolu var).
+        snapshot.schema_version = 4;
+        snapshot.snapshot_hash = snapshot.calculate_hash();
+        let digest_before = snapshot.calculate_hash();
+        // bns_registry'ye enjeksiyon (v3'te digest degismezdi = forgery surface).
+        let mut bns = crate::bns::BnsRegistry::new();
+        bns.base_cost = 999;
+        snapshot.bns_registry = Some(bns);
+        let digest_after = snapshot.calculate_hash();
+        assert_ne!(
+            digest_before, digest_after,
+            "GAP-2: bns_registry enjeksiyonu v4 digest'i degistirmeli (forgery surface kapali)"
+        );
+        // tokenomics degisimi de digest'e yansimali.
+        let digest_t_before = snapshot.calculate_hash();
+        snapshot.tokenomics.block_reward = 77777;
+        let digest_t_after = snapshot.calculate_hash();
+        assert_ne!(digest_t_before, digest_t_after, "tokenomics v4 digest'te");
+    }
+
+    /// GAP-2 backward-compat: schema-3 snapshot hala v3 digest kullanir (C6 bump
+    /// oncesi mevcut davranis korunur). Yeni alan degisimi v3 digest'i ETKILEMEZ.
+    #[test]
+    fn gap2_schema3_digest_unaffected_by_new_fields() {
+        let mut snapshot = StateSnapshotV2::from_account_state(
+            &AccountState::new(),
+            StateSnapshotV2Params {
+                height: 50,
+                block_hash: "h50".into(),
+                genesis_hash: "g".into(),
+                chain_id: 1,
+                finalized_height: 49,
+                finalized_hash: "f49".into(),
+                finality_certificates: vec![],
+            },
+        );
+        // schema_version default (3).
+        let digest_before = snapshot.calculate_hash();
+        // bns_registry enjeksiyonu v3 digest'i ETKILEMEMELI (backward-compat).
+        let mut bns = crate::bns::BnsRegistry::new();
+        bns.base_cost = 999;
+        snapshot.bns_registry = Some(bns);
+        let digest_after = snapshot.calculate_hash();
+        assert_eq!(
+            digest_before, digest_after,
+            "v3 digest yeni alanlardan etkilenmez (backward-compat, C6 bump sonrasi v4 devreye girer)"
+        );
     }
 }
