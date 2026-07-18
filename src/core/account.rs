@@ -333,7 +333,6 @@ impl AccountState {
             bns_registry: snapshot.bns_registry.clone().unwrap_or_default(),
             nft_registry: snapshot.nft_registry.clone().unwrap_or_default(),
             marketplace: snapshot.marketplace.clone().unwrap_or_default(),
-            marketplace_v4: snapshot.marketplace_v4.clone().unwrap_or_default(),
             hub: snapshot.hub.clone().unwrap_or_default(),
             external_roots: snapshot.external_roots.clone().unwrap_or_default(),
             base_fee: snapshot.base_fee,
