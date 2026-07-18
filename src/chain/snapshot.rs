@@ -1097,7 +1097,7 @@ mod tests {
 
     #[test]
     fn test_gap1_require_signed_sign_verify_roundtrip() {
-        use ed25519_dalek::SigningKey;
+        use ed25519_dalek::{Signer, SigningKey};
         let account_state = AccountState::new();
         let mut snapshot = StateSnapshotV2::from_state(
             &account_state,
@@ -1130,7 +1130,7 @@ mod tests {
 
     #[test]
     fn test_gap1_forged_signature_rejected() {
-        use ed25519_dalek::SigningKey;
+        use ed25519_dalek::{Signer, SigningKey};
         let account_state = AccountState::new();
         let mut snapshot = StateSnapshotV2::from_state(
             &account_state,
