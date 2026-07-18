@@ -82,11 +82,11 @@ mod poa_isolation_tests {
             1,
             "Only permissionless validator should be in active set"
         );
-        assert_eq!(active[0], permissionless_validator);
+        assert_eq!(active[0].address, permissionless_validator);
 
         // PoA üyesi active validators listesinde olmamalı
         assert!(
-            !active.contains(&poa_member),
+            !active.iter().any(|v| v.address == poa_member),
             "PoA member must NOT appear in permissionless active validator set"
         );
     }
@@ -147,18 +147,18 @@ mod poa_isolation_tests {
             .unwrap();
         poa_reg.approve(POA_DOMAIN, admin, poa_member).unwrap();
 
+        // Permissionless registry'de bu adres olmamalı
+        let perm_registrations = perm_state.registry.registrations_as_seq();
+        let has_poa_in_perm = perm_registrations.iter().any(|r| r.account == poa_member);
+        assert!(
+            !has_poa_in_perm,
+            "PoA member must NOT appear in permissionless registry"
+        );
+
         // PoA registry'si permissionless registry'den ayrı
         assert!(
             poa_reg.is_authorized(POA_DOMAIN, &poa_member),
             "PoA member should be authorized in PoA registry"
-        );
-
-        // Permissionless registry'de bu adres aktif olmamalı
-        assert!(
-            !perm_state
-                .registry
-                .is_active(&poa_member, roles::VALIDATOR),
-            "PoA member must NOT be active in permissionless registry"
         );
     }
 
@@ -185,19 +185,10 @@ mod poa_isolation_tests {
         perm_state.add_balance(&perm_addr, 10_000);
         perm_state.add_validator(perm_addr, 5_000);
 
-        // PoA üyesi permissionless validator setinde yok
-        assert!(
-            !perm_state
-                .registry
-                .is_active(&poa_addr, roles::VALIDATOR),
-            "PoA member must NOT be in permissionless registry"
-        );
-
+        // PoA üyesi permissionless'ta yok
+        assert!(perm_state.validators.get(&poa_addr).is_none());
         // Permissionless validator PoA'da yok
-        assert!(
-            !poa_reg.is_authorized(POA_DOMAIN, &perm_addr),
-            "Permissionless validator must NOT be in PoA registry"
-        );
+        assert!(!poa_reg.is_authorized(POA_DOMAIN, &perm_addr));
 
         // Permissionless registry parametreleri PoA'dan bağımsız
         let perm_params = perm_state.registry.params();
