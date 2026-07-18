@@ -60,7 +60,7 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
         .register_consensus_domain(legacy)
         .expect("legacy domain remains decodable/registerable");
 
-    let asset = [0xA5; 32];
+    let asset = crate::cross_domain::AssetId([0xA5; 32]);
     chain
         .register_bridge_asset(asset, source.id)
         .expect("asset registration");
