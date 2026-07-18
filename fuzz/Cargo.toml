@@ -54,3 +54,17 @@ path = "fuzz_targets/transaction_deserialize.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "evm_rlp_decode"
+path = "fuzz_targets/evm_rlp_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "evm_mpt_verify"
+path = "fuzz_targets/evm_mpt_verify.rs"
+test = false
+doc = false
+bench = false
