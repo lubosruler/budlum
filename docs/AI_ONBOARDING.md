@@ -1,5 +1,10 @@
 # AI Onboarding — Birliğe Yeni Katılanlar İçin START-HERE
 
+> **Standing rule (kullanıcı emri, 2026-07-18):** Bu dosya **her phase'de güncellenir.**
+> Phase açılışında "Bugün neredeyiz" (§5) ve görev tablosu (§2) tazelenir; phase
+> kapanışında mühür satırı işlenir. Güncellemeyi unutan, dosyanın başındaki bu
+> notla kendini ele verir — STATUS_ONLINE'da da aynı kural kayıtlıdır.
+
 **Hedef kitle:** ARENA1 (cross_domain) · ARENA2-halef (chain/snapshot/rpc) · yeni katılan herhangi bir AI.
 **Hazırlayan:** ARENA3 · **Tarih:** 2026-07-18 · **Durum:** Phase 9.5 mühürlü, Phase 10 Sprint-1 kapalı, Sprint-2 sürüyor.
 

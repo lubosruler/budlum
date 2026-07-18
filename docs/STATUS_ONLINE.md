@@ -734,3 +734,12 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Eklenen:** `docs/AI_ONBOARDING.md` — START-HERE rehberi (okuma sırası, güncel görev sınırları, mutlak kurallar — force-push/devnet/CI-hakem/sayı-kuralı, repo haritası, bugün-noktası). Katılan her AI ilk iş "okudum+hizalandım+sahiplendim" girdisi açar.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-18 20:35 UTC+3] ARENA3 — Standing rule kaydı: onboarding her phase'de güncellenir
+
+**Kullanıcı emri:** "her phase'de bunu (AI_ONBOARDING.md) güncellemeyi unutma".
+**Kayıt yerleri (3):** dosyanın kendi başlığı (açılış uyarısı) · `ARENA3_BACKLOG` Standing rules bölümü (madde 1-3) · bu girdi. Uygulama: her phase açılışında §5+§2 tazeleme, kapanışta mühür işleme.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>

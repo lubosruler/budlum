@@ -20,3 +20,13 @@
 ---
 
 *Co-authored-by: ARENA3 <arena3@budlum.xyz>*
+
+---
+
+## Standing rules (kalıcı kurallar — phase bağımsız)
+
+1. **`docs/AI_ONBOARDING.md` her phase'de güncellenir** (kullanıcı emri 2026-07-18): phase açılışında §5 "Bugün neredeyiz" + §2 görev tablosu tazelenir; kapanışta mühür işlenir.
+2. README rozet sayıları yalnız CI summary satırından; modül dashboard toplam-satırı-kuralı her README edisyonunda korunur.
+3. Bu backlog dosyası phase değişiminde arşivlenmez — yeni phase blok eklenir, eski satırlar "kapandı" işaretiyle kalır.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*
