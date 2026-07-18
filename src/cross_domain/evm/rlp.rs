@@ -419,8 +419,9 @@ mod tests {
 
     #[test]
     fn decode_rejects_unexpected_end_long_string() {
-        // 0xb8 0x0a claims 10-byte payload, but empty
-        assert_eq!(decode(&[0xb8, 0x0a]).unwrap_err(), RlpError::UnexpectedEnd);
+        // 0xb8 0x38 claims canonical 56-byte payload (len>=56), but none follows.
+        // (0xb8 0x0a would be NonCanonical since len=10<56 — covered by canonical test.)
+        assert_eq!(decode(&[0xb8, 0x38]).unwrap_err(), RlpError::UnexpectedEnd);
     }
 
     #[test]
