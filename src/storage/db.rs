@@ -100,9 +100,38 @@ fn decode<T: DeserializeOwned>(value: &[u8]) -> std::io::Result<T> {
 pub struct Storage {
     db: Db,
 }
+
+/// sled's file-lock release is not synchronous with `Db::drop`: the flusher
+/// thread can still hold the lock briefly after the last handle is gone, and
+/// `sled::open` reports that contention as an io::Error with `kind: Other`
+/// (sled wraps the WouldBlock detail into its message text). Reopening the
+/// same path immediately after a drop therefore races with the release and
+/// flakes under CI load (observed in the tur13_5 restore test, 2026-07-18).
+/// A small bounded retry absorbs the race; non-contention errors and
+/// persistent contention keep the exact same failure surface as before.
+fn sled_open_with_retry<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<Db> {
+    const MAX_ATTEMPTS: u32 = 5;
+    for attempt in 1..=MAX_ATTEMPTS {
+        match sled::open(path.as_ref()) {
+            Ok(db) => return Ok(db),
+            Err(e) => {
+                let is_lock_contention = e.kind() == std::io::ErrorKind::Other
+                    && e.to_string().contains("could not acquire lock");
+                if !is_lock_contention || attempt == MAX_ATTEMPTS {
+                    return Err(e);
+                }
+                std::thread::sleep(std::time::Duration::from_millis(
+                    25 * u64::from(attempt),
+                ));
+            }
+        }
+    }
+    unreachable!("retry loop returns on success, on final attempt, or on non-lock errors")
+}
+
 impl Storage {
     pub fn new(path: &str) -> std::io::Result<Self> {
-        let db = sled::open(path)?;
+        let db = sled_open_with_retry(path)?;
         let storage = Storage { db };
         storage.apply_migrations()?;
         storage.recover_interrupted_commit()?;
@@ -245,7 +274,7 @@ impl Storage {
         }
 
         {
-            let db = sled::open(target_db_path)?;
+            let db = sled_open_with_retry(target_db_path)?;
             for chunk in entries.chunks(10_000) {
                 let mut batch = sled::Batch::default();
                 for (key, value) in chunk {
@@ -254,20 +283,23 @@ impl Storage {
                 db.apply_batch(batch)?;
             }
             db.flush()?;
-        }
 
-        let restored = Self::new(target_db_path.to_str().ok_or_else(|| {
-            std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                "restore target path is not valid UTF-8",
-            )
-        })?)?;
-        let errors = restored.check_integrity().map_err(std::io::Error::other)?;
-        if !errors.is_empty() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("restored database failed integrity check: {errors:?}"),
-            ));
+            // Run migration/recovery/integrity through this SAME sled handle
+            // instead of dropping it and reopening the path: sled's lock
+            // release is asynchronous with `Db::drop`, so a back-to-back
+            // reopen races with it and flakes (tur13_5, 2026-07-18). The
+            // semantics are unchanged — the checks run on the freshly
+            // restored data exactly as `Storage::new` would run them.
+            let restored = Storage { db };
+            restored.apply_migrations()?;
+            restored.recover_interrupted_commit()?;
+            let errors = restored.check_integrity().map_err(std::io::Error::other)?;
+            if !errors.is_empty() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("restored database failed integrity check: {errors:?}"),
+                ));
+            }
         }
         Ok(())
     }
@@ -1275,5 +1307,34 @@ mod tests {
 
         let error = Storage::restore_snapshot(&backup, &restored_path).unwrap_err();
         assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists);
+    }
+
+    #[test]
+    fn sled_open_with_retry_waits_for_lock_release() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("contended.db");
+        let holder = sled::open(&path).unwrap();
+        // Release the lock shortly after the first open attempt fails; the
+        // retry loop must observe the release and succeed instead of giving up
+        // after a single attempt (the old restore path failed this race).
+        let releaser = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(30));
+            drop(holder);
+        });
+        let db = super::sled_open_with_retry(&path).unwrap();
+        releaser.join().unwrap();
+        drop(db);
+    }
+
+    #[test]
+    fn sled_open_with_retry_reports_persistent_contention() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("held.db");
+        let _holder = sled::open(&path).unwrap();
+        // With the lock held for the whole call, the helper must exhaust its
+        // retries and surface sled's lock error rather than panicking or
+        // blocking forever.
+        let err = super::sled_open_with_retry(&path).unwrap_err();
+        assert!(err.to_string().contains("could not acquire lock"));
     }
 }
