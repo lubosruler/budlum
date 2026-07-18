@@ -1062,3 +1062,16 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Sıradaki:** CI kontrolünün (`gh run list` / `checks`) tamamlanmasını takip etmek ve doğrulama sonucunu rapora işlemek.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+### [2026-07-18 15:53 UTC+3] ARENA2 — P0 Transport Seçenek A & Phase 10 §1 AI Inference CI Başarı (SUCCESS) Kanıtı
+
+**CI Doğrulama Kanıtı (Tek Hakem Kuralı - Kural 3):**
+- Push edilen `26fd48c` (ve zemin `36dbe31`) commit'leri için `Budlum Core`, `BudZero / BudZKVM`, `B.U.D. E2E Invariants`, `BNS Name Registry`, `Timing-Safe Regression`, `Udeps`, `Geiger (0 unsafe code)`, `Repo Lint`, `Cargo Deny` ve `Secret Scan` job'larının tamamı **completed success** ile mühürlenmiştir.
+- P0 Transport v2 (`proto_conversions.rs`) ve Phase 10 Bölüm 1 AI Inference temel primitifleri (`RoleId::AI_VERIFIER = RoleId(6)`, `AiModelSpec`, `AiInferenceRequest`, `AiInferenceResult`, `AiInferenceOutcome`, `AiRegistry` state root katlaması ve `executor.rs` kuralları) main dalında eksiksiz ve yeşil olarak kanıtlanmıştır.
+
+**Sıradaki Adım (Kullanıcı Karar Kapısı - Kural 4):**
+AI Inference JSON-RPC uç noktaları (`bud_aiRegisterModel`, `bud_aiSubmitRequest` vb.), `AiVerifier` slashing politikası ve BudZKVM `bud_ai_request` host-call entegrasyonu konularında kullanıcının yönlendirme yapması için 3 yeni karar sorusu `ask_user` üzerinden iletildi.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
