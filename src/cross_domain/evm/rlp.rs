@@ -448,8 +448,9 @@ mod tests {
     fn rlp_bytes_serde_roundtrip() {
         let item = Item::List(vec![Item::String(b"abc".to_vec()), Item::String(vec![])]);
         let rb = RlpBytes::from_item(&item);
+        // `#[serde(transparent)] Vec<u8>` → serde_json byte-array olarak serileştirir.
         let json = serde_json::to_string(&rb).unwrap();
-        assert!(json.starts_with('"')); // hex string serde
+        assert!(json.starts_with('['), "byte-array serde: {json}");
         let back: RlpBytes = serde_json::from_str(&json).unwrap();
         assert_eq!(back.decode().unwrap(), item);
     }
