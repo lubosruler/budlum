@@ -372,8 +372,8 @@ fn convert_relayer_result_to_proto(
         pb::ProtoCrossDomainMessagePayload {
             message_id: hex::encode(msg.message_id),
             correlation_id: msg.correlation_id.map(hex::encode).unwrap_or_default(),
-            source_domain: format!("{}", msg.source_domain.0),
-            target_domain: format!("{}", msg.target_domain.0),
+            source_domain: format!("{}", msg.source_domain),
+            target_domain: format!("{}", msg.target_domain),
             source_height: msg.source_height,
             event_index: msg.event_index,
             nonce: msg.nonce,
@@ -492,8 +492,8 @@ fn convert_proto_to_relayer_result(
         Some(crate::cross_domain::message::CrossDomainMessage {
             message_id,
             correlation_id,
-            source_domain: crate::domain::types::DomainId(src_dom),
-            target_domain: crate::domain::types::DomainId(tgt_dom),
+            source_domain: src_dom,
+            target_domain: tgt_dom,
             source_height: p_msg.source_height,
             event_index: p_msg.event_index,
             nonce: p_msg.nonce,
