@@ -746,6 +746,53 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 
 ---
 
+### [2026-07-18 12:43 UTC+3] ARENA2 — Phase 10 AI Inference başlangıç tasarım denetimi (kod YOK)
+
+**Durum:** kullanıcı onayıyla önce tasarım/denetim tamamlandı; **herhangi bir Rust/proto/CI kodu değiştirilmedi.** Ayrıntılı, kaynak-kanıtlı kayıt: `docs/ARENA2_AI_INFERENCE_DESIGN_REVIEW_2026-07-18.md`.
+
+**Hizalanma ve sınırlar:** `ARENA_AI.md`, `CLAUDE.md`, `docs/STATUS.md`, `docs/STATUS_ONLINE.md`, `docs/AI_ONBOARDING.md`, Phase 10/backlog/RFC ve ilgili chain/RPC/transaction/registry/B.U.D. kaynakları incelendi. `budlum-xyz/budlumdevnet` salt-okunur tutuldu; yalnız geçici read-only karşılaştırma yapıldı (HEAD `6613219`), yazma/push yok.
+
+**P0 bulgu — AI kodundan ÖNCE karar gerekir:** `src/network/proto_conversions.rs`, protobuf transportunda yalnız 5 transaction türünü kayıpsız taşıyor; diğer mevcut türleri outbound’da `Transfer`a düşürüyor. Yeni AI request/result transaction’ı eklemek bu sessiz semantic downgrade çözülmeden güvenli değildir. Önerilen sıra: önce ayrı, fail-closed ve tüm türleri round-trip eden transport düzeltmesi; sonra AI state-machine.
+
+**Doğrulanan tasarım gerçekleri:** `RoleId` açık u32 ve permissionless registry AI verifier için uygun temel; fakat RoleId aktör kimliği değildir (outcome’ta Address gerekir). `ContentManifest` owner/consent içermez; AccessGrant hard-enforcement tamamlanana kadar AI+B.U.D. private input iddiası yapılamaz. Mevcut `AiOfferData/AiPurchaseData` marketplace’tir, inference değildir; `ContractCall` BudZKVM bytecode yürütür, `bud_ai_request` host-call yoktur.
+
+**Kullanıcı karar kaydı:** GAP-1 RFC öneri yönü seçildi: C-hibrit Faz-1 trust modeli; genesis+CLI trust-list (CLI override); unsigned yalnız devnet; GAP-2 tek schema-4. Bu kabul, snapshot kodunu hemen başlatma veya ARENA3’ün AccessGrant sahipliğini devralma anlamına gelmez.
+
+**Sıradaki kararlar:** P0 transport işinin sahibi/önceliği; model kayıt yönetişimi; verifier-set snapshot modeli; escrow/timeout/equivocation parametreleri; AccessGrant gelene kadar public-input-only kuralı; callback’in Faz-1a’da ertelenmesi. Kodlamadan önce bu kararlar kullanıcıya sorulacaktır.
+
+Co-authored-by: ARENA2 <arena2@budlum.xyz>
+
+---
+
+### [2026-07-18 12:43 UTC+3] ARENA2 — P0 transaction protobuf/P2P denetimi (salt-okunur)
+
+**Kullanıcı kararı:** P0 için önce yalnız derin denetim; AI+B.U.D. Faz-1 sınırı: **public input only** ve callback yürütmesi **ertelendi**. Kod/proto/CI değişikliği yapılmadı.
+
+**Rapor:** `docs/ARENA2_P0_TRANSACTION_TRANSPORT_AUDIT_2026-07-18.md`.
+
+**Kanıtlı sonuç:** `TransactionType` tag’i `BDLM_TX_V3` imzasına dahildir (20 mevcut tür). `proto/budlum/network/protocol.proto` yalnız 5 type tanır; `src/network/proto_conversions.rs` bunların dışındaki Rust türlerini outbound’da sessizce `TRANSFER`a düşürür. Aynı `ProtoTransaction`, hem `NetworkMessage::Transaction` hem `ProtoBlock.transactions` yolu tarafından kullanılır. Decode’daki unknown enum reddi olumlu olsa da outbound fallback fail-closed değildir. Mevcut unit test yalnız Transfer; ZKVM testi yalnız ContractCall round-trip kapsar.
+
+**Sonuç:** Bu P0 düzeltilmiş değildir; AI request/result transaction’ı eklenmeden önce bağımsız protokol kararına ve kayıpsız + fail-closed transport uygulamasına ihtiyaç var. Rapor A/B/C tasarım seçenekleri, 20-tür etki matrisi ve CI kabul kriterlerini içerir. Bu ortamda `cargo` yoktur; lokal test koşulamadı (`cargo: command not found`), CI gelecekteki kod değişikliğinin tek hakemi olacaktır.
+
+**Push durumu:** local `5901b03` dokümantasyon commit’i henüz remote’a gitmedi; credential’sız push deterministik olarak auth hatasıyla döndü. Paylaşılan erişim anahtarını shell/remote URL/commit veya workspace içine yazmayacağım. Güvenli repo/CI kimlik doğrulama yolu kurulduğunda push yeniden denenecek; onay sonrası CI sonucu beklenmeden yeni kod işi açılmayacak.
+
+Co-authored-by: ARENA2 <arena2@budlum.xyz>
+
+---
+
+### [2026-07-18 12:43 UTC+3] ARENA2 — P0 typed-protobuf migration planı (tasarım; kod YOK)
+
+**Yeni kullanıcı kararları:** typed protobuf enum + `oneof` payload; uyumluluk activation-height ile; AI model kaydı permissionless + anti-spam bond/fee.
+
+**Plan:** `docs/ARENA2_P0_TYPED_PROTO_MIGRATION_PLAN_2026-07-18.md`.
+
+**Kural seti:** canonical `TransactionType` tag’leri 0..19 append-only wire enum olur; payload taşıyan türlerde type/payload birebir eşleşir; unknown/missing/mismatch/oversize/version-uyumsuz veri fail-closed reddedilir; `Transfer` fallback yoktur. `ProtoBlock` ve transaction gossip aynı dönüşüm helper’ını kullanmalıdır. `H_transport_v2` değeri mainnet/genesis veya fork/yönetişim kararı olmadan varsayılmadı.
+
+**AI sınırı tekrar teyit:** AccessGrant hard enforcement gelene kadar yalnız public input commitment; Faz-1a callback yürütmesi yok. Model registry’de permissionless kayıt korunur; bond/withdrawal/namespace parametreleri ayrı ekonomi kararı olmadan kodlanmayacak.
+
+**Push durumu değişmedi:** local commit zinciri remote’un 2 commit önünde; güvenli GitHub auth olmadan push gerçekleştirilemedi. CI sonucu olmadan kod işi açılmayacak.
+
+Co-authored-by: ARENA2 <arena2@budlum.xyz>
 ### [2026-07-18 21:10 UTC+3] [PIN] ARENA1 & ARENA2-halef — HOŞ GELDİNİZ (kullanıcı: "şimdi geliyorlar")
 
 **START HERE:** `docs/AI_ONBOARDING.md` → dön, bu kanalda **"okudum + hizalandım + sahiplendim kalem: ..."** girdisi aç. Sorular aynı kanalda, cevap timestamp'li gelir.

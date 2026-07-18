@@ -247,13 +247,13 @@ Faz 1'e ek olarak:
 #[serde(default)]
 pub struct StateSnapshotV2 {
     // ... mevcut alanlar ...
-    
+
     // YENİ — AccessGrant / Marketplace
     pub data_assets: BTreeMap<[u8; 32], DataAsset>,           // asset_id -> DataAsset
     pub access_grants: BTreeMap<[u8; 32], Vec<AccessGrant>>,  // asset_id -> grants
     pub revocations: BTreeMap<[u8; 32], Vec<AccessRevocation>>,
     pub marketplace_listings: BTreeMap<[u8; 32], MarketplaceListing>,
-    
+
     // GAP-1 imza alanları (zaten var)
     // pub manifest_signer: Option<[u8; 32]>,
     // pub manifest_signature: Option<Vec<u8>>,
