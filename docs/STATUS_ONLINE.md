@@ -1466,3 +1466,38 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Sıradaki (görev yöneticisi):** F10.2 ile H4 kriptografik temel kapatıldı. Görev yöneticisi talimatlarından (c8802f2) öncelik sırasıyla ARENA3-T1 (P2 schema-4) / ARENA3-T5 (F27 ceremony) / ARENA3-T6 (F29 bug bounty) — kullanıcı kararı.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+## [2026-07-18 22:15 UTC+3] ARENAX — KRİTİK GÜVENLİK VE MANTIK HATALARI RAPORU (V17-V19)
+
+**Durum:** TESPİT EDİLDİ (Denetim modunda)
+**Kapsam:** Bridge `unlock` mantığı, `BridgeBurn` handler güvenliği, `blockchain.rs` hata yutma.
+**Kime:** ARENA1, ARENA2, ARENA3, kullanıcı
+
+F10.2 ve ARENA3'ün son fix'leri (`d1c89a3`) üzerine yaptığım derinlemesine denetimde aşağıdaki 3 kritik bulguya ulaşıldı. Bu hatalar bridge'in çalışmasını tamamen engelleyebilir veya replay saldırılarına açık kapı bırakabilir.
+
+### Bulgu 1 (Kritik): Bridge `unlock` mantık hatası (Asset kilitli kalır)
+`src/cross_domain/bridge.rs:223` satırındaki `unlock` fonksiyonu, `source_domain` (olayın geldiği domain, ör. Ethereum) ile `transfer.source_domain`'i (varlığın ilk kilitlendiği domain, ör. Budlum) karşılaştırıyor.
+- **Sorun:** `1 != 2` olduğu için tüm unlock işlemleri "Unlock source domain mismatch" hatasıyla reddedilecektir.
+- **Düzeltme:** Karşılaştırma `transfer.target_domain != source_domain` şeklinde olmalıdır.
+
+### Bulgu 2 (Yüksek): `BridgeBurn` handler'da ID doğrulama ve Replay koruması eksik
+`src/execution/executor.rs:555` civarındaki `BridgeBurn` mesaj işleme bloğunda:
+- **Sorun A:** `msg.verify_id()` kontrolü yapılmıyor. Sahte ID'li mesajlar (kanıt sağlandığı sürece) kabul edilebilir.
+- **Sorun B:** `msg.message_id` (Burn mesajının ID'si) `replay.mark_processed` ile mühürlenmiyor. `unlock` fonksiyonu status-based koruma sağlasa da, global replay store'da bu mesajın işlendiğine dair kayıt tutulmuyor. Bu durum denetim izini (audit trail) bozar ve ilerideki karmaşık saldırılara zemin hazırlar.
+
+### Bulgu 3 (Orta): `blockchain.rs` ve `store` işlemlerinde hata yutma (Persistence Risk)
+`src/chain/blockchain.rs` içerisinde 270'den fazla `let _ =` ile `store` sonuçları yutuluyor.
+- **Örnek:** `:1924` `let _ = store.save_bridge_state(...)` ve `:2258` `save_qc_blob`.
+- **Sorun:** Disk dolması veya yazma hatası durumunda node sessizce çalışmaya devam eder, ancak state kalıcı olmaz. Bir restart sonrası bridge state'i eski sürüme döner ve fon kaybına/tutarsızlığa yol açar.
+
+**Aksiyon Önerisi:**
+1. ARENA1 veya ARENA2 bu fix'leri (V17-V19) ivedilikle uygulamalıdır.
+2. `blockchain.rs`'deki kritik yollar `expect` veya `tracing::error!` ile güçlendirilmelidir.
+3. ARENAX olarak ben de bu onarımları yapabilirim, ancak görev tanımım gereği önce raporluyorum.
+
+**Sıradaki:** SocialFi modülü derin denetimi ve F10.2 (EVM) kodunun negatif matris analizi.
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
+
