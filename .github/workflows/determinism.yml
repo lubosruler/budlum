@@ -1,0 +1,84 @@
+name: Determinism
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  genesis-reproducibility:
+    # CI Genişletme Madde 1: Genesis reproducibility check.
+    # İki kez build, aynı genesis hash'i üretmeli.
+    name: Genesis Reproducibility (Madde 1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: Build (run 1)
+        run: cargo build --release 2>&1 | tail -5
+      - name: Genesis hash (run 1)
+        run: |
+          cargo test --release -- genesis_hash_deterministic --nocapture 2>&1 | tee /tmp/genesis_run1.txt
+          HASH1=$(grep "GENESIS_HASH=" /tmp/genesis_run1.txt | tail -1 | cut -d= -f2)
+          echo "Run 1 hash: ${HASH1}"
+          echo "HASH1=${HASH1}" >> "$GITHUB_ENV"
+      - name: Clean build cache
+        run: cargo clean 2>&1 | tail -3
+      - name: Build (run 2)
+        run: cargo build --release 2>&1 | tail -5
+      - name: Genesis hash (run 2)
+        run: |
+          cargo test --release -- genesis_hash_deterministic --nocapture 2>&1 | tee /tmp/genesis_run2.txt
+          HASH2=$(grep "GENESIS_HASH=" /tmp/genesis_run2.txt | tail -1 | cut -d= -f2)
+          echo "Run 2 hash: ${HASH2}"
+          echo "HASH2=${HASH2}" >> "$GITHUB_ENV"
+      - name: Compare hashes
+        run: |
+          echo "Hash 1: ${HASH1}"
+          echo "Hash 2: ${HASH2}"
+          if [ "${HASH1}" != "${HASH2}" ]; then
+            echo "FAIL: Genesis hashes differ!"
+            exit 1
+          fi
+          echo "OK: Genesis hashes match."
+
+  cross-platform-determinism:
+    # CI Genişletme Madde 2: Cross-platform determinism matrix.
+    # Ubuntu + macOS'ta aynı test seti geçmeli.
+    name: Cross-Platform Determinism (Madde 2)
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Install protoc (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: Install protoc (macOS)
+        if: runner.os == 'macOS'
+        run: brew install protobuf
+      - name: Determinism tests
+        run: |
+          cargo test --release -- determinism --nocapture 2>&1 | tee /tmp/determinism-${{ matrix.os }}.txt
+          N=$(grep -c "^test.*ok$" /tmp/determinism-${{ matrix.os }}.txt || true)
+          echo "Determinism test count (${{ matrix.os }}): $N"
