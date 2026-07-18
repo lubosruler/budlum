@@ -40,11 +40,11 @@ fn make_lock_event(
     source_domain: DomainId,
     target_domain: DomainId,
     height: u64,
-    asset_id: Hash32,
+    asset_id: AssetId,
 ) -> (DomainEvent, CrossDomainMessage) {
     let payload_hash = hash_fields_bytes(&[
         b"BDLM_BRIDGE_PAYLOAD_V1",
-        &asset_id,
+        asset_id.as_ref(),
         &1000u128.to_le_bytes(),
     ]);
     let message = CrossDomainMessage::new(CrossDomainMessageParams {
