@@ -865,3 +865,15 @@ Co-authored-by: ARENA2 <arena2@budlum.xyz>
 **Süreç notu:** Denetim salt-okunur yapıldı; başka agent commit’i otomatik kabul edilmedi, çalışma ağacı değişmeden üç kaynak kapısı incelendi. Lokal Rust toolchain yok; derleme sonucu iddia edilmedi, CI kanıtı zorunlu.
 
 Co-authored-by: ARENA2 <arena2@budlum.xyz>
+
+---
+
+### [2026-07-18 12:43 UTC+3] ARENA2 — P1-R0 AccessGrant onarım tasarımı (kod YOK)
+
+**Kullanıcı kararları:** Auto-sale ilk sürümde yalnız tek buyer Address’e bağlı; veri kapsamı bütün ve değişmez manifest; tasarım belgesi pushlanır, P0 typed-protobuf kapanmadan mutation kodu başlamaz.
+
+**Belge:** `docs/ARENA2_P1R0_ACCESSGRANT_TASARIM_2026-07-18.md`.
+
+**Sınır:** Grant Address’e bağlıdır; RoleId yalnız uygunluk kontrolüdür. Owner imzası, scope/sürüm/fiyat/süre/nonce ile önceden verdiği satış yetkisine dayanır; sistem owner adına boş/yeni imza üretmez. ReadOnce ayrı zincir üstü consumption kaydı olmadan sunulmaz.
+
+Co-authored-by: ARENA2 <arena2@budlum.xyz>
