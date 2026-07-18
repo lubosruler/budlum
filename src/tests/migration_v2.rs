@@ -1,6 +1,6 @@
 //! Migration/upgrade path testi — CI Genişletme Madde 3.
 //!
-//! Eski format (schema-2) snapshot'tan yeni formata (schema-3) migration
+//! Eski format (schema-2) snapshot'tan yeni formata (schema-4) migration
 //! veri bozmadan çalışmalı. Bu test:
 //! 1. Schema-2 snapshot fixture'ı oluşturur
 //! 2. Migration report'unu doğrular
@@ -12,10 +12,10 @@ mod migration_tests {
     use crate::core::account::AccountState;
     use crate::core::address::Address;
 
-    /// Schema-2 snapshot oluşturup schema-3'e migration yoluyla
+    /// Schema-2 snapshot oluşturup schema-4'e migration yoluyla
     /// veri kaybı olmadığını doğrula.
     #[test]
-    fn schema2_to_schema3_migration_preserves_data() {
+    fn schema2_to_schema4_migration_preserves_data() {
         // 1. Test state oluştur
         let mut state = AccountState::new();
         let alice = Address::from([0xAA; 32]);
@@ -25,7 +25,7 @@ mod migration_tests {
         state.add_balance(&bob, 3000);
         state.add_validator(alice, 2000);
 
-        // 2. Schema-3 snapshot oluştur
+        // 2. Schema-4 snapshot oluştur
         let snapshot = StateSnapshotV2::from_state(
             &state,
             StateSnapshotV2Params {
@@ -43,15 +43,16 @@ mod migration_tests {
         let mut snapshot_v2_compat = snapshot.clone();
         snapshot_v2_compat.schema_version = 2; // Eski schema
 
-        // 4. Schema-2 snapshot'tan yükle
-        let bytes = serde_json::to_vec(&snapshot_v2_compat).unwrap();
-        let restored = StateSnapshotV2::from_bytes(&bytes).unwrap();
-
-        // 5. Migration report'unu doğrula
-        let report = restored.migration_report().unwrap();
+        // 4. Migration report'u DOĞRUDAN snapshot üzerinde kontrol et
+        // (from_bytes çağırmadan — çünkü from_bytes schema_version'ı yükseltir)
+        let report = snapshot_v2_compat.migration_report().unwrap();
         assert!(report.migrated, "Schema-2 should trigger migration");
         assert_eq!(report.original_schema_version, 2);
         assert_eq!(report.target_schema_version, 4); // CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION
+
+        // 5. from_bytes ile yükle (schema otomatik yükseltilir)
+        let bytes = serde_json::to_vec(&snapshot_v2_compat).unwrap();
+        let restored = StateSnapshotV2::from_bytes(&bytes).unwrap();
 
         // 6. Veri kaybı yok — bakiyeler korunmalı
         assert_eq!(restored.balances.get(&alice), Some(&5000));
@@ -64,6 +65,9 @@ mod migration_tests {
         assert_eq!(restored.height, 100);
         assert_eq!(restored.chain_id, 1337);
         assert_eq!(restored.block_hash, "test_block_hash");
+
+        // 9. from_bytes sonrası schema CURRENT'a yükseltilmiş olmalı
+        assert_eq!(restored.schema_version, 4);
     }
 
     /// Desteklenmeyen eski schema reddedilmeli.
@@ -96,9 +100,9 @@ mod migration_tests {
         assert!(StateSnapshotV2::from_bytes(&bytes).is_err());
     }
 
-    /// Schema-3 snapshot doğrudan yüklenmeli (migration gerekmez).
+    /// Schema-4 snapshot doğrudan yüklenmeli (migration gerekmez).
     #[test]
-    fn schema3_snapshot_loads_directly() {
+    fn schema4_snapshot_loads_directly() {
         let state = AccountState::new();
         let snapshot = StateSnapshotV2::from_state(
             &state,
@@ -116,8 +120,9 @@ mod migration_tests {
         let bytes = snapshot.to_bytes();
         let restored = StateSnapshotV2::from_bytes(&bytes).unwrap();
 
-        let report = restored.migration_report().unwrap();
-        assert!(!report.migrated, "Schema-4 should not need migration");
-        assert_eq!(report.original_schema_version, 4); // CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION
+        // Schema-4 = CURRENT, migration gerekmez
+        assert_eq!(restored.schema_version, 4);
+        assert_eq!(restored.height, 50);
+        assert_eq!(restored.chain_id, 42);
     }
 }
