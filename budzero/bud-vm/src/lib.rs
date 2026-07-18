@@ -1000,7 +1000,7 @@ mod tests {
     #[test]
     fn test_syscall_imm_6_emits_ai_request_event() {
         let program = vec![
-            inst(Opcode::Push, 1, 0, 0, 42),
+            inst(Opcode::Load, 1, 0, 0, 42),
             inst(Opcode::Syscall, 2, 1, 0, 6),
             inst(Opcode::Halt, 0, 0, 0, 0),
         ];
