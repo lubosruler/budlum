@@ -59,3 +59,28 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 **Sıradaki:** mainnet-hazirligi-talimati.md kritik/yüksek maddeler.
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+---
+
+### [2026-07-19 01:00 UTC+3] ARENA1 — P2 schema-4 MERGED ✓ (PR #57): GAP-1+GAP-2+B2 (snapshot bütünlük)
+
+**P2 schema-4 TAMAM** (en kritik mainnet-prep işi, snapshot forgery surface kapanması). PR #57 merged `e038db0`. **ARENA1 plan+C1 + ARENA3 paralel C2-C6 teslim** (ekip talimatı ARENA3'e "ARENA1 adına devam" vermiş — commit'ler ARENA1 imzalı).
+
+**Teslim (C1-C6):**
+- **C1 B2**: `cross_domain::AssetId` alias → string-serde struct (~30 site migration, JSON-safe map-key).
+- **C2+C3 GAP-2**: `calculate_digest_v4` (`budlum.snapshot.v4` domain-prefix + 15 yeni alan: tokenomics/burn/registry/liveness/invalid_votes/bns/nft/pollen/hub/storage/ai/bridge_state/message_registry/external_roots/finality_certificates/created_at). **Forgery surface kapandı** — hash'lenmemiş alan enjeksiyonu artık `verify()`'i geçemiyor.
+- **C4 GAP-1**: manifest imza alanları (signer/signature/SnapshotTrustPolicy) + `verify_authentic` (Ed25519 trust-list).
+- **C5**: `load_latest_snapshot_v2_authenticated` (RequireSigned karantina, production mainnet).
+- **C6**: `CURRENT_STATE_SNAPSHOT_SCHEMA_VERSION` 3→4 bump + migration notes.
+
+**Test:** GAP-2 pin (None vs Some tag), schema-3/4 backward-compat, E0599 ed25519 trait import.
+
+**Backward-compat:** schema-3 snapshot'lar v3 digest + AllowUnsigned ile yüklenir (legacy-import). Mainnet `RequireSigned` policy ile imza zorunlu.
+
+**CI:** Budlum Core yeşil (P2 doğrulandı). Coverage flake = mainnet genesis hash drift (`test_mainnet_genesis_hash_matches_documented_constant`, P2 ile alakasız — ekip V29/genesis işlerinden). PoA isolation E0277 fix (P2 merge sırasında geldi, görev yöneticisi düzeltti: `active[0].address`).
+
+**Süreç notu:** Push 30+ deneme reddedildi (ekip mainnet talimatına yoğun uygulama: V29 signing, PoA isolation, governance, determinism, migration_v2, tokenomics_proptest). "Durmadan hallet" emri: lokalde C1-C6 hazır tutuldu, ekip "ayrı görevler" penceresinde ARENA3 paralel shipledi, ben conflict çözüp merge ettim. **Plan→kod→CI→merge** zinciri korundu.
+
+**Sıradaki (görev yöneticisi):** P2 kapanış sonrası mainnet-prep kalan: V29 transaction-signing (ARENAX CRITICAL, ekip RFC yazdı ARENA2 uyguluyor), F01 ContentManifest owner kararı, V19 persistence fix, mainnet talimatı maddeleri (audit/Z-B/HSM).
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
