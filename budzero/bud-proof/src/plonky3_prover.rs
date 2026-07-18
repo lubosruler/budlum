@@ -398,7 +398,7 @@ fn trace_matrix(
             let a = step.src1_val;
             let b = step.src2_val;
 
-            for i in 0..64 {
+            for (i, sibling) in siblings.iter().enumerate() {
                 values[row_start + COL_CMP_RS1_BASE + i] = Goldilocks::new((a >> i) & 1);
                 values[row_start + COL_CMP_RS2_BASE + i] = Goldilocks::new((b >> i) & 1);
             }
@@ -1903,7 +1903,7 @@ mod tests {
         let mut vm = Vm::new(1024);
         // Populate path memory at addr 256.
         vm.memory[256..264].copy_from_slice(&7u64.to_le_bytes());
-        for i in 0..64 {
+        for (i, sibling) in siblings.iter().enumerate() {
             let off = 264 + i * 8;
             vm.memory[off..off + 8].copy_from_slice(&((1000 + i) as u64).to_le_bytes());
         }
