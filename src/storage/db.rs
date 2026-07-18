@@ -120,9 +120,7 @@ fn sled_open_with_retry<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<D
                 if !is_lock_contention || attempt == MAX_ATTEMPTS {
                     return Err(e);
                 }
-                std::thread::sleep(std::time::Duration::from_millis(
-                    25 * u64::from(attempt),
-                ));
+                std::thread::sleep(std::time::Duration::from_millis(25 * u64::from(attempt)));
             }
         }
     }
