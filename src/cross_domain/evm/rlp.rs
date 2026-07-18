@@ -134,7 +134,7 @@ fn decode_item(bytes: &[u8]) -> Result<(RlpItem, usize), RlpError> {
     } else if first <= 0xb7 {
         // Short string: [0x80, 0xb7] → length 0..55.
         let len = (first - 0x80) as usize;
-        let start = 1;
+        let start: usize = 1;
         let end = start.checked_add(len).ok_or(RlpError::UnexpectedEnd)?;
         if bytes.len() < end {
             return Err(RlpError::UnexpectedEnd);
@@ -152,7 +152,7 @@ fn decode_item(bytes: &[u8]) -> Result<(RlpItem, usize), RlpError> {
         if len_of_len == 0 {
             return Err(RlpError::ZeroLength);
         }
-        let lh_start = 1;
+        let lh_start: usize = 1;
         let lh_end = lh_start
             .checked_add(len_of_len)
             .ok_or(RlpError::UnexpectedEnd)?;
@@ -180,7 +180,7 @@ fn decode_item(bytes: &[u8]) -> Result<(RlpItem, usize), RlpError> {
     } else if first <= 0xf7 {
         // Short list: [0xc0, 0xf7] → payload 0..55 bytes.
         let len = (first - 0xc0) as usize;
-        let payload_start = 1;
+        let payload_start: usize = 1;
         let payload_end = payload_start
             .checked_add(len)
             .ok_or(RlpError::UnexpectedEnd)?;
@@ -195,7 +195,7 @@ fn decode_item(bytes: &[u8]) -> Result<(RlpItem, usize), RlpError> {
         if len_of_len == 0 {
             return Err(RlpError::ZeroLength);
         }
-        let lh_start = 1;
+        let lh_start: usize = 1;
         let lh_end = lh_start
             .checked_add(len_of_len)
             .ok_or(RlpError::UnexpectedEnd)?;
