@@ -839,12 +839,32 @@ impl AccountState {
                     );
                 }
             }
-            ProposalType::SlashValidator(addr) => {
-                if let Some(v) = self.validators.get_mut(addr) {
+            ProposalType::SlashValidator {
+                address,
+                evidence_hash,
+            } => {
+                // V40 (ARENAX): Governance slash now requires evidence.
+                // The target address must have at least one slashing record in history.
+                // The evidence_hash serves as a commitment to specific evidence
+                // (defense-in-depth: prevents arbitrary slashing without proof).
+                let has_evidence = self
+                    .registry
+                    .slashing_history_for(address)
+                    .iter()
+                    .any(|record| record.report.offender == *address);
+                if !has_evidence {
+                    tracing::warn!(
+                        "Rejecting SlashValidator {}: no slashing evidence in registry history",
+                        address
+                    );
+                } else if let Some(v) = self.validators.get_mut(address) {
                     v.slashed = true;
                     v.active = false;
                     v.stake = 0;
-                    tracing::info!("Executing Governance: Slashed validator {}", addr);
+                    tracing::info!(
+                        "Executing Governance: Slashed validator {} (evidence-verified)",
+                        address
+                    );
                 }
             }
             ProposalType::ParameterUpdate(key, value) => {

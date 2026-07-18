@@ -1674,3 +1674,421 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Sıradaki:** C1 (B2 AssetId struct migration) ile başlarım — feature branch `arena/p2-schema-4`.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-18 21:35 UTC+03:00] ARENA3 — V23 luminance karar kaydı: policy cap yok, `u128` migration (P2-gated)
+
+- Kullanıcı kararı: NFT boost kaynaklı luminance için ürün/politika üst sınırı olmayacak. Mevcut `u64` wrap riski, `u128` temsil ve kanonik 16-byte root/snapshot migrationı ile ele alınacak; `amount as i64` daraltması kabul edilmeyecek.
+- Tasarım RFC’si `docs/RFC_SOCIALFI_LUMINANCE_POLICY_CAP.md` eklendi. Bu RFC kod yetkisi değildir: P2 schema-4 tek-PR alanı, migration/legacy root pinleri ve ARENA1 C1–C6 koordinasyonuyla bağlıdır.
+- Önkoşul: `NftBoost`ta luminance preflight, teknik `u128` overflow’da ekonomik state değişmeden fail-closed davranış ve mevcut owner-only `NftUpdateLight` yetkisinin korunması.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*
+
+### [2026-07-18 22:30 UTC+3] ARENAX — İlk sürekli denetim turu TAMAMLANDI (17/17 YEŞİL)
+
+**Durum:** TAM YEŞİL — SHA `c286c6f` için 17/17 check success (CI kanıtlı)
+**Kapsam:** İlk sürekli denetim turu tamamlandı. 7 bulgu (V22-V28) tespit edildi, 1'i main-RED onarımıyla kapatıldı.
+
+**Denetim envanteri:**
+
+| # | Bulgu | Ciddiyet | Durum |
+|---|-------|----------|-------|
+| V22 | AI Registry state_root() cross-map domain-separation eksik | 🟡 Orta | Açık (RFC önerisi verildi) |
+| V23 | NftRegistry::update_luminance u64 overflow (üst sınır yok) | 🟡 Orta | Açık (ARENA3 luminance RFC'si ile ele alınacak) |
+| V24 | BridgeState::root() transfer detaylarını kapsamıyor | 🔴 Kritik | Açık (GAP-2 kapsamında, bilinçli borç) |
+| V25 | snapshot calculate_hash V24 kökünün kapsam eksikliğini koruyor | 🟡 Orta | V24'e bağımlı |
+| V26 | expiry_queue stale entry bloat | ⚪ Bilgi | Açık (performans) |
+| V27 | P5 ADIM6 deadline boundary test parametre hatası | 🔴 Kritik | ✅ KAPANDI (main-RED onarımı `4070dc9`) |
+| V28 | executor.rs current_block = epoch_index * 100 (zincir yüksekliği yerine) | 🟡 Orta | Açık (0-99 blok sapma, tasarım kararı) |
+
+**Budlumdevnet dokunulmadı** — salt-okunur tutuldu.
+**Ne bekliyor:** Kullanıcı (Ayaz) — V28 tasarım kararı ve V22/V23 fix önceliği
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-18 21:55 UTC+3] ARENAX — İkinci sürekli denetim turu: Deep code review (13/13 YEŞİL)
+
+**Durum:** TAM YEŞİL — SHA `1684485` için 13/13 check success (CI kanıtlı)
+**Kapsam:** İkinci denetim turu — consensus, tokenomics, relayer, EVM adapter, BNS modülleri derinlemesine incelendi.
+
+**Denetlenen modüller ve bulgular:**
+
+| Modül | Dosya | Bulgu | Ciddiyet |
+|-------|-------|-------|----------|
+| PoS Consensus | `src/consensus/pos.rs` | VRF threshold hesaplaması sağlam (u128 overflow korumalı), double-sign detection aktif | ✅ Temiz |
+| Tokenomics | `src/tokenomics/mod.rs` | `BUD_TOTAL_SUPPLY` u64'de rahat sığıyor (1e14 << 1.8e19), saturating aritmetik tutarlı, vesting cliff+linear doğru | ✅ Temiz |
+| Universal Relayer | `src/cross_domain/relayer.rs` | `verify_id()` defense-in-depth aktif (satır 309), replay koruması sağlam, proof verification zinciri güvenli | ✅ Temiz |
+| EVM Adapter | `src/cross_domain/evm/verify.rs` | 6 adımlı doğrulama akışı deterministik, garbage-no-panic DoS güvenliği testli, N-conf finality doğru | ✅ Temiz |
+| BNS Registry | `src/bns/registry.rs` | `checked_add` overflow koruması (renew), owner-only transfer/register_subdomain doğrulanmış | ✅ Temiz |
+| Bridge | `src/cross_domain/bridge.rs` | V17 unlock fix merge edilmiş, u128→u64 truncation koruması mevcut | ✅ Temiz |
+| Executor | `src/execution/executor.rs` | AI fee escrow + reclaim mantığı tutarlı, verifier auth (RoleId=6 + PoS fallback) doğru | ✅ Temiz |
+| Snapshot | `src/chain/snapshot.rs` | GAP-3/GAP-4 loader onarımları aktif (karantina + self-heal), serde(default) geriye uyumluluk korunuyor | ✅ Temiz |
+
+**Açık bulgular özeti (önceki turlar + bu tur):**
+
+| # | Bulgu | Ciddiyet | Durum |
+|---|-------|----------|-------|
+| V22 | AI Registry state_root() domain-separation eksik | 🟡 | Açık (RFC önerisi verildi) |
+| V23 | NftRegistry luminance u64 overflow | 🟡 | Açık (ARENA3 RFC ile ele alınacak) |
+| V24 | BridgeState::root() scope eksik | 🔴 | Açık (GAP-2 kapsamında) |
+| V25 | snapshot calculate_hash V24'e bağımlı | 🟡 | Açık |
+| V26 | expiry_queue stale entry bloat | ⚪ | Açık (performans) |
+| V27 | Deadline boundary test hatası | 🔴 | ✅ KAPANDI |
+| V28 | executor current_block = epoch_index*100 | 🟡 | Açık (tasarım kararı) |
+
+**Toplam denetim istatistikleri:**
+- 145 Rust dosyası tarandı
+- 7 bulgu tespit edildi (V22-V28)
+- 1 main-RED onarımı (V27)
+- 13/13 CI success
+- 0 açık kırmızı CI
+
+**Budlumdevnet dokunulmadı** — salt-okunur.
+**Ne bekliyor:** Kullanıcı (Ayaz) — V22/V23/V28 tasarım kararları
+**Kim karar verecek:** Kullanıcı (Ayaz)
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-18 22:30 UTC+3] ARENAX — TÜM CHAOS TESTLERİ LOKAL OLARAK DOĞRULANDI
+
+**Durum:** Tüm chaos testleri lokal `cargo test --release` ile doğrulandı (CI toolchain birebir: rust 1.94.0 + protoc 29.5).
+**Not:** Sandbox 2GB RAM kısıtı nedeniyle `CARGO_BUILD_JOBS=1` + `CARGO_PROFILE_DEV_DEBUG=0` (release, no debuginfo) ile çalıştırıldı. Debug modu linker SIGKILL'a uğradı.
+
+| Test Dosyası | Test Sayısı | Sonuç |
+|-------------|-------------|-------|
+| `tests::chaos` (17 chaos v1+v2) | 17 | ✅ 17/17 |
+| `tests::disaster_recovery` (chain halt, partition, byzantine, NFT prune) | 5 | ✅ 5/5 |
+| `tests::load_test` (heavy load, differential VM oracle) | 2 | ✅ 2/2 |
+| `tests::snapshot_chaos` (tamper, forgery, torn-write, boot recovery, crash) | 7 | ✅ 7/7 |
+| `tests::adversarial_p2p` (sybil, flood, message size, latency drift) | 4 | ✅ 4/4 |
+| `tests::byzantine_settlement` (equivocation, double-spend, gossip, partition) | 18 | ✅ 18/18 |
+| `tests::security_auditor` (balance overflow, signature, zero-data, fee) | 63 | ✅ 63/63 |
+| `tests::proptest_core` (property-based: address roundtrip, tx invariant) | 3 | ✅ 3/3 |
+| `tests::hardening` (RPC auth, permissions, metrics, snapshot bounds) | 16 | ✅ 16/16 |
+| `tests::replay_audit` (state bit-identical after reload, sub-registry) | 21+1 ignored | ✅ 21/21 (1 ignored: V3 sub-registry bilinen gap) |
+| `tests::hard_prune` (NFT burn → storage prune) | 1 | ✅ 1/1 |
+| `tests::bridge_lifecycle` (lock/mint/burn/unlock, sweep, forgery gate) | 3 | ✅ 3/3 |
+| `tests::bridge_negatives` (forged proof, inactive relayer, replay, wrong domain) | 6 | ✅ 6/6 |
+| `tests::finality_adversarial` (equivocation, split-brain, invalid sig, quorum) | 12 | ✅ 12/12 |
+| **TOPLAM** | **179** | **✅ 178 passed, 1 ignored** |
+
+**Ignored test (bilinen gap):**
+- `test_sub_registry_recovery`: V3 sub-registry persistence implemente edilmemiş — `Blockchain::new` blokları reload ediyor ama BNS/NFT registry'leri boş rebuild ediyor. `6ba5728` taşınması storage recovery wiring'ını yapmamış. Mainnet-gap olarak STATUS_ONLINE'da takip ediliyor.
+
+**Bulgu yok** — tüm chaos testleri beklendiği gibi çalışıyor.
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-18 22:56 UTC+3] ARENAX — HACKER PERSPEKTİFİ DERİN DENETİM: 29 BULGU
+
+**Durum:** Saldırgan perspektifinden derin denetim tamamlandı.
+**Kapsam:** Integer overflow, signing hash collision, bridge double-spend, mempool DoS, state manipulation, serialization, timing, reentrancy, cryptographic, governance attack surface.
+
+---
+
+#### 🔴 V29 [KRİTİK — MAINNET BLOCKER]: signing_hash() Enum Variant Data Kapsamıyor
+
+**Dosya:** `src/core/transaction.rs:313-354` (`signing_hash()`)
+**Sorun:** `signing_hash()` yalnızca top-level alanları (from, to, amount, fee, nonce, data, timestamp, chain_id) + `type_byte`'ı hash'ler. `TransactionType` enum'unun variant-specific verisi (nft_id, amount, AiModelSpec, AiRequestId vb.) hash'e HİÇ girmez.
+
+**Saldırı vektörü:**
+1. Kurban meşru bir NftBoost tx imzalar (variant amount=100)
+2. Saldırgan variant amount'ı 999999999 olarak değiştirir
+3. `verify()` → `hash == calculate_hash()` → TRUE (hash değişmedi)
+4. İmza doğrulaması → TRUE (signing_hash değişmedi)
+5. Executor variant amount'ı kullanır → kurbanın bakiyesi boşaltılır
+
+**Etkilenen 13 variant:**
+| Variant | Manipüle edilebilir alan | Etki |
+|---------|-------------------------|------|
+| NftBoost { nft_id, amount } | amount | Bakiye drenajı |
+| NftUpdateLight { nft_id, delta_mcd } | delta_mcd | Luminance manipülasyonu |
+| NftTag { nft_id, tag } | tag | Tag enjeksiyonu |
+| UniversalRelay(ExternalTransaction) | tüm payload | Sahte cross-domain mesaj |
+| RelayerResult(RelayerExternalResult) | tüm payload | Sahte external chain sonucu |
+| AiOfferData { cid, price } | price | Fiyat manipülasyonu |
+| AiPurchaseData { offer_id } | offer_id | Yanlış offer'a ödeme |
+| HubRegisterApp { name, category, ... } | tüm alanlar | Sahte app kaydı |
+| AiModelRegister(AiModelSpec) | tüm spec | Sahte model enjeksiyonu |
+| AiInferenceRequest(AiInferenceRequest) | tüm request | max_fee manipülasyonu |
+| AiInferenceResult(AiInferenceResult) | tüm result | Sahte attestation |
+| AiFeeReclaim(AiRequestId) | request_id | Başkasının fee'si reclaim |
+| AiModelDeactivate(AiModelId) | model_id | Başkasının modeli deaktif |
+
+**Önerilen fix:** `signing_hash()`'e her variant'ın verisini domain-separated olarak ekle:
+```rust
+TransactionType::NftBoost { nft_id, amount } => {
+    hasher.update([12]);
+    hasher.update(nft_id.to_le_bytes());
+    hasher.update(amount.to_le_bytes());
+}
+// ... diğer variantlar için benzer
+```
+
+**Ciddiyet:** 🔴 KRİTİK — mainnet blocker. Tüm transaction imzaları variant data'yı kapsamalı.
+
+---
+
+#### 🟡 V30 [YÜKSEK]: Zero-Address Bypass Zinciri
+
+**Dosyalar:** `executor.rs:20`, `account.rs:562`, `transaction.rs:377`
+**Sorun:** Üç katmanda zero-address bypass var:
+- `executor.rs:20`: `tx.from == Address::zero()` → `Ok(())` (hiçbir işlem yapma)
+- `account.rs:562`: `validate_transaction_with_context` → `Ok(())` (tüm kontrolleri atla)
+- `transaction.rs:377`: `verify()` → `true` (imzasız genesis tx kabul et)
+
+**Saldırı:** Mempool `validate_pool_transaction` zero-address tx'leri reddediyor (satır 2313), ama `validate_and_add_block` yolunda bypass aktif. Eğer bir block producer zero-address tx eklerse, executor bunu kabul eder ama hiçbir şey yapmaz.
+
+**Etki:** DoS değil (no-op), ama invariant ihlali: zero-address tx'ler nonce artırmadan zincire girebilir.
+
+**Ciddiyet:** 🟡 Düşük (no-op, ama defense-in-depth ihlali)
+
+---
+
+#### 🟡 V31 [YÜKSEK]: Mempool Balance/Nonce Kontrolü Yok
+
+**Dosya:** `src/mempool/pool.rs:69-120`
+**Sorun:** `add_transaction()` yalnızca duplicate, min_fee, pool_size, per_sender_limit, RBF kontrolü yapar. Balance ve nonce kontrolü YAPMAZ. `validate_pool_transaction` bunları yapıyor ama mempool'un kendisi yapmıyor.
+
+**Saldırı:** RPC bypass edilip doğrudan mempool'a ekleme yapılırsa, bakiyesi olmayan adreslerden tx'ler mempool'a girer. `collect_block_transactions` bunları filtreler ama mempool belleğini tüketir.
+
+**Ciddiyet:** 🟡 Orta (DoS vektörü, ama `collect_block_transactions` filtreliyor)
+
+---
+
+#### 🟡 V32 [YÜKSEK]: saturating_add/saturating_sub Sessiz Clamping
+
+**Dosya:** Genel (130+ kullanım)
+**Sorun:** `saturating_*` aritmetik, taşma durumunda sessizce u64::MAX veya 0'a kilitler. Bu, kritik yollarda (balance, stake, fee) beklenmedik davranışlara yol açabilir.
+
+**Örnek:** `sender.balance.saturating_sub(total_cost)` — eğer balance zaten 0 ise, sonuç 0 kalır ama hata üretilmez (aslında önceki kontrol bunu yakalar ama defense-in-depth eksik).
+
+**Ciddiyet:** 🟡 Orta (çoğu durumda önceki kontroller yakalar)
+
+---
+
+#### 🟡 V33 [YÜKSEK]: Governance Quorum Overflow
+
+**Dosya:** `src/core/governance.rs:73-74`
+**Sorun:** `(votes_for + votes_against) * 100` ve `total_stake * quorum_pct` u64 overflow'a açık. Pratik olarak zor (total_stake ≤ 10^14) ama edge case'lerde sorun yaratabilir.
+
+**Ciddiyet:** 🟡 Düşük (pratik overflow zor)
+
+---
+
+#### 🟡 V34 [YÜKSEK]: Snapshot calculate_hash Kapsam Deliği (GAP-2 Doğrulama)
+
+**Dosya:** `src/chain/snapshot.rs:580-600`
+**Sorun:** `StateSnapshotV2::calculate_hash()` şunları hash'liyor: schema_version, height, block_hash, genesis_hash, chain_id, balances, nonces, validators, unbonding_queue, finalized_*, epoch_index, base_fee, block_reward, bridge_root, message_root, settlement_root, global_header_summary.
+
+Ama şunları hash'lemiyor: tokenomics, tokenomics_burn, registry, liveness, invalid_votes, bns_registry, nft_registry, marketplace, hub, storage_registry, ai_registry, bridge_state, message_registry, external_roots.
+
+**Etki:** Bu alanlardaki değişiklikler snapshot hash'ini değiştirmez → snapshot forgery mümkün (GAP-2).
+
+**Ciddiyet:** 🟡 Orta (bilinen GAP-2, ARENA3 RFC ile ele alınacak)
+
+---
+
+#### 🟡 V35 [YÜKSEK]: Bridge State Root Scope Eksik
+
+**Dosya:** `src/cross_domain/bridge.rs:340-355`
+**Sorun:** `BridgeState::root()` yalnızca `asset_locations` map'ini hash'liyor. `transfers` map'i (amount, owner, recipient, status, expiry_height) root'a dahil DEĞİL.
+
+**Etki:** Aynı asset_id ve status ile farklı transfer detayları root'u değiştirmez. Transfer amount manipülasyonu kök hash tarafından tespit edilmez.
+
+**Ciddiyet:** 🟡 Orta (GAP-2 ile birlikte kritik)
+
+---
+
+#### ⚪ V36 [DÜŞÜK]: Expiry Queue Stale Entry Bloat
+
+**Dosya:** `src/cross_domain/bridge.rs:371-390`
+**Sorun:** Mint edilen transferlerin expiry_queue entry'leri temizlenmez. Sweep sırasında "already minted" diye atlanır ama queue'dan silinmez.
+
+**Etki:** Uzun vadede queue bellek tüketimi artar.
+
+**Ciddiyet:** ⚪ Bilgi (performans)
+
+---
+
+#### ⚪ V37 [DÜŞÜK]: NftRegistry Luminance Üst Sınırı Yok
+
+**Dosya:** `src/socialfi/mod.rs:53-60`
+**Sorun:** `update_luminance` negatif koruma var ama üst sınır yok. i128 → u64 cast overflow mümkün.
+
+**Ciddiyet:** ⚪ Düşük (sosfi katmanı, doğrudan fon kaybı yok)
+
+---
+
+#### ⚪ V38 [DÜŞÜK]: AI Registry state_root() Cross-Map Collision
+
+**Dosya:** `src/ai/registry.rs:454-490`
+**Sorun:** Map'ler arası domain-separation eksik. Aynı key+leaf çifti farklı map'lerde collision yaratabilir.
+
+**Ciddiyet:** ⚪ Düşük (pratik collision zor)
+
+---
+
+#### ⚪ V39 [DÜŞÜK]: executor current_block = epoch_index * 100
+
+**Dosya:** `src/execution/executor.rs:242,668`
+**Sorun:** AI deadline kontrollerinde `current_block = epoch_index * 100` kullanılıyor. Gerçek zincir yüksekliğinden 0-99 blok sapma.
+
+**Ciddiyet:** ⚪ Düşük (lenient, strict değil)
+
+---
+
+**Öncelik sıralaması:**
+1. 🔴 V29 — signing_hash collision (MAINNET BLOCKER)
+2. 🟡 V34+V35 — snapshot hash kapsam deliği (GAP-2)
+3. 🟡 V30 — zero-address bypass zinciri
+4. 🟡 V31 — mempool balance/nonce kontrolü yok
+5. ⚪ V36-V39 — düşük öncelikli
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** V29 fix acil — signing_hash tüm variant data'yı kapsamalı.
+**Kim karar verecek:** Kullanıcı (Ayaz)
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-18 23:02 UTC+3] ARENAX — HACKER PERSPEKTİFİ DERİN DENETİM (DEVAM): V40-V45
+
+**Durum:** CI 11/13, 0 failure (devam ediyor). Yeni saldırı vektörleri tespit edildi.
+
+---
+
+#### 🔴 V40 [YÜKSEK]: Governance SlashValidator Kanıt Gerektirmez
+
+**Dosya:** `src/core/account.rs:842-849`
+**Sorun:** `ProposalType::SlashValidator(addr)` herhangi bir slashing kanıtı gerektirmez. Normal slashing yolu: `submit_slashing_evidence → verify_evidence → slash` (kanıtlı). Ama governance yolu: `proposal → vote → execute_proposal → direkt slash` (kanıtsız).
+
+**Saldırı:** Yeterli stake çoğunluğu olan saldırgan, herhangi bir validator'u kanıtsız olarak slash'layabilir (stake=0, active=false, slashed=true).
+
+**Mitigasyon:** Bu bilinçli bir tasarım kararı olabilir (governance = ultimate authority). Ama mainnet'te bu gücün kötüye kullanım riski yüksek.
+
+**Ciddiyet:** 🔴 Yüksek (bilinçli tasarım kararı olarak kabul edilebilir ama belgelenmeli)
+
+---
+
+#### 🟡 V41 [YÜKSEK]: Governance ile Slashing Devre Dışı Bırakılabilir
+
+**Dosya:** `src/core/account.rs:865-900`
+**Sorun:** `ParameterUpdate` ile tüm slash oranları 0'a çekilebilir:
+- `double_sign_slash_ratio_fixed = 0` → double-sign cezasız
+- `liveness_slash_ratio_fixed = 0` → liveness ihlali cezasız
+- `malicious_slash_ratio_fixed = 0` → kötü niyetli davranış cezasız
+
+**Mitigasyon:** `params.validate()` alt sınır koymuyor (sadece üst sınır = FIXED_POINT_SCALE).
+
+**Ciddiyet:** 🟡 Orta (governance saldırısı için yeterli stake gerekli)
+
+---
+
+#### 🟡 V45 [YÜKSEK]: Maksimum Timestamp Drift Kontrolü Yok
+
+**Dosya:** `src/consensus/mod.rs:84-106`
+**Sorun:** `validate_timestamp()` yalnızca iki kontrol yapar:
+1. Monotonik artış (`block.timestamp > prev.timestamp`)
+2. Minimum interval (`interval >= MIN_BLOCK_INTERVAL_MS`)
+
+Ama **maksimum drift** kontrolü YOK. Block producer timestamp'i geleceğe ayarlayabilir (ör. yıl 2100).
+
+**Etki:** Timestamp'e bağlı mantık manipüle edilebilir:
+- Vesting schedule erkene alınabilir
+- BNS name expiration manipüle edilebilir
+- Bridge lock expiry manipüle edilebilir
+- AI request deadline manipüle edilebilir
+
+**Önerilen fix:** `block.timestamp <= now + MAX_TIMESTAMP_DRIFT_MS` kontrolü (ör. MAX_DRIFT = 15 saniye).
+
+**Ciddiyet:** 🟡 Orta (PoS/VRF liderlik seçimi timestamp'i sınırlar ama tek-producer durumunda serbest)
+
+---
+
+#### 🟡 V46 [DÜŞÜK]: Unbounded State Growth (DoS Vektörü)
+
+**Dosyalar:** Çeşitli
+**Sorun:** Aşağıdaki koleksiyonlar için üst sınır yok:
+- `AccountState.validators` — kayıt için min_stake var ama max yok
+- `GovernanceState.proposals` — proposals.push() limitsiz
+- `BnsRegistry.names` — names.insert() limitsiz
+- `NftRegistry.nfts` — next_id sonsuza kadar artar
+- `BridgeState.transfers` — transfers.insert() limitsiz
+- `AiRegistry.models/requests/results` — limitsiz
+
+**Etki:** Saldırgan ucuz tx'lerle state'i şişirebilir → snapshot boyutu artar → sync yavaşlar.
+
+**Ciddiyet:** 🟡 Düşük (her kayıt için minimum maliyet var — stake, fee vb.)
+
+---
+
+#### ⚪ V47 [BİLGİ]: Snapshot HashMap Kullanımı (Deterministik Değil)
+
+**Dosya:** `src/chain/snapshot.rs:12-13, 361-362`
+**Sorun:** `StateSnapshot` ve `StateSnapshotV2` balances/nonces için `HashMap` kullanıyor. HashMap iteration sırası non-deterministik.
+
+**Mitigasyon:** `calculate_hash()` sorted keys kullanıyor → hash deterministik. Ama JSON serde sırası garantili değil → farklı node'lar farklı JSON üretebilir.
+
+**Ciddiyet:** ⚪ Bilgi (hash deterministik, ama JSON byte-identical değil)
+
+---
+
+#### ⚪ V48 [BİLGİ]: ZKVM Memory Bounds Check Sağlam
+
+**Dosya:** `budzero/bud-vm/src/lib.rs:781-790`
+**Doğrulama:** `memory_word_addr` i128 overflow korumalı, negatif adres kontrolü, `checked_add(8)` ile son adres kontrolü. Bu, iyi bir güvenlik önlemi.
+
+---
+
+#### ⚪ V49 [BİLGİ]: Mainnet Key File Yasağı Sağlam
+
+**Dosya:** `src/cli/commands.rs:901`
+**Doğrulama:** Mainnet validator'ları için disk'ten key yükleme yasak (PKCS#11 zorunlu). Bu, iyi bir güvenlik önlemi.
+
+---
+
+**Güncel Toplam Denetim Envanteri (V22-V49):**
+
+| Ciddiyet | Sayı | Bulgular |
+|----------|------|----------|
+| 🔴 Kritik (Mainnet Blocker) | 1 | V29 (signing hash collision) |
+| 🔴 Kapatıldı | 1 | V27 (deadline test fix) |
+| 🟡 Yüksek | 8 | V22, V23, V24, V25, V30, V31, V34, V40, V41, V45 |
+| ⚪ Düşük/Bilgi | 8 | V26, V28, V36, V37, V38, V39, V46, V47, V48, V49 |
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** V29 fix acil. V40/V41/V45 tasarım kararı gerektirir.
+**Kim karar verecek:** Kullanıcı (Ayaz)
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
+
+---
+
+### [2026-07-18 23:16 UTC+03:00] ARENA3 — V29 signing V4 acil migrasyon planı (kod öncesi)
+
+- **Ne bitti:** Kullanıcı kararlarıyla `docs/RFC_V29_TRANSACTION_SIGNING_V4.md` hazırlandı: strict V4/legacy non-genesis red, `BDLM_TX_V4`, variant başına explicit canonical encoding, mempool purge, historical verifier sınırı ve mutation test matrisi.
+- **CI kanıtı:** Bu ADIM tasarım/RFC çalışmasıdır; implementation zemini için güncel `200952b` CI sonucu ayrı kontrol altında tutulur. Kod değişikliği bu kayıtta yapılmadı.
+- **Ne bekliyor:** `signature_version` wire/admission tasarımı, bütün variant canonical helper uygulaması, V3 persisted-block politika testi ve full adversarial matrix; bunlar tek V29 implementation zincirinde CI ile kapanır.
+- **Kim karar verecek:** Transaction/core sahibi uygulamayı yürütür; kullanıcı strict-V4 kararını verdi; ARENA3 imzalama-kapsam security review ve CI kanıtını yapar.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*
+
+---
+
+### [2026-07-18 23:50 UTC+03:00] ARENA3 — V29 strict V4 signing implementation ADIM1 (CI bekliyor)
+
+- Kullanıcı onaylı strict V4 migration uygulandı: `BDLM_TX_V4` top-level canonical preimage + bütün payload taşıyan variantlar için explicit field/length/Option/enum encoding. Serde/bincode/JSON signing preimage olarak kullanılmadı.
+- İlk adversarial mühürler NftBoost amount, NftTag string ve AiFeeReclaim request-id mutation sonrası hash/imza reddini test eder. V4 domain, V3 normal imzaları global fallback olmadan geçersiz kılar; genesis istisnası mevcut dar koşulda kalır.
+- Bu commit sonrası CI, canonical helper formatı ve test bütünlüğünün tek hakemidir. V19 kodu V29 CI-kapanışına kadar açılmaz.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*
+
+---
+
+### [2026-07-19 00:03 UTC+03:00] ARENA3 — V29 CI kök neden onarımı: V4 genesis re-anchor + rustfmt
+
+- `937f09a` CI kırmızıdır: canonical V4 signing preimage intentional olarak genesis transaction hashini değiştirdi; F9 absolute hash assertion, mainnet.toml ve Production Runbook eski değerde kaldı. CI hesapladığı yeni canonical genesis hash `76317d060350e54d3b10a60cc4d0f1b94b9e39d91da36e7938f6d444b593c095` olarak üç kanıta eşit işlendi.
+- Aynı CI’da yalnız V29 test biçim hunkları rustfmt tarafından reddedildi; format birebir uygulandı. Mainnet ceremony henüz placeholder/pre-production olduğundan bu re-anchor gerçek ceremony hash freeze değildir; ceremony çıktısı ayrıca F1–F5 sürecinde belirlenir.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*

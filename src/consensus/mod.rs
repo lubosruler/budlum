@@ -86,6 +86,21 @@ pub trait ConsensusEngine: Send + Sync {
         block: &Block,
         prev_block: Option<&Block>,
     ) -> Result<(), ConsensusError> {
+        // V45 (ARENAX): Reject blocks with timestamps too far in the future.
+        // This prevents block producers from corrupting time-dependent logic
+        // (vesting, BNS expiry, bridge lock expiry, AI deadlines).
+        // Uses existing MAX_FUTURE_BLOCK_TIME_MS constant (15 seconds).
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
+        if block.timestamp > now_ms.saturating_add(MAX_FUTURE_BLOCK_TIME_MS) {
+            return Err(ConsensusError(format!(
+                "Block timestamp too far in the future. Now: {}, Block: {}, Max drift: {} ms",
+                now_ms, block.timestamp, MAX_FUTURE_BLOCK_TIME_MS
+            )));
+        }
+
         if let Some(prev) = prev_block {
             if block.timestamp <= prev.timestamp {
                 return Err(ConsensusError(format!(

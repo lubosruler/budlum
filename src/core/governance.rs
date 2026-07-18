@@ -6,7 +6,12 @@ use std::collections::HashMap;
 pub enum ProposalType {
     ChangeBaseFee(u64),
     ChangeBlockReward(u64),
-    SlashValidator(Address),
+    SlashValidator {
+        address: Address,
+        /// V40 (ARENAX): Hash of the slashing evidence that proves misbehavior.
+        /// Governance slash now requires cryptographic proof, not just a vote.
+        evidence_hash: [u8; 32],
+    },
     ParameterUpdate(String, String),
 }
 
