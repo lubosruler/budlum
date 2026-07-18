@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Durum** | DRAFT — kullanıcı onayı bekliyor |
+| **Durum** | **APPROVED ✅ — Kullanıcı onayı: 2026-07-18 (UTC+3)** |
 | **Yazar** | ARENA3 (güvenlik/altyapı/HSM domain'i) |
 | **Tarih** | 2026-07-18 (UTC+3) |
 | **İlgili** | GAP-1 (bu RFC'nin konusu), GAP-2 (hash-kapsam genişletme — halef koordinasyonlu), GAP-3/GAP-4 (KAPALI — PR #48, `532ca51`) |
@@ -77,24 +77,29 @@ pub manifest_signature: Option<Vec<u8>>,    // 64B Ed25519 imzası (digest üzer
 - `Option` + `serde(default)`: schema ≤3 dosyaları deserialize olur; imza alanları `None` gelir → politika kararına düşer (§4.4).
 - İmza hesabı yapılırken bu iki alan digest'e **dahil edilmez** (self-reference engeli); `calculate_digest` imza alanlarını hiç görmez.
 
-### 4.3 Trust modeli — üç seçenek ve öneri
+### 4.3 Trust modeli — üç seçenek ve KARAR
 
 | Model | Tanım | Güç | Zayıflık |
 |---|---|---|---|
 | **A. Self-signed** | Node kendi ürettiği snapshot'ı kendi anahtarıyla imzalar; yalnızca kendi açık anahtarına güvenir | Corruption + "bana ait olmayan dosya" ayrımı | Host compromise'da saldırgan dosyayı değiştirip **yeniden imzalayabilir** (anahtar diskteyse); restore/migration senaryosunu kapsamaz |
 | **B. Quorum imzası** | Snapshot digest'i validator quorum'u (≥2/3) tarafından imzalanır — BLS aggregate adayı (`Validator.bls_public_key` zaten manifest'te) | Host-key compromise tek başına yetersiz; P2P state-sync için doğru temel | Finality katmanıyla anahtar-rotasyonu eşlemesi gerekir; implementasyon hacmi büyük; halefin chain-domain'iyle kesişir |
-| **C. Hibrit fazlı (ÖNERİLEN)** | **Faz 1 (şimdi):** Ed25519 tek-imza + politika bazlı trust-list (yükseklik-sınırlı). **Faz 2 (mainnet state-sync öncesi):** B seçeneği quorum'a genişleme — trust-list şeması `QuorumRule`'a evrilir | H1-H4'ü bugün karşılar; B'ye kırmadan geçiş | Faz-1'de trust-list dağıtım kanalı operatöre yükler (§4.5 mitigasyonu) |
+| **C. Hibrit fazlı (KABUL EDİLDİ ✅)** | **Faz 1 (şimdi):** Ed25519 tek-imza + politika bazlı trust-list (yükseklik-sınırlı). **Faz 2 (mainnet state-sync öncesi):** B seçeneği quorum'a genişleme — trust-list şeması `QuorumRule`'a evrilir | H1-H4'ü bugün karşılar; B'ye kırmadan geçiş | Faz-1'de trust-list dağıtım kanalı operatöre yükler (§4.5 mitigasyonu) |
 
-**Öneri: C — Faz 1.** Gerekçe: (i) mevcut saldırı yüzeyi **tek host'a yazan saldırgan**; HSM-arkalı Ed25519 tek-imza bu sınıfı kapatır (imzalama anahtarı diske hiç çıkmaz — pkcs11 seam'i mevcut); (ii) B'nin finality entegrasyonu halef devreye girmeden sorumluluk sınırını aşar (ARENA3 kripto domain'i, chain/consensus değil); (iii) wire formatı QuorumRule'a `Option` alanıyla kırılmadan genişler.
+**KARAR: C — Hibrit Fazlı (Kullanıcı onayı: 2026-07-18).** Gerekçe: (i) mevcut saldırı yüzeyi **tek host'a yazan saldırgan**; HSM-arkalı Ed25519 tek-imza bu sınıfı kapatır (imzalama anahtarı diske hiç çıkmaz — pkcs11 seam'i mevcut); (ii) B'nin finality entegrasyonu halef devreye girmeden sorumluluk sınırını aşar (ARENA3 kripto domain'i, chain/consensus değil); (iii) wire formatı QuorumRule'a `Option` alanıyla kırılmadan genişler.
 
-### 4.4 Doğrulama politikası
+### 4.4 Doğrulama politikası — KARAR: Legacy-Import Modu ✅
 
 ```rust
 pub enum SnapshotTrustPolicy {
     /// Devnet/dev: imzasız kabul (bugünkü davranış; boot log WARN).
     AllowUnsigned,
-    /// Mainnet/varsayılan-güvenli: imza zorunlu + imzalayan trust-list'te
-    /// ve snapshot.height anahtarın geçerlilik aralığında olmalı.
+    /// Mainnet geçiş penceresi: imzasız schema≤3 kabul + WARN log.
+    /// **Belirli block height'ta (MAINNET_LAUNCH_HEIGHT) KAPANIR.**
+    /// Bu yükseklik genesis ceremony'de belirlenir.
+    LegacyImport { until_height: u64 },
+    /// Mainnet/varsayılan-güvenli (LegacyImport penceresi kapandıktan sonra):
+    /// imza zorunlu + imzalayan trust-list'te + snapshot.height anahtarın
+    /// geçerlilik aralığında olmalı.
     RequireTrusted { keys: Vec<TrustedSnapshotKey> },
     /// Faz 2 hazırlığı (bu RFC'de yalnızca şema): quorum doğrulama.
     RequireQuorum { /* halef+ARENA3 ortak tasarım */ },
@@ -117,12 +122,15 @@ pub enum SnapshotAuthError {
     OutOfValidityRange,  // snapshot.height anahtar aralığı dışında (rotasyon sınırı)
     BadSignature,        // ed25519 verify fail
     IntegrityMismatch,   // rehash uyuşmazlığı (mevcut verify() == false)
+    LegacyWindowClosed,  // LegacyImport penceresi kapandı, imzasız reddedildi
 }
 
 pub fn verify_authentic(&self, policy: &SnapshotTrustPolicy) -> Result<(), SnapshotAuthError>
 ```
 
 Sıra önemli: önce `verify()` (integrity), sonra imza. İmza bozuksa **karantina sınıfı: AuthFailure** (GAP-3 döngüsüyle aynı muamele — `loader`, `Err` durumunda sonraki adaya geçer; `quarantined_any` bayrağı boot'ta fail-loud loglanır).
+
+**Not:** `LegacyImport` politikası mainnet launch height'ında otomatik olarak `RequireTrusted`'a geçer. Genesis ceremony dokümanına `MAINNET_LAUNCH_HEIGHT` eklenir.
 
 ### 4.5 Anahtar yönetimi
 
@@ -131,9 +139,9 @@ Sıra önemli: önce `verify()` (integrity), sonra imza. İmza bozuksa **karanti
 - Üretim: `budlum keygen --snapshot` (Ed25519) veya HSM etiketi (`--hsm --key-label=snapshot-manifest`); PKCS#11 backend `ConsensusSigner` arkasında zaten Ed25519-only doğrulanmış (signer.rs §Phase 2 notu).
 - Disk'e anahtar yazılmaz; HSM tercih edilen mainnet yolu (ARENA3 HSM domain'i).
 
-**Trust-list nereden gelir (öncelik sırası):**
-1. CLI/config: `--snapshot-trust-key=<hex pub>[:from=H][:until=H]` (tekrarlanabilir) — operatör kontrolü, tören dostu.
-2. Genesis bundle: `genesis.json` içine `snapshot_trust: [...]` (MAINNET_GENESIS_CEREMONY.md akışına ek — **kullanıcı kararı gerekir**, Açık Soru 2).
+**Trust-list nereden gelir (öncelik sırası) — KARAR: İkisi birden ✅:**
+1. CLI/config: `--snapshot-trust-key=<hex pub>[:from=H][:until=H]` (tekrarlanabilir) — operatör kontrolü, tören dostu. **CLI override genesis'i ezer (operatör kurtarma senaryosu).**
+2. Genesis bundle: `genesis.json` içine `snapshot_trust: [...]` (MAINNET_GENESIS_CEREMONY.md akışına ek — **KABUL EDİLDİ**).
 3. Hiçbiri yoksa: `RequireTrusted` boot'u reddeder (fail-closed; yanlış yapılandırmayla sessiz imzasız kabul **yok**).
 
 **Rotasyon:** yeni anahtar `valid_from_height = H` ile eklenir; eski anahtar `valid_until_height = H-1` yapılır. Loader, snapshot'ın kendi `height`'ına göre uygun kaydı seçer → eski arşiv snapshot'ları eski anahtarla doğrulanmaya devam eder, yeni üretimler yeni anahtarla. Hard-fork gerekmez.
@@ -174,21 +182,21 @@ load_latest_snapshot_v2(policy):
 
 **Çapraz:** multisig/chaos matrislerinde mevcut snapshot testleri kırılmamalı (AllowUnsigned default'uyla) — CI yeşil kalması uyumluluk kanıtı.
 
-## 7. Açık sorular (kullanıcı/halef kararı gerektirir)
+## 7. Açık sorular — TÜMÜ KARARLANDI ✅ (2026-07-18)
 
-1. **Trust model onayı:** Faz-1 = C-hibrit önerisi kabul mü? (B-quorum'u ileri çekmek isterseniz Faz-2 tasarımı halef gelince ortak başlar.)
-2. **Trust-list kanalı:** genesis bundle'a `snapshot_trust` eklensin mi (ceremony dokümanına işlenir) yoksa yalnız CLI/config mi kalsın? Öneri: ikisi birden (CLI override genesis'i ezer — operatör kurtarma senaryosu).
-3. **İmzasız geçiş penceresi:** `AllowUnsigned` devnet-dışında hiç var olmasın mı, yoksa upgrade süresi boyunca uyarılı "legacy-import" modu mu tanınsın? Öneri: devnet-only; production build'de `AllowUnsigned` derleme-uyarısı üretsin.
-4. **GAP-2 birleşimi:** hash-kapsam genişletmesi schema-4'e TEK sürümde mi, yoksa kendi schema-5'iyle mi? **Öneri: tek schema-4** (iki kırıcı wire-değişikliğini tek migrasyon penceresinde toplar; `--migrate-v2` hook'u tek geçişte schema 2/3→4 üretir). Bu kalemin alan listesi halefle kesinleşir (chain domain'i: `calculate_hash` sahipliği ARENA2-halefte, doğrulama/imza ARENA3'te).
+1. **Trust model onayı:** **KABUL EDİLDİ** — C-hibrit Fazlı (Faz 1: Ed25519 tek-imza + trust-list, Faz 2: BLS quorum / halef+ARENA3 ortak).
+2. **Trust-list kanalı:** **KABUL EDİLDİ** — İkisi birden (Genesis bundle + CLI override; CLI genesis'i ezer).
+3. **İmzasız geçiş penceresi:** **KABUL EDİLDİ** — Legacy-Import Modu (geçiş penceresi, mainnet launch height'ında kapanır, `AllowUnsigned` production'da derleme-uyarısı).
+4. **GAP-2 birleşimi:** **KABUL EDİLDİ** — Tek Schema-4 (GAP-1 imza alanları + GAP-2 hash-kapsam genişletmesi tek kırıcı değişiklikte). Alan listesi halefle kesinleşecek.
 
-## 8. Uygulama planı (onay sonrası)
+## 8. Uygulama planı — ONY APPROVED, BAŞLAMA HAZIR ✅
 
-| PR | Kapsam | Sorumlu |
-|---|---|---|
-| P1 | `calculate_digest` ayrıştırma + schema-4 wire alanları + `SnapshotTrustPolicy`/`verify_authentic` + unit testler | ARENA3 |
-| P2 | Loader/boot entegrasyonu (karantina sınıfı AuthFailure, CLI flag'leri, policy wiring) | ARENA3 |
-| P3 | GAP-2 kapsam genişletme (schema-4 digest alan listesi, domain prefix) | ARENA2-halef + ARENA3 (ortak) |
-| P4 | Pin dönüşümü + yeni negatif/rotasyon/HSM-mock chaos testleri | ARENA3 |
+| PR | Kapsam | Sorumlu | Durum |
+|---|---|---|---|
+| P1 | `calculate_digest` ayrıştırma + schema-4 wire alanları + `SnapshotTrustPolicy`/`verify_authentic` + unit testler | ARENA3 | **HAZIR** |
+| P2 | Loader/boot entegrasyonu (karantina sınıfı AuthFailure, CLI flag'leri, policy wiring) | ARENA3 | P1 sonrası |
+| P3 | GAP-2 kapsam genişletme (schema-4 digest alan listesi, domain prefix) | ARENA2-halef + ARENA3 (ortak) | P2 sonrası, halef koordinasyonlu |
+| P4 | Pin dönüşümü + yeni negatif/rotasyon/HSM-mock chaos testleri | ARENA3 | P3 sonrası |
 
 Her PR ayrı CI-doğrulamalı; P3 halef devreye girene dek bekler (P1+P2, schema-4'ü imza alanlarıyla sınırlı olarak tek başına anlamlıdır — GAP-2 alanları `serde(default)` ile sonradan eklenir).
 

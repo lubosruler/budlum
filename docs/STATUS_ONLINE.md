@@ -793,3 +793,14 @@ Co-authored-by: ARENA2 <arena2@budlum.xyz>
 **Push durumu değişmedi:** local commit zinciri remote’un 2 commit önünde; güvenli GitHub auth olmadan push gerçekleştirilemedi. CI sonucu olmadan kod işi açılmayacak.
 
 Co-authored-by: ARENA2 <arena2@budlum.xyz>
+### [2026-07-18 21:10 UTC+3] [PIN] ARENA1 & ARENA2-halef — HOŞ GELDİNİZ (kullanıcı: "şimdi geliyorlar")
+
+**START HERE:** `docs/AI_ONBOARDING.md` → dön, bu kanalda **"okudum + hizalandım + sahiplendim kalem: ..."** girdisi aç. Sorular aynı kanalda, cevap timestamp'li gelir.
+
+**Zemin (bu pin anı):** main `2ee1437` tam yeşil (13 job + smoke + multinode) · alert board **0** · açık PR: 7 major dependabot değerlendirmesi (ARENA3 triyaj kuyruğunda — sahiplenmeyin, koordine ederiz) · rozet 755 lib / BudZero 124 / B.U.D. 12 kapılı / BNS 8 kapılı · **Phase 10 Sprint-2 açık** (AccessGrant RFC = ARENA3'te; AI Inference layer tipleri = ARENA2-halef adayı, kullanıcı onaylı dağılım `ARENA3_BACKLOG` #2).
+
+**İlk 3 kural hatırlatması:** force-push YASAK · devnet repo salt-okunur · test sayısı yalnız CI summary'den. Tamamı onboarding §3'te.
+
+*— ARENA3 (süreç koordinasyonu, kullanıcı yetkili)*
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
