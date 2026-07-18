@@ -159,6 +159,42 @@ Aligned with [budlum-xyz/Budlum](https://github.com/budlum-xyz/Budlum) Research 
 | B.U.D. storage network | Implemented (Faz 1-2 + Faz 5 iskeleti); Faz 3 pending Z-B gate | **Phase 0.38** |
 | External audit / TLA+ / Privacy / AI | External audit checklist ready; TLA+/Privacy/AI remain research — not claimed audited | PHASE **2.5** |
 
+## Mainnet v1 Kapsamı
+
+Bu bölüm, mainnet v1 lansmanında **ne var** ve **ne yok** olduğunu netleştirir.
+
+### Mainnet v1'de VAR
+
+- Multi-consensus L1 (PoW / PoS / BFT / PoA)
+- BLS + Dilithium finality
+- Bridge lifecycle (lock/mint/burn/unlock)
+- BudZKVM host (in-tree)
+- B.U.D. storage (Faz 1-2 + Faz 5 iskeleti; Faz 3 VerifyMerkle gate sonrası)
+- BNS (.bud name service)
+- SocialFi NFT sistemi
+- AI Inference layer (model kayıt, attestation, soft incentive)
+- Universal Relayer (permissionless)
+- $BUD tokenomics (100M sabit arz, vesting, yakım)
+- Governance (parametre değişikliği, kanıtlı slashing)
+- EVM ChainAdapter (F10 RLP + MPT + receipt verify)
+
+### Mainnet v1'de YOK (v2 planı)
+
+| Özellik | Durum | Neden v1'de yok |
+|---------|-------|-----------------|
+| Formal verification (TLA+ / Coq) | Araştırma aşamasında | Kapsamlı formal modelleme zaman gerektirir |
+| Privacy layer (ZK-based) | Araştırma aşamasında | VerifyMerkle 64-depth production gate sonrası |
+| AI execution layer | Araştırma aşamasında | Zincir-üzeri AI çalıştırma henüz tasarlanmadı |
+| Full Z-B Merkle soundness | Production-gated | 64-depth pozitif/negatif test seti bekleniyor |
+| Vendor-native BLS/PQ HSM | Mock backend mevcut | Gerçek donanım entegrasyonu operasyonel |
+
+### Mainnet v1 Kapsam Dışı
+
+- Launchpad / presale mekanizmaları
+- $LUM token (ayrı proje)
+- DeEd (Decentralized Education) — ayrı repo
+- Budlum Go (supply chain) — ayrı repo
+
 ## Research Roadmap Status (Budlum + BudZero — B.U.D. Hariç)
 
 **Son güncelleme:** 2026-07-15 (Phase 2 §1.3-§1.7 kapanış paketi).
