@@ -297,7 +297,7 @@ mod tests {
     fn kat_encode_long_string() {
         // 56-byte string (long form threshold). "Lorem ipsum dolor sit amet,
         // consectetur adipisicing elit" = 56 chars.
-        let s = b"Lorem ipsum dolor sit amet, consectetur adipisicing elit");
+        let s = b"Lorem ipsum dolor sit amet, consectetur adipisicing elit";
         let enc = encode(&RlpItem::Bytes(s.to_vec()));
         assert_eq!(enc[0], 0xb8); // long string marker
         assert_eq!(enc[1], 56); // length-of-payload (1 byte, =56)
