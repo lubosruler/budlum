@@ -12,7 +12,7 @@ async-trait = "0.1"
 tokio = { version = "1", features = ["full"] }
 
 # P2P networking (same versions as budlum-core)
-libp2p = { version = "0.55", features = [
+libp2p = { version = "0.56", features = [
     "tokio",
     "tcp",
     "noise",
