@@ -115,10 +115,14 @@ fn sled_open_with_retry<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<D
         match sled::open(path.as_ref()) {
             Ok(db) => return Ok(db),
             Err(e) => {
-                let is_lock_contention = e.kind() == std::io::ErrorKind::Other
-                    && e.to_string().contains("could not acquire lock");
+                // `sled::open` returns `sled::Error`; normalize through the
+                // existing `From<sled::Error> for io::Error` conversion (the
+                // same one `?` applies at the call sites) before matching.
+                let io_err = std::io::Error::from(e);
+                let is_lock_contention = io_err.kind() == std::io::ErrorKind::Other
+                    && io_err.to_string().contains("could not acquire lock");
                 if !is_lock_contention || attempt == MAX_ATTEMPTS {
-                    return Err(e);
+                    return Err(io_err);
                 }
                 std::thread::sleep(std::time::Duration::from_millis(25 * u64::from(attempt)));
             }
