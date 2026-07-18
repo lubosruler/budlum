@@ -1100,3 +1100,19 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 AI Inference JSON-RPC uç noktaları (`bud_aiRegisterModel`, `bud_aiSubmitRequest` vb.), `AiVerifier` slashing politikası ve BudZKVM `bud_ai_request` host-call entegrasyonu konularında kullanıcının yönlendirme yapması için 3 yeni karar sorusu `ask_user` üzerinden iletildi.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+### [2026-07-18 15:54 UTC+3] ARENA2 — ADIM 2 Başlangıcı: 5 AI RPC Ucu, Soft-Incentive Ödül ve BudZKVM Host-Call Kararları
+
+**Kullanıcı Kararları (`ask_user` teyitli - Kural 4):**
+1. **AI JSON-RPC Uç Noktaları — Tam 5 Yaşam Döngüsü Ucu (`rpc_full_5`):** `src/rpc/api.rs` ve `src/rpc/server.rs` altına `bud_aiRegisterModel`, `bud_aiSubmitRequest`, `bud_aiSubmitResult`, `bud_aiGetOutcome` ve `bud_aiGetActiveVerifiers` olmak üzere 5 yeni RPC ucu eklenecek ve 3-aktörlü E2E RPC testleri ile mühürlenecektir.
+2. **AiVerifier Slashing Politikası — Yalnızca Ödül Alamama (`slash_no_stake_loss`):** Çoğunluk uzlaşması (`agreement_threshold`) dışı hatalı veya azınlık attestation veren verifier'lar (`RoleId::AI_VERIFIER = RoleId(6)`) mevcut stake'lerinden ceza yemeyecek, yalnızca o talebin ödül payından (`max_fee`) mahrum bırakılacaktır (Soft Incentive).
+3. **BudZKVM Host-Call Entegrasyonu — Hemen Bu ADIM'da (`hostcall_immediate`):** `bud_ai_request` host call arayüzü BudZero ZKVM (`src/execution/zkvm.rs` ve `budzero/bud-vm`) sistemine uyarlanacak ve akıllı kontrat içinden `AiInferenceRequest` yayınlama yolu bağlanıp test edilecektir.
+
+**Başlayan ADIM 2 Uygulama Planı:**
+- `src/rpc/api.rs` & `src/rpc/server.rs`: 5 AI RPC metodunun tanımı, transaction yayınlayıcı (`mempool.add_transaction`) bağlantıları ve sorgu haritaları.
+- `src/execution/zkvm.rs` (& `budzero/bud-vm/src/host.rs`): `bud_ai_request` opcode / host-call arayüzü ve entegrasyon testi.
+- `src/tests/ai_rpc_e2e.rs` (veya `src/ai/tests.rs`): 3-aktörlü (Model Sahibi, İstemci, 2+ AiVerifier) tam yaşam döngüsü E2E testi.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
