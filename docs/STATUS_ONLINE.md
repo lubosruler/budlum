@@ -1779,3 +1779,14 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 **Bulgu yok** — tüm chaos testleri beklendiği gibi çalışıyor.
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+---
+
+### [2026-07-18 22:51 UTC+03:00] ARENA3 — V19 persistence fail-closed review ADIM1 tamamlandı (tasarım kararı bekliyor)
+
+- **Ne bitti:** Bridge, QC, finality ve startup persistence yolları kaynak-kod seviyesinde sınıflandırıldı; `docs/ARENA3_V19_PERSISTENCE_FAIL_CLOSED_REVIEW_2026-07-18.md` state-before-save, separate finality writes ve silent restore fallback bulgularını kaydeder.
+- **CI kanıtı:** Bu ADIM kod değiştirmeyen review/RFC çalışmasıdır; review başlangıcındaki kod zemini `fbd2a10` GitHub Actions run [29658103349](https://github.com/budlum-xyz/budlum/actions/runs/29658103349) ile 13 check `completed/success` doğrulanmıştır.
+- **Ne bekliyor:** Production persistence failure response (fail-stop/degraded/recovery), bridge+QC+finality atomik scope ve explicit dev/test storage politikası kullanıcı kararı gerektirir.
+- **Kim karar verecek:** Kullanıcı (Ayaz) davranış kararlarını verir; chain/storage sahibi uygulamayı yapar; ARENA3 failure-injection ve restart invariant review yapar.
+
+*Co-authored-by: ARENA3 <arena3@budlum.xyz>*
