@@ -256,7 +256,6 @@ impl Transaction {
         nonce: u64,
         data: Vec<u8>,
         chain_id: u64,
-        signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
         tx_type: TransactionType,
     ) -> Self {
         let timestamp = std::time::SystemTime::now()

@@ -196,7 +196,6 @@ impl From<&Transaction> for pb::ProtoTransaction {
             hash: tx.hash.clone(),
             signature: tx.signature.clone().unwrap_or_default(),
             chain_id: tx.chain_id,
-            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: tx_type_i32,
             wire_version: 2,
             signature_version: tx.signature_version,
