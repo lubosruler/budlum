@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::bns::BnsRegistry;
+use crate::bns::BnsError;
     use crate::core::address::Address;
 
     #[test]

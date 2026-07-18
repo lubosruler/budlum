@@ -58,7 +58,8 @@ fn test_bns_renewal() {
         Err(BnsError::NameTaken)
     ));
     // grace-period sonrası (epoch 3360 > 3350) → bob register OK.
-    reg.register("test.bud".to_string(), bob, 3360, 100).unwrap();
+    reg.register("test.bud".to_string(), bob, 3360, 100)
+        .unwrap();
     assert_eq!(reg.resolve("test.bud", 3370), Some(bob));
 }
 
