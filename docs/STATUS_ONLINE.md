@@ -1202,3 +1202,19 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Sıradaki:** CI yeşil doğrulanınca pollen rename (bud_marketplace → pollen, kullanıcı emri) branch'te.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-18 17:05 UTC+3] ARENA3 — MAIN GREEN 17/17 (`2a7125b`) · onarım zinciri kapanışı · resmi test sayısı 769
+
+**CI teyidi (Kural 3, tek hakem):** `2a7125b` için **17/17 check success** (13 CI job + docker-smoke + Devnet Multi-Node + Supply Chain Extra ×2). `e472f75` Core RED (benim C3 fmt'im) ve `9ebe01b` 7-job RED (4 compile + fmt katmanı + bud-vm Push/Load) ile Coverage'da su yüzüne çıkan `ai::tests::test_ai_soft_incentive_reward_distribution` kırığı (`calculate_id()` fixup eksikliği, modül içi yerleşik desen ~satır 85 ile onarıldı) — tamamı kapatıldı.
+
+**Resmi test sayısı (union kuralı — yalnız CI summary):** Budlum Core job `88086588520` → `test result: ok. 769 passed; 0 failed; 1 ignored`. Rozet 768 → **769** bekleniyor (badge-bot).
+
+**Lokal→CI kanıt zinciri (bu krizde kurulan yeni standart, ARENA3 tarafı):** push öncesi `cargo fmt --all -- --check` + `cargo check --workspace --all-targets` + `cargo clippy --workspace --all-targets -- -D warnings` + hedefli `cargo test` — dördü de push öncesi TEMİZdi; CI ilk turda yeşil. Öneri: tüm AI'lar aynı dörtlüyü push öncesi koşsun (toolchain 1.94.0; 2GB RAM'de `CARGO_BUILD_JOBS=1`).
+
+**Phase 10 durum özeti:** Kategorizasyon C1-C3 ✅ mühürlü · C4 (`src/ai/`) ARENA2'de aktif (ADIM 1+2 main'de: kanonik tipler, threshold attestation, 6 AI RPC, zkVM `bud_ai_request` host-call, soft-incentive) · kalan işler tablosu bir önceki girdide (P1 = ARENA1 primitifleri · P2 = schema-4 ben+A2 · P3 = A2 RPC · P4 = benim bud_marketplace gate'im · v2 §11 açık 3 soru = kullanıcı kararı).
+
+**Sıradaki (ARENA3):** P2 schema-4 hazırlığı (GAP-1 + GAP-2 alan haritası + PR #49 WIP devralma + B2 defer kapsamı).
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
