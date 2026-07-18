@@ -284,16 +284,26 @@ impl BridgeState {
                 "Transfer is not burned on target domain".into(),
             ));
         }
-        if transfer.source_domain != source_domain {
-            return Err(BridgeError("Unlock source domain mismatch".into()));
+        // V17 fix (ARENAX Phase 10.5 denetimi, ARENA1 cross_domain): unlock
+        // mesajı **burn domain'inden** (transfer.target_domain) gelir. Önceki
+        // kod `transfer.source_domain != source_domain` kontrol ediyordu;
+        // production'da `executor.rs` `msg.source_domain` (= burn domain =
+        // target_domain) geçtiğü için 1 != 2 mismatch → tüm unlock'lar reddi.
+        // Doğru kontrol: gelen domain burn domain'ine eşit olmalı.
+        if transfer.target_domain != source_domain {
+            return Err(BridgeError(
+                "Unlock must originate from the burn (target) domain".into(),
+            ));
         }
+        // Asset **orijinal source domain**'de (lock'un yapıldığı yer) Active'e döner.
+        let original_source = transfer.source_domain;
         transfer.status = BridgeStatus::Unlocked {
-            domain: source_domain,
+            domain: original_source,
         };
         self.asset_locations.insert(
             transfer.asset_id,
             BridgeStatus::Active {
-                domain: source_domain,
+                domain: original_source,
             },
         );
         Ok(())
@@ -442,7 +452,11 @@ mod tests {
         bridge.mint(&message).unwrap();
         assert!(bridge.unlock(transfer.message_id, 1).is_err());
         bridge.burn(transfer.message_id, 2).unwrap();
+        // V17 regression: unlock must originate from the burn domain (target=2),
+        // NOT the original lock source (1). Old code checked source_domain, so
+        // production (msg.source_domain = burn domain = 2) was always rejected.
         assert!(bridge.unlock(transfer.message_id, 9).is_err());
-        bridge.unlock(transfer.message_id, 1).unwrap();
+        assert!(bridge.unlock(transfer.message_id, 1).is_err()); // source domain ≠ burn domain
+        bridge.unlock(transfer.message_id, 2).unwrap(); // burn domain → succeeds
     }
 }

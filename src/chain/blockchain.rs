@@ -1444,7 +1444,7 @@ impl Blockchain {
 
         self.state
             .bridge_state
-            .unlock(transfer_id, source_domain)
+            .unlock(transfer_id, message.source_domain)
             .map_err(|e| e.to_string())?;
         if let Some(store) = &self.storage {
             store
@@ -1887,7 +1887,7 @@ impl Blockchain {
                 }
                 self.state
                     .bridge_state
-                    .unlock(transfer_id, lock_source_domain)
+                    .unlock(transfer_id, message.source_domain)
                     .map_err(|e| e.to_string())?;
                 let transfer = self
                     .state

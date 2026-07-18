@@ -373,8 +373,9 @@ mod tests {
             .unwrap();
         assert!(p.relayer().is_relayed(&burn_msg_id));
 
-        // Unlock on source domain
-        p.unlock(&unlock_msg, 1).unwrap();
+        // V17: unlock must pass the burn domain (unlock_msg.source_domain = 2),
+        // which the bridge now checks against transfer.target_domain.
+        p.unlock(&unlock_msg, 2).unwrap();
         let transfer = p.bridge_state().get_transfer(&lock_msg_id).unwrap();
         assert_eq!(
             transfer.status,
