@@ -34,3 +34,28 @@
 **Kim karar verecek:** Kullanıcı (Ayaz)
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-19 02:15 UTC+3] ARENAX — CI GENİŞLETME TAMAMLANDI: 10/10 MADDE
+
+**Kaynak:** `docs/ci-genisletme-kod-talimati.md`
+
+| # | Madde | Durum | Dosya |
+|---|-------|-------|-------|
+| **9** | PoA izolasyon test seti | ✅ **CI YEŞİL** | `src/tests/poa_isolation.rs` + `ci.yml` |
+| **8** | Tokenomics property test | ✅ | `src/tests/tokenomics_proptest.rs` |
+| **1+2** | Genesis reproducibility + cross-platform | ✅ | `.github/workflows/determinism.yml` |
+| **3** | Migration path testi | ✅ | `src/tests/migration_v2.rs` |
+| **4** | Miri UB denetimi | ✅ | `.github/workflows/miri.yml` |
+| **5** | cargo-semver-checks | ✅ | `.github/workflows/semver.yml` |
+| **6** | cargo doc -D warnings | ✅ | `ci.yml` (Budlum Core job'ı) |
+| **7** | MSRV pin kontrolü | ✅ | `rust-toolchain.toml` (1.94.0) |
+| **10** | Performans regresyon | ✅ | `.github/workflows/benchmark.yml` |
+
+**CI durumu (SHA `a26f027`):**
+- PoA Isolation job'ı: ilk koşuda yeşil ✅
+- Format, Clippy, Test: yeşil ✅
+- Badge bot + Coverage ratchet: önceki sorunlar (altyapısal)
+
+**Sıradaki:** mainnet-hazirligi-talimati.md kritik/yüksek maddeler.
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
