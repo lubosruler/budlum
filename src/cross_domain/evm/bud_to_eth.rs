@@ -173,18 +173,19 @@ mod tests {
     fn garbage_claim_does_not_panic() {
         // DoS güvenliği: boş bridge + rastgele → Err, panic YOK.
         let bridge = BridgeState::new();
-        let input = BudToEthClaimInput {
-            bridge: &bridge,
-            message_id: &MessageId::default(),
-            finalized_header_hash: [0u8; 32],
-            finality_proof: vec![0xFF; 100],
-            burn_event_proof: vec![0xAA; 50],
-            recipient_eth: [0xBB; 20],
-            bridge_cap: DEFAULT_BRIDGE_CAP,
-        };
-        let result = build_bud_to_eth_claim(&input);
+        let result = build_bud_to_eth_claim(
+            &bridge,
+            &MessageId::default(),
+            0,
+            [0u8; 32],
+            vec![0xFF; 100],
+            vec![0xAA; 50],
+            [0xBB; 20],
+            DEFAULT_BRIDGE_CAP,
+        );
         assert!(
             result.is_err(),
-            "garbage input must be rejected, not accepted"        );
+            "garbage input must be rejected, not accepted"
+        );
     }
 }
