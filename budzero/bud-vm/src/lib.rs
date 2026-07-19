@@ -581,7 +581,7 @@ impl Vm {
                 let model_end = model_addr.wrapping_add(model_size);
 
                 let result = if proof_end <= self.memory.len() && model_end <= self.memory.len() {
-                    let mut read_u64 = |addr: usize| -> u64 {
+                    let read_u64 = |addr: usize| -> u64 {
                         let mut bytes = [0u8; 8];
                         bytes.copy_from_slice(&self.memory[addr..addr + 8]);
                         u64::from_le_bytes(bytes)
@@ -595,12 +595,10 @@ impl Vm {
                     let registered_hash = read_u64(model_addr);
                     let registered_model = read_u64(model_addr + 8);
 
-                    // Phase 1: proof type must match
-                    if stored_proof_type != proof_type as u64 {
-                        0u64
-                    }
-                    // Phase 2: model commitment must match registered hash
-                    else if model_commitment != registered_hash {
+                    // Phase 1+2: proof type must match AND model commitment must match
+                    if stored_proof_type != proof_type as u64
+                        || model_commitment != registered_hash
+                    {
                         0u64
                     }
                     // Phase 3: simplified Poseidon-like commitment chain
@@ -771,7 +769,7 @@ impl Vm {
             let proof_addr = src1_val as usize;
             let proof_end = proof_addr.wrapping_add(8 * 4);
             if proof_end <= self.memory.len() {
-                let mut read_u64 = |addr: usize| -> u64 {
+                let read_u64 = |addr: usize| -> u64 {
                     let mut bytes = [0u8; 8];
                     bytes.copy_from_slice(&self.memory[addr..addr + 8]);
                     u64::from_le_bytes(bytes)

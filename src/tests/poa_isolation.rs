@@ -327,7 +327,9 @@ mod poa_isolation_tests {
         perm_state.add_balance(&dual_member, 50_000);
         perm_state.add_validator(dual_member, 25_000);
 
-        assert!(perm_state.registry.is_active(&dual_member, roles::VALIDATOR));
+        assert!(perm_state
+            .registry
+            .is_active(&dual_member, roles::VALIDATOR));
         let stake_before = perm_state
             .registry
             .get(&dual_member, roles::VALIDATOR)
@@ -340,7 +342,9 @@ mod poa_isolation_tests {
 
         // Permissionless validator durumu değişmemeli
         assert!(
-            perm_state.registry.is_active(&dual_member, roles::VALIDATOR),
+            perm_state
+                .registry
+                .is_active(&dual_member, roles::VALIDATOR),
             "PoA revoke must NOT affect permissionless validator status"
         );
         assert_eq!(
@@ -372,8 +376,12 @@ mod poa_isolation_tests {
         perm_state.add_validator(dual_member, 25_000);
 
         // Permissionless tarafta slash (simulated via unstake)
-        perm_state.registry.upsert_stake(dual_member, roles::VALIDATOR, 0, 0);
-        assert!(!perm_state.registry.is_active(&dual_member, roles::VALIDATOR));
+        perm_state
+            .registry
+            .upsert_stake(dual_member, roles::VALIDATOR, 0, 0);
+        assert!(!perm_state
+            .registry
+            .is_active(&dual_member, roles::VALIDATOR));
 
         // PoA membership değişmemeli
         assert!(
@@ -414,8 +422,17 @@ mod poa_isolation_tests {
 
         // PoA-specific terimler mesajda bulunmamalı
         let poa_leak_terms = [
-            "kyc", "commitment", "admin", "approved", "revoked", "rejected",
-            "membership", "permissioned", "pending", "decided_by", "poa_",
+            "kyc",
+            "commitment",
+            "admin",
+            "approved",
+            "revoked",
+            "rejected",
+            "membership",
+            "permissioned",
+            "pending",
+            "decided_by",
+            "poa_",
         ];
         for term in &poa_leak_terms {
             assert!(
@@ -613,9 +630,7 @@ mod poa_isolation_tests {
         poa_reg.approve(POA_DOMAIN, admin, member).unwrap();
 
         // Permissionless side: register with stake
-        perm_registry
-            .register_validator(member, 10_000, 0)
-            .unwrap();
+        perm_registry.register_validator(member, 10_000, 0).unwrap();
 
         // PoA authorize → perm_registry unchanged
         assert!(poa_reg.is_authorized(POA_DOMAIN, &member));
@@ -633,8 +648,8 @@ mod poa_isolation_tests {
     /// Permissionless registry parametreleri PoA'dan tamamen bağımsız.
     #[test]
     fn registry_params_independence() {
-        use crate::registry::permissionless::PermissionlessRegistry;
         use crate::registry::params::RegistryParams;
+        use crate::registry::permissionless::PermissionlessRegistry;
 
         let mut perm_registry = PermissionlessRegistry::new();
         let default_params = perm_registry.params().clone();
@@ -682,7 +697,8 @@ mod poa_isolation_tests {
         poa_reg
             .submit_application(POA_DOMAIN, Address::from([0xAA; 32]), [1u8; 32])
             .unwrap();
-        poa_reg.approve(POA_DOMAIN, admin, Address::from([0xAA; 32]))
+        poa_reg
+            .approve(POA_DOMAIN, admin, Address::from([0xAA; 32]))
             .unwrap();
 
         let perm_json = serde_json::to_string(&perm_registry).unwrap();
