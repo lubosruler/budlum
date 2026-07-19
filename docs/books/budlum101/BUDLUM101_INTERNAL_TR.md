@@ -59,3 +59,24 @@ Bir green job yalnız o jobun çalıştığını gösterir. Mainnet kabulü içi
 5. CI run linki ve commit SHA’nın kaydedildiği
 
 ayrı ayrı doğrulanmalıdır.
+
+## Kaynak kanıt sınıflandırması
+
+| Kaynak türü | Kitaptaki kullanım | Tek başına yeterli mi? |
+|---|---|---|
+| Constitution / RFC | hedef, normatif karar, kabul edilen tasarım | Hayır; kod/test/operasyonla bağlanır |
+| README / module README | modül sınırı ve kullanıcı iletişimi | Hayır; stale olasılığı vardır |
+| Rust source | uygulanmış davranış ve type ownership | Hayır; test/CI olmadan regression olabilir |
+| Unit/integration test | belirli invariant veya lifecycle | Hayır; production path eşdeğerliği denetlenir |
+| CI run | belirli SHA’da job sonucu | Hayır; test mantığını tek başına kanıtlamaz |
+| Runbook / ceremony | operasyonel süreç | Hayır; gerçek rehearsal/evidence gerekir |
+
+## Budlum101 yazım kontrol listesi
+
+- Her “uygulanmıştır” cümlesi source/test/CI kanıt sınıfı ile eşleştirilir.
+- Her “hedeflenir” cümlesi RFC/Constitution/plan kaynağına bağlanır.
+- Production/mainnet/audit iddiaları ayrı kanıt kapısı olmadan kullanılmaz.
+- Teknik olmayan kutu, teknik iddiayı basitleştirir ama genişletmez.
+- B.U.D. interim retrieval ve VerifyMerkle production gate farkı her ilgili
+  bölümde korunur.
+- PoA permissioned kuralının permissionless domainlere sızmadığı açıkça yazılır.
