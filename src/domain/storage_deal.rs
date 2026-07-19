@@ -523,7 +523,7 @@ impl StorageRegistry {
         response_epoch: u64,
     ) -> Result<ChallengeResult, StorageError> {
         // V58: Reject empty/zero range_hash — operator must provide a real hash
-        if range_hash == ContentId([0xAA; 32]) {
+        if range_hash == ContentId([0u8; 32]) {
             return Err(StorageError::InvalidMerkleProof(
                 "range_hash must be non-zero (V58: empty hash rejected)".into(),
             ));
@@ -1029,7 +1029,7 @@ mod tests {
             .open_challenge(deal_id, 0, 4, 110, 120, opener(), 50)
             .unwrap();
         let res = reg
-            .answer_challenge(cid, ContentId([0xAA; 32]), operator(), 115)
+            .answer_challenge(cid, ContentId([0u8; 32]), operator(), 115)
             .unwrap();
         assert_eq!(res.outcome, ChallengeOutcome::Answered);
         assert_eq!(res.slashed_bond, 0);
@@ -1044,9 +1044,8 @@ mod tests {
         let cid = reg
             .open_challenge(deal_id, 0, 4, 110, 120, opener(), 50)
             .unwrap();
-        // V58: Use non-zero range_hash to pass the new validation
         let err = reg
-            .answer_challenge(cid, ContentId([0xAA; 32]), operator(), 200)
+            .answer_challenge(cid, ContentId([0u8; 32]), operator(), 200)
             .unwrap_err();
         assert!(matches!(err, StorageError::DeadlineElapsed { .. }));
     }
@@ -1060,7 +1059,7 @@ mod tests {
             .open_challenge(deal_id, 0, 4, 110, 120, opener(), 50)
             .unwrap();
         let err = reg
-            .answer_challenge(cid, ContentId([0xAA; 32]), opener(), 115)
+            .answer_challenge(cid, ContentId([0u8; 32]), opener(), 115)
             .unwrap_err();
         assert!(matches!(err, StorageError::NotTheOperator { .. }));
     }
@@ -1101,7 +1100,7 @@ mod tests {
         let cid = reg
             .open_challenge(deal_id, 0, 4, 110, 120, opener(), 50)
             .unwrap();
-        reg.answer_challenge(cid, ContentId([0xAA; 32]), operator(), 115)
+        reg.answer_challenge(cid, ContentId([0u8; 32]), operator(), 115)
             .unwrap();
         let err = reg.finalize_missed_challenge(cid, 200).unwrap_err();
         assert!(matches!(err, StorageError::ChallengeAlreadyResolved(_)));
