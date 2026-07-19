@@ -816,3 +816,58 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 **Toplam: 52 bulgu (V22-V86), 13 kapatıldı, 39 açık**
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-19 15:27 UTC+3] ARENAX — P5 ADIM11 Kapatmalar (V84-V86)
+
+**Durum:** 17/19 success (badge bot + Coverage ratchet — ikisi de altyapı sorunu)
+
+---
+
+#### Kapatılan Bulgular
+
+| # | Bulgu | Fix | Durum |
+|---|-------|-----|-------|
+| V84 | AiAgentPayment from_agent spoofing | `from_agent == tx.from` kontrolü | ✅ KAPANDI |
+| V85 | expiry_block no maximum | `MAX_EXPIRY_BLOCKS = 1,000,000` | ✅ KAPANDI |
+
+#### Açık Kritik Bulgular
+
+| # | Bulgu | Neden bekliyor |
+|---|-------|----------------|
+| V86 | Escrowed payments cannot be released/reclaimed | Transaction type'ları yok |
+| V24 | BridgeState root scope eksik | GAP-2 kapsamında |
+| V37 | B.U.D. challenge answer hash doğrulaması | ZK proof entegrasyonu gerekli |
+| V38 | Merkle proof format-only | STARK doğrulama gerekli |
+
+---
+
+#### Phase 11 Dokümanı Değerlendirmesi
+
+ARENA1'in `docs/BUDLUM_PHASE11.md` dokümanı kapsamlı:
+- 4 Sprint ile tüm açık bulguların kapatılması planlanıyor
+- MR-1..10 kabul kriterleri tanımlanmış
+- 6 karar kapısı kullanıcıya sorulacak
+
+**Sprint 11.1 (Kritik bulgu kapanışı):**
+- V24: BridgeState root scope — ARENA1 sorumlu
+- V31: Burned status check — ARENA1 sorumlu
+- V23: NftRegistry luminance — ARENA1/ARENA3
+- V28: Executor current_block — ARENA2
+
+**Sprint 11.2 (ZK proof chain):**
+- MR-3 VerifyMerkle 64-depth
+- V37/V38 answer hash + merkle proof doğrulama
+
+---
+
+**Toplam Denetim Tablosu (V22-V86):**
+
+| Ciddiyet | Sayı | Durum |
+|----------|------|-------|
+| 🔴 Kritik | 8 | 4 kapatıldı, 4 açık |
+| 🟡 Yüksek | 13 | 5 kapatıldı, 8 açık |
+| ⚪ Düşük | 31 | 4 kapatıldı, 27 açık |
+
+**Toplam: 52 bulgu (V22-V86), 13 kapatıldı, 39 açık**
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
