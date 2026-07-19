@@ -398,7 +398,10 @@ impl BridgeState {
     }
 
     pub fn root(&self) -> Hash32 {
-        let leaves: Vec<Hash32> = self
+        // V24 fix (Phase 11): root() eskiden yalnızca asset_locations'ı
+        // hash'liyordu — transfers (owner/recipient/amount/status) kapsam
+        // dışındaydı. Artık transfer metadata da digest'e girer.
+        let mut leaves: Vec<Hash32> = self
             .asset_locations
             .iter()
             .map(|(asset_id, status)| {
@@ -406,6 +409,22 @@ impl BridgeState {
                 hash_fields_bytes(&[b"BDLM_BRIDGE_ASSET_LEAF_V1", asset_id.as_ref(), &status])
             })
             .collect();
+        for (msg_id, transfer) in &self.transfers {
+            let status = status_bytes(&transfer.status);
+            leaves.push(hash_fields_bytes(&[
+                b"BDLM_BRIDGE_TRANSFER_V1",
+                msg_id,
+                transfer.asset_id.as_ref(),
+                &transfer.source_domain.to_le_bytes(),
+                &transfer.target_domain.to_le_bytes(),
+                &transfer.owner.0,
+                &transfer.recipient.0,
+                &transfer.amount.to_le_bytes(),
+                &status,
+                &transfer.source_event_hash,
+                &transfer.expiry_height.to_le_bytes(),
+            ]));
+        }
         crate::settlement::commitment_tree::merkle_root(&leaves)
     }
 
