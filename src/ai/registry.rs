@@ -1014,7 +1014,7 @@ impl AiRegistry {
         }
         if payment.is_expired(current_block) {
             return Err(String::from(
-                "Agent payment: expiry_block must be in the future",
+                "Agent payment: expiry_block already expired (must be in the future)",
             ));
         }
         if payment.require_proof {

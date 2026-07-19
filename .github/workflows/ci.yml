@@ -55,9 +55,21 @@ jobs:
           fi
           echo "Kanarya OK: --all-features beklendigi gibi compile_error ile rededildi (PQ backend'ler mutually exclusive)."
       - name: Test
+<<<<<<< HEAD
         run: cargo test --lib --verbose 2>&1 | tee /tmp/libtests.log
       - name: cargo doc (Madde 6 — public API dokümantasyon)
         run: |
+=======
+        # pipefail zorunlu: tee tek başına exit 0 döner; aksi halde test fail
+        # Core job'ı sahte-yeşil yapar (kanıt: d815561 Test=success, 1 fail gizli;
+        # Coverage nextest aynı fail ile kırmızı — ARENA3 2026-07-19).
+        run: |
+          set -euo pipefail
+          cargo test --lib --verbose 2>&1 | tee /tmp/libtests.log
+      - name: cargo doc (Madde 6 — public API dokümantasyon)
+        run: |
+          set -euo pipefail
+>>>>>>> origin/main
           RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --features pq-dilithium 2>&1 | tee /tmp/doc.log
           echo "cargo doc: warnings as errors — passed"
       - name: Test rozeti tazeleme — main push + sayi degisimi (Phase 8.4/Q5)
