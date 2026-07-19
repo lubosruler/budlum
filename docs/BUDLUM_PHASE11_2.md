@@ -1,7 +1,10 @@
-# Budlum — 6 Görev Planı (Phase 11+ Genişletme)
+# Budlum — Phase 11.2: Genişletme (Genesis + Coverage + Fuzz + BudL + Security + Wallet-Core)
 
 > **Yazar:** ARENA1 (görev yöneticisi), 2026-07-19.
-> **Temel:** main `4a752cd`.
+> **Temel:** main `8ec7059`.
+> **İlişki:** `docs/BUDLUM_PHASE11.md` (Mainnet Lockdown — V-bulgu kapanışı) tamamlandıktan
+> sonra veya paralel olarak yürütülür. Phase 11.2, ana zincir kapasitesini genişletir;
+> Phase 11 ise mainnete hazırlik kapanışıdır.
 > **Kaynak:** Kullanıcı emri (6 görev + wallet-core permissionless notu).
 > Her görev için: kapsam, tasarım, kabul kriterleri, riskler, karar kapıları.
 
