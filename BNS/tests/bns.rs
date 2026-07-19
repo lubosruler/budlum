@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::core::address::Address;
+    use budlum_primitives::Address;
     use budlum_bns::BnsError;
     use budlum_bns::BnsRegistry;
 

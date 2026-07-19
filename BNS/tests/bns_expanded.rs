@@ -1,6 +1,6 @@
 //! Expanded BNS Registry tests for Phase 9 coverage (ARENA2).
 
-use crate::core::address::Address;
+use budlum_primitives::Address;
 use budlum_bns::types::{BnsError, BnsResolved};
 use budlum_bns::BnsRegistry;
 

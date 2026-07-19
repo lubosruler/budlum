@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn default_chunk_size_matches_content_id_default() {
-        use crate::storage::content_id::DEFAULT_CHUNK_SIZE_BYTES;
+        use crate::content_id::DEFAULT_CHUNK_SIZE_BYTES;
         // Cross-module sanity check: the chunk-size default used by the
         // sharder is the same constant the ContentId module advertises.
         let m =
