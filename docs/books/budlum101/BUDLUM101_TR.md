@@ -508,3 +508,45 @@ kriteriyle kayıt altına alınmalıdır.
 
 Açık soru, teknik zayıflık ilanı değil; yanlış varsayımla kod yazmama
 kararlılığıdır.
+
+# Bölüm 17 — Teknik mimariyi okuma pratiği
+
+Bir mimari diyagram tek başına gerçek sistem değildir. Diyagram, okuyucuya
+hangi bileşenlerin hangi güven sınırında bulunduğunu gösterir; gerçeklik ise
+source ownership, dependency graph, serialization, test ve operasyon yolunda
+ortaya çıkar.
+
+## 17.1 Sahiplik sınırı
+
+Bir modülün kendi klasörü olması bağımsız olduğu anlamına gelmez. Gerçek bağımsız
+sınır için şu koşullar aranır:
+
+- Kendi Cargo package manifesti,
+- Core’a ters dependency üretmeyen dependency graph,
+- canonical public type sahipliği,
+- crate-owned unit/integration tests,
+- Core’un yalnız public API üzerinden adapter/orchestration yapması,
+- snapshot/RPC/serde migrationının explicit olması.
+
+B.U.D. ve BNS Phase 10 migrationı bu nedenle basit `git mv` işlemi değildir.
+Address/hash primitive’leri, ContentId/manifest/deal modelleri, BNS registry,
+Core account state ve snapshot tipi arasında dependency-cycle çıkmaması gerekir.
+
+## 17.2 Canonical byte sınırı
+
+Bir state veya transaction başka crate’e taşındığında asıl soru yalnız Rust
+tipinin taşınıp taşınmadığı değildir. Şu sorular da sorulmalıdır:
+
+- Aynı değer JSON’da aynı biçimde serialize oluyor mu?
+- Snapshot digest aynı alanları aynı sırayla bağlıyor mu?
+- İmza preimage’i taşınan alanı explicit kapsıyor mu?
+- Option, enum ve liste sınırları canonical mı?
+- Eski snapshot veya transaction yeni kod tarafından nasıl ele alınıyor?
+
+## 17.3 CI ile kaynak arasındaki köprü
+
+Workspace migrationı başarılı sayılmak için Cargo metadata, lockfile, Docker
+build context, root workspace members, nested workspace metadata, crate test
+komutları ve CI branch trigger kuralları birlikte çalışmalıdır. Bir crate local
+derlense bile Docker image’da source copy yoksa veya `Cargo.lock --locked`
+güncellenmemişse operasyonel teslim başarısızdır.
