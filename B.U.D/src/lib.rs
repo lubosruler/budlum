@@ -3,3 +3,6 @@
 //! Planned source ownership: content addressing, manifests, storage-domain
 //! parameters and deal/challenge economics. Core durable block storage remains
 //! in `budlum-core`; it is not a B.U.D. module.
+
+pub mod content_id;
+pub use content_id::ContentId;
