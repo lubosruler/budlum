@@ -81,17 +81,11 @@ pub fn parse_args(args: &[String]) -> Result<RelayerConfig, String> {
         match args[i].as_str() {
             "--eth-rpc" => {
                 i += 1;
-                config.eth_rpc_url = args
-                    .get(i)
-                    .ok_or("--eth-rpc requires a value")?
-                    .clone();
+                config.eth_rpc_url = args.get(i).ok_or("--eth-rpc requires a value")?.clone();
             }
             "--budlum-rpc" => {
                 i += 1;
-                config.budlum_rpc_url = args
-                    .get(i)
-                    .ok_or("--budlum-rpc requires a value")?
-                    .clone();
+                config.budlum_rpc_url = args.get(i).ok_or("--budlum-rpc requires a value")?.clone();
             }
             "--bridge-address" => {
                 i += 1;
@@ -102,9 +96,8 @@ pub fn parse_args(args: &[String]) -> Result<RelayerConfig, String> {
             }
             "--direction" => {
                 i += 1;
-                config.direction = RelayDirection::parse(
-                    args.get(i).ok_or("--direction requires a value")?,
-                )?;
+                config.direction =
+                    RelayDirection::parse(args.get(i).ok_or("--direction requires a value")?)?;
             }
             "--confirmations" => {
                 i += 1;
@@ -161,12 +154,18 @@ pub fn run_relayer(config: &RelayerConfig) -> Result<(), String> {
     eprintln!("  - F10.5 Bud→ETH: Budlum light-client proof + Ethereum bridge tx");
     eprintln!();
     match config.direction {
-        RelayDirection::EthToBud => eprintln!("EthToBud: watching Ethereum deposit events → Budlum mint"),
-        RelayDirection::BudToEth => eprintln!("BudToEth: watching Budlum burn events → Ethereum claim (F10.5)"),
+        RelayDirection::EthToBud => {
+            eprintln!("EthToBud: watching Ethereum deposit events → Budlum mint")
+        }
+        RelayDirection::BudToEth => {
+            eprintln!("BudToEth: watching Budlum burn events → Ethereum claim (F10.5)")
+        }
     }
     // Skeleton: validate config + return. Mainnet sonrası: tokio spawn poll loop.
     if config.bridge_address == "0x0" {
-        return Err("bridge-address is placeholder (0x0); set real Ethereum bridge contract".into());
+        return Err(
+            "bridge-address is placeholder (0x0); set real Ethereum bridge contract".into(),
+        );
     }
     Ok(())
 }

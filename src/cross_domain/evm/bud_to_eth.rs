@@ -58,7 +58,9 @@ impl std::fmt::Display for BudToEthError {
         match self {
             BudToEthError::BurnEventNotFound => write!(f, "bud-to-eth: burn event not found"),
             BudToEthError::NotBurned => write!(f, "bud-to-eth: transfer not in Burned status"),
-            BudToEthError::InvalidRecipient => write!(f, "bud-to-eth: invalid Ethereum recipient (20 bytes)"),
+            BudToEthError::InvalidRecipient => {
+                write!(f, "bud-to-eth: invalid Ethereum recipient (20 bytes)")
+            }
             BudToEthError::FinalityProofMissing => write!(f, "bud-to-eth: finality proof missing"),
             BudToEthError::AmountExceedsCap => write!(f, "bud-to-eth: amount exceeds bridge cap"),
         }

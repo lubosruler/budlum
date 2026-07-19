@@ -15,7 +15,9 @@
 use crate::core::transaction::{ExternalChain, ExternalTransaction, RelayerExternalResult};
 use crate::cross_domain::chain_adapter::{AdapterError, ChainAdapter};
 use crate::cross_domain::event_tree::MerkleProof;
-use crate::cross_domain::evm::header::{decode_header, verify_chain, EthHeader, DEFAULT_CONFIRMATIONS};
+use crate::cross_domain::evm::header::{
+    decode_header, verify_chain, EthHeader, DEFAULT_CONFIRMATIONS,
+};
 use crate::cross_domain::evm::mpt;
 use crate::cross_domain::evm::receipt::{decode_receipt, EthReceipt};
 use crate::cross_domain::evm::verify::{verify_evm_receipt, EvmDepositProof, VerifyError};
@@ -146,10 +148,7 @@ impl EvmChainAdapter {
     /// Tam on-chain EVM receipt verify (F10.2 verify.rs orchestrator).
     /// Bu, ChainAdapter::verify_receipt_proof'un zenginleştirilmiş hali —
     /// relayer tam proof paketi (header chain + MPT nodes + receipt) sağlar.
-    pub fn verify_deposit(
-        &self,
-        proof: &EvmDepositProof<'_>,
-    ) -> Result<EthReceipt, VerifyError> {
+    pub fn verify_deposit(&self, proof: &EvmDepositProof<'_>) -> Result<EthReceipt, VerifyError> {
         // verify_evm_receipt: header N-conf → MPT → receipt → status → deposit log.
         let _verified = verify_evm_receipt(proof)?;
         // Receipt decode (verify_evm_receipt içinde zaten var, burada accessor için).
@@ -164,7 +163,8 @@ impl EvmChainAdapter {
         verify_chain(&target, &confs, proof.required_confirmations)
             .map_err(|e| VerifyError::Header(e.to_string()))?;
         // MPT + receipt decode (verify_evm_receipt içinde çağrılır).
-        let receipt_bytes = mpt::verify(proof.proof_nodes, &target.receipts_root, proof.receipt_key)?;
+        let receipt_bytes =
+            mpt::verify(proof.proof_nodes, &target.receipts_root, proof.receipt_key)?;
         decode_receipt(&receipt_bytes).map_err(VerifyError::from)
     }
 }
@@ -193,10 +193,7 @@ mod tests {
     #[tokio::test]
     async fn offline_stub_generate_proof() {
         let adapter = EvmChainAdapter::test_default();
-        let (proof, root, hash) = adapter
-            .generate_receipt_proof("0xabc")
-            .await
-            .unwrap();
+        let (proof, root, hash) = adapter.generate_receipt_proof("0xabc").await.unwrap();
         assert_eq!(hash, "0xabc");
         assert_eq!(proof.leaf, root);
     }
