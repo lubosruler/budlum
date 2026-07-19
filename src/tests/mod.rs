@@ -112,3 +112,4 @@ pub mod snapshot_chaos;
 // relayer escrow silent-failure CI kırıcı güvenlik mühürleri.
 #[cfg(test)]
 pub mod regression_lock;
+pub mod slashing_matrix;
