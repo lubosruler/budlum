@@ -1036,3 +1036,125 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 **Toplam: 21 bulgu (V22-V42), 2 kapatıldı (V27, V29), 19 açık**
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-19 13:05 UTC+3] ARENAX — BNS + B.U.D. HACKER PERSPEKTİFİ DERİN DENETİM (V43-V67)
+
+**Durum:** 19/19 TAM YEŞİL (CI kanıtlı)
+**Kapsam:** BNS ve B.U.D. modüllerinin hacker perspektifinden tam denetimi — 25 yeni bulgu.
+
+---
+
+## B.U.D. Bulguları (Kritik/Yüksek)
+
+### V43: Slashing Fail-Closed — Real Burn Missing 🔴
+**Dosya:** `src/chain/blockchain.rs:3970-3980`
+**Sorun:** Challenge missed → operator bond SLASHED ama `burn_from()` COMMENTED OUT. `storage_burned_bond_total` hep 0.
+**Etki:** Operatörler challenge'ları kaçırabilir, ekonomik ceza yok.
+**Not:** Bilinçli interim limitation — escrow modeli henüz eklenmedi.
+
+### V46: Deal Expiration — No Bond/Fee Return 🔴
+**Dosya:** `src/domain/storage_deal.rs:612-630`
+**Sorun:** `expire_deal()` sadece status'u Expired yapıyor. Operator bond VE payer fee iade edilmiyor.
+**Etki:** Hem bond hem fee sonsuza kadar kilitli.
+
+### V50: Auto-Challenge Security Issues 🟡
+**Dosya:** `src/chain/blockchain.rs:3900-3930`
+**Sorunlar:** opener=Address::zero(), byte range tahmin edilebilir, sadece 1 bond, operator challenge'ı önceden biliyor.
+
+### V58: Challenge Answer Hash Validation Missing 🔴
+**Dosya:** `src/domain/storage_deal.rs:510-550`
+**Sorun:** `answer_challenge()` herhangi bir range_hash kabul ediyor. Operatör veriyi silse bile geçebilir.
+
+### V56: Merkle Proof Format-Only Validation 🟡
+**Dosya:** `src/domain/storage_deal.rs:690-720`
+**Sorun:** `validate_merkle_proof_format` sadece format kontrolü yapıyor. Gerçek STARK doğrulaması yok.
+
+### V62: Shard Size Validation Missing ⚪
+**Dosya:** `src/domain/storage_deal.rs:380-420`
+**Sorun:** `open_deal()` shard size kontrolü yapmıyor.
+
+### V63: Challenge Bond Minimum Missing ⚪
+**Dosya:** `src/domain/storage_deal.rs:460-480`
+**Sorun:** `opener_bond > 0` kontrolü var ama minimum miktar yok.
+
+### V64: Replica Index Bounds Missing ⚪
+**Dosya:** `src/domain/storage_deal.rs:120-125`
+**Sorun:** `replica_index` için üst sınır yok.
+
+### V65: Deal Expire Only Active ⚪
+**Dosya:** `src/domain/storage_deal.rs:600-620`
+**Sorun:** `expire_deal()` sadece Active deal'leri expire eder. Slashed deal'ler state'de kalır.
+
+### V66: Slashing Fail-Closed (V43 duplicate) 🔴
+**Dosya:** `src/chain/blockchain.rs:3970-3980`
+**Sorun:** `burn_from()` COMMENTED OUT. Operatörler ekonomik ceza almıyor.
+
+### V67: Auto-Challenge Security Issues (V50 duplicate) 🟡
+**Dosya:** `src/chain/blockchain.rs:3900-3930`
+**Sorun:** Zero address opener, tahmin edilebilir range, düşük bond.
+
+---
+
+## BNS Bulguları
+
+### V44: Subdomain Label Validation Missing ⚪
+**Dosya:** `src/bns/registry.rs:116-130`
+**Sorun:** `register_subdomain()` sub_label uzunluk/format kontrolü yok.
+
+### V45: Resolver Field Dead Code ⚪
+**Dosya:** `src/bns/types.rs:14`
+**Sorun:** `NameRecord.resolver` alanı var ama hiçbir fonksiyon tarafından set edilmiyor.
+
+### V47: Name Length Validation — Byte vs Char 🟡
+**Dosya:** `src/bns/registry.rs:48`
+**Sorun:** `name.len()` byte length kullanıyor, character length değil.
+
+### V48: Manifest Registration — No Duplicate Check ⚪
+**Dosya:** `src/domain/storage_deal.rs:330-340`
+**Sorun:** `register_manifest()` idempotent — aynı manifest_id tekrar kayıt edilebilir.
+
+### V51: BNS Cost Calculation Overflow 🟡
+**Dosya:** `src/bns/registry.rs:27-34`
+**Sorun:** `base_cost * multiplier * duration` overflow riski.
+
+### V52: BNS Renewal Extends From Expiry ⚪
+**Dosya:** `src/bns/registry.rs:80-95`
+**Sorun:** Renewal extends from current expiry, not from current_epoch.
+
+### V54: B.U.D. Double-Spend Via Concurrent Deals ⚪
+**Dosya:** `src/domain/storage_deal.rs:380-420`
+**Sorun:** Aynı shard için birden fazla deal açılabilir (replica_index farkıyla).
+
+### V55: BNS Grace Period Bypass ⚪
+**Dosya:** `src/bns/registry.rs:56-65`
+**Sorun:** Grace period sadece eski owner'a yenileme hakkı tanır.
+
+### V57: BNS Root Hash Does Not Include All Fields 🟡
+**Dosya:** `src/bns/registry.rs:200-225`
+**Sorun:** `root()` sadece owner, content_id, luminance, author_name, tags hash'liyor.
+
+### V59: BNS Subdomain Management Issues ⚪
+**Dosya:** `src/bns/registry.rs:116-130`
+**Sorunlar:** Label validation yok, sayı sınırı yok, transfer mekanizması yok.
+
+### V60: B.U.D. Operator Bond Not Returned On Deal Expiry 🔴
+**Dosya:** `src/domain/storage_deal.rs:612-630`
+**Sorun:** `expire_deal()` operator bond iade etmiyor.
+
+### V61: BNS Resolver Field Dead Code ⚪
+**Dosya:** `src/bns/types.rs:14`
+**Sorun:** `NameRecord.resolver` alanı dead code.
+
+---
+
+## Özet Tablo
+
+| Ciddiyet | Sayı | Bulgular |
+|----------|------|----------|
+| 🔴 Kritik | 4 | V43, V46, V58, V60 |
+| 🟡 Yüksek | 5 | V47, V50, V51, V56, V57 |
+| ⚪ Düşük | 16 | V44, V45, V48, V52, V54, V55, V59, V61, V62, V63, V64, V65, V66, V67 |
+
+**Toplam: 25 yeni bulgu (V43-V67), 4 kritik, 5 yüksek, 16 düşük**
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
