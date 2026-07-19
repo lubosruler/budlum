@@ -56,7 +56,7 @@ pub struct ContentManifest {
     /// F01 (Phase 10.5): içerik sahibinin adresi. Zero-address = eski/pre-F01
     /// manifest (backward-compat); yeni manifest'ler gerçek owner taşır.
     #[serde(default)]
-    pub owner: crate::core::address::Address,
+    pub owner: budlum_primitives::Address,
     pub total_size: u64,
     pub shard_count: u32,
     pub shards: Vec<ShardRef>,
@@ -87,7 +87,7 @@ impl ContentManifest {
                 .ok_or_else(|| "ContentManifest total size overflow".to_string())?;
         }
         let shard_count = shards.len() as u32;
-        let owner = crate::core::address::Address::zero();
+        let owner = budlum_primitives::Address::zero();
         let manifest_id = manifest_id_from_shards(&shards);
         Ok(ContentManifest {
             manifest_id,
@@ -100,7 +100,7 @@ impl ContentManifest {
 
     /// F01: gerçek owner'ı set et (from_shards sonrası). `manifest_id` owner'a
     /// bağlıysa yeniden hesaplanmalı; şimdilik manifest_id shards-only (F01 faz 2).
-    pub fn with_owner(mut self, owner: crate::core::address::Address) -> Self {
+    pub fn with_owner(mut self, owner: budlum_primitives::Address) -> Self {
         self.owner = owner;
         self
     }

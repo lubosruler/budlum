@@ -11,12 +11,12 @@
 //! Data-sovereignty rule: anyone may open a challenge or submit a storage
 //! deal; no team-gated monitor role exists.
 
-use budlum_bud::StorageDomainParams;
+use crate::StorageDomainParams;
 use budlum_primitives::hash_fields_bytes;
 use budlum_primitives::Address;
 pub type Hash32 = [u8; 32];
-use budlum_bud::ContentId;
-use budlum_bud::ContentManifest;
+use crate::ContentId;
+use crate::ContentManifest;
 use serde::{Deserialize, Serialize};
 
 /// RPC-facing DTO for `bud_storageOpenChallenge`.
@@ -748,7 +748,7 @@ pub fn storage_deal_leaf_hash(deal: &StorageDeal) -> Hash32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use budlum_bud::StorageDomainParams;
+    use crate::StorageDomainParams;
     use budlum_primitives::Address;
 
     fn params() -> StorageDomainParams {
