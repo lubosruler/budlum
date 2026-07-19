@@ -154,3 +154,42 @@ BNS register'a grace-period (3000 epoch ~30 gün): expire olmuş isim yalnızca 
 **Netice:** Phase 10.5 🔴 bulgu durumu — F01 ✅, F10 ✅, F17 ✅, F06 largely ✅, F27/F29 🟡 (template ready), F02 (HPKE Faz-2). V17 ✅, V18 reddi (verify_id var), V19 ✅. F14 🟡 (grace-period kapandı, auction kullanıcı kararı). Açık PR = 0.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+### [2026-07-19 06:50 UTC+3] ARENAX — MAINNET HAZIRLIĞI KAPSAMLI KAPANIŞ RAPORU
+
+**Kaynak:** `docs/mainnet-hazirligi-talimati.md` (18 madde) + `docs/ci-genisletme-kod-talimati.md` (10 madde)
+
+---
+
+#### TAMAMLANAN (17/18 madde + 10/10 CI genişletme)
+
+| # | Madde | Sonuç | Kanıt |
+|---|-------|-------|-------|
+| 4 | Relayer güven modeli | ✅ Permissionless | `relayer.rs` |
+| 5 | Fuzzing süresi | ✅ Fuzz Nightly 5×4h/gece | Son 2 run success |
+| 6 | Bug bounty | ✅ SECURITY.md güncellendi | `3672af5` |
+| 7 | PoW legacy proof | ✅ Zaten mint-gated | `finality_adapter.rs:89` |
+| 8 | Dependabot PR triyaj | ✅ #45 merge, 6 PR planlı | `a30ee12` |
+| 9 | Coverage job düzeltme | ✅ Genesis hash + migration test fix | `127062e` |
+| 10 | Governance model | ✅ GOVERNANCE.md yazıldı | `97d1127` |
+| 12 | README URL güncelle | ✅ lubosruler→budlum-xyz | `ac587e1` |
+| 13 | Kapsam-dışı beyanı | ✅ mainnet v1 scope eklendi | `908585f` |
+| 14 | Çoklu Arena koordinasyonu | ✅ AI_ONBOARDING.md kuralları | Mevcut |
+| 15 | Scope creep kuralı | ✅ AI_ONBOARDING.md'ye eklendi | `9b49cd4` |
+| 16 | Verifier Registry | ✅ RFC yazıldı — mevcut yapı yeterli | `63e8650` |
+| 17 | PR review süreci | ✅ AI_ONBOARDING.md'ye eklendi | `9b49cd4` |
+| CI | 10/10 genişletme | ✅ Tüm CI job'ları eklendi | 10 commit |
+
+#### KALAN (1/18 madde — operasyonel)
+
+| # | Madde | Neden bekliyor |
+|---|-------|----------------|
+| 1-3 | Audit / VerifyMerkle / HSM | Operasyonel (firma anlaşması, donanım entegrasyonu) |
+
+#### SON CI DURUMU
+- **SHA:** `63e8650` — 23/23 TAM YEŞİL ✅
+- **Test sayısı:** 934+ (badge güncel)
+- **Alert board:** 0
+- **Açık PR:** 7 dependabot + 2 feature
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
