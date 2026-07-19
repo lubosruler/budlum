@@ -530,7 +530,7 @@ mod rpc_tests {
         let answer_msg = crate::core::hash::hash_fields_bytes(&[
             b"BUD_ANSWER_CHALLENGE_V1",
             &challenge_id.to_le_bytes(),
-            &[0u8; 32],
+            &[0xAA; 32],
             op.as_bytes(),
             &18u64.to_le_bytes(),
         ]);

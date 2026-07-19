@@ -122,3 +122,53 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (B15 tasarım kararı + AI finality adapter)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-19 14:03 UTC+3] ARENA2 — P5 ADIM11 CI-PROVEN: AI Execution Proof (B29) + Verifier QoS (B30)
+
+**Durum:** CI-yeşil — SHA `93aae87`, CI Run `29684010494` Budlum Core ✅ (14/14 jobs green, 964 passed, 0 failed, 1 ignored)
+**Kapsam:** P5 AI Inference ADIM11 — 2 yeni bulgu + 9 yeni test + 3 yeni RPC + 3 yeni ChainActor command
+
+**ADIM11 Bulgular:**
+- **B29: AI Execution Proof** — ZKVM-based verifiable inference primitive. `AiExecutionProof` struct: model_id, input_commitment, output_commitment, program_hash, proof_bytes, steps, gas_used. `commitments_match()` structural verification. `calculate_leaf()` domain-separated hash (BDLM_AI_EXEC_PROOF_V1). `attach_execution_proof()` binds proof to (request, verifier) with commitment validation. `get_execution_proof()`, `has_execution_proof()` query methods. `execution_proofs: BTreeMap<(AiRequestId, [u8; 32]), AiExecutionProof>` in AiRegistry with BDLM_AI_EXEC_PROOFS domain in state root.
+- **B30: Verifier QoS** — Quality of Service reputation tracking for Agentic Economy. `AiVerifierQos` struct: total_results_submitted, successful_finalizations, equivocation_count, avg_response_blocks, last_active_block. `record_result()`, `record_finalization()`, `record_equivocation()` metric trackers. `reliability_score()`: finalization_rate × (1 - equivocation_penalty). `calculate_leaf()` domain-separated hash (BDLM_AI_VERIFIER_QOS_V1). QoS recording integrated into submit_result/finalization/equivocation flows. `verifiers_by_reliability()` ranking for QoS-aware verifier selection.
+
+**Yeni RPC endpoint'leri (3):**
+- `bud_aiExecutionProof(request_id, verifier)` → proof details + trustless flag
+- `bud_aiVerifierQos(verifier)` → QoS metrics + reliability_score + finalization_rate
+- `bud_aiVerifierRanking()` → all verifiers ranked by reliability (descending)
+
+**Yeni ChainActor komutları (3):**
+- `GetAiExecutionProof { request_id, verifier, response }`
+- `GetAiVerifierQos { verifier, response }`
+- `GetAiVerifiersByReliability(oneshot)`
+
+**Yeni testler (9):**
+- `test_p5_adim11_attach_execution_proof` — happy path proof attachment
+- `test_p5_adim11_execution_proof_wrong_commitment_rejected` — output_commitment mismatch
+- `test_p5_adim11_execution_proof_no_result_rejected` — no result exists
+- `test_p5_adim11_verifier_qos_recorded_on_result` — QoS on result submission
+- `test_p5_adim11_verifier_qos_finalization_recorded` — finalization increments
+- `test_p5_adim11_verifier_qos_equivocation_recorded` — equivocation penalty
+- `test_p5_adim11_verifier_qos_reliability_score` — score calculation
+- `test_p5_adim11_execution_proof_changes_state_root` — proof affects state root
+- `test_p5_adim11_qos_changes_state_root` — QoS affects state root
+
+**Ek düzeltmeler (V58 regression):**
+- `storage_deal.rs`: 4 test `ContentId([0u8; 32])` → `ContentId([1u8; 32])` (V58 zero-hash guard)
+- `rpc/tests.rs`: answer_msg signature hash `[0u8; 32]` → `[0xAA; 32]` + `_range_hash` sync
+
+**CI kanıtı:** SHA `93aae87`, CI Run `29684010494` — 14/14 ✅
+- İlk push `a25cb54`: E0422 compile error (AiExecutionProof/AiVerifierQos not in pub use) → fix `32fa6c3`
+- İkinci push `9fda0c0`: V58 storage_deal test regression (5 FAILED) → fixed ContentId + signature sync
+- Üçüncü push `93aae87`: Full green ✅
+
+**P5 Toplam:** 11 ADIM, 30 bulgu, 964 test (CI-kanitli)
+
+**Ne bitti:** B29 ZKVM execution proof type + registry + RPC, B30 Verifier QoS tracking + reliability scoring + ranking RPC, V58 regression fix
+**CI kanıtı:** SHA `93aae87` + CI Run `29684010494` (14/14 ✅, 964 passed)
+**Ne bekliyor:** B31 Agent-to-Agent Payment primitive, ZKVM ISA AI opcode tasarımı, verifier whitelist
+**Kim karar verecek:** Ayaz (B31 tasarım kararı + ZKVM opcode + vizyon hizalaması)
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
