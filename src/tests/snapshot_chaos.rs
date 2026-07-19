@@ -179,6 +179,32 @@ mod tests {
         h.update(s.message_root);
         h.update(s.settlement_root);
         h.update(s.global_header_summary);
+
+        // GAP-2: schema>=4 includes 15 previously-unhashed fields
+        if s.schema_version >= 4 {
+            let serialize_hash = |data: &dyn serde::Serialize| -> Vec<u8> {
+                bincode::serialize(data).unwrap_or_default()
+            };
+            h.update(serialize_hash(&s.tokenomics));
+            h.update(serialize_hash(&s.tokenomics_burn));
+            h.update(serialize_hash(&s.registry));
+            h.update(serialize_hash(&s.liveness));
+            h.update(serialize_hash(&s.invalid_votes));
+            h.update(serialize_hash(&s.bns_registry));
+            h.update(serialize_hash(&s.nft_registry));
+            h.update(serialize_hash(&s.marketplace));
+            h.update(serialize_hash(&s.hub));
+            h.update(serialize_hash(&s.storage_registry));
+            h.update(serialize_hash(&s.ai_registry));
+            h.update(serialize_hash(&s.bridge_state));
+            h.update(serialize_hash(&s.message_registry));
+            h.update(serialize_hash(&s.external_roots));
+            let fc_bytes = bincode::serialize(&s.finality_certificates).unwrap_or_default();
+            h.update((fc_bytes.len() as u64).to_le_bytes());
+            h.update(&fc_bytes);
+            h.update(s.created_at.to_le_bytes());
+        }
+
         hex::encode(h.finalize())
     }
 
