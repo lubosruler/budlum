@@ -222,6 +222,22 @@ impl From<&Transaction> for pb::ProtoTransaction {
                     },
                 )),
             ),
+            TransactionType::AiAgentPaymentRelease(payment_id) => (
+                pb::ProtoTransactionType::AiFeeReclaim as i32,
+                Some(pb::proto_transaction::TypePayload::AiFeeReclaim(
+                    pb::ProtoAiFeeReclaim {
+                        request_id: payment_id.to_vec(),
+                    },
+                )),
+            ),
+            TransactionType::AiAgentPaymentReclaim(payment_id) => (
+                pb::ProtoTransactionType::AiFeeReclaim as i32,
+                Some(pb::proto_transaction::TypePayload::AiFeeReclaim(
+                    pb::ProtoAiFeeReclaim {
+                        request_id: payment_id.to_vec(),
+                    },
+                )),
+            ),
         };
 
         pb::ProtoTransaction {

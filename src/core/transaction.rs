@@ -167,6 +167,11 @@ pub enum TransactionType {
     /// Enables trustless value transfer between AI agents, with optional
     /// escrow gating by inference outcome finalization and execution proof.
     AiAgentPayment(crate::ai::types::AiAgentPayment),
+    /// V86: Release an escrowed agent payment to the recipient.
+    /// Called after the linked inference outcome is finalized.
+    AiAgentPaymentRelease([u8; 32]),
+    /// V86: Reclaim an expired escrowed agent payment back to the sender.
+    AiAgentPaymentReclaim([u8; 32]),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -505,6 +510,8 @@ impl Transaction {
             TransactionType::AiRequestCancel(_) => schedule.contract_call_gas,
             TransactionType::AiDisputeSlash { .. } => schedule.contract_call_gas,
             TransactionType::AiAgentPayment(_) => schedule.contract_call_gas * 2,
+            TransactionType::AiAgentPaymentRelease(_) => schedule.contract_call_gas,
+            TransactionType::AiAgentPaymentReclaim(_) => schedule.contract_call_gas,
         };
         let signature_gas = if self.signature.is_some() {
             schedule.gas_per_signature
@@ -649,6 +656,8 @@ fn transaction_type_tag(tx_type: &TransactionType) -> u8 {
         TransactionType::AiRequestCancel(_) => 26,
         TransactionType::AiDisputeSlash { .. } => 27,
         TransactionType::AiAgentPayment(_) => 28,
+        TransactionType::AiAgentPaymentRelease(_) => 29,
+        TransactionType::AiAgentPaymentReclaim(_) => 30,
     }
 }
 fn encode_chain(chain: ExternalChain, out: &mut Vec<u8>) {
@@ -835,6 +844,12 @@ fn encode_transaction_type_payload(tx_type: &TransactionType, out: &mut Vec<u8>)
             put_u8(out, if payment.require_proof { 1 } else { 0 });
             put_u64(out, payment.submitted_at_block);
             put_u64(out, payment.expiry_block);
+        }
+        TransactionType::AiAgentPaymentRelease(payment_id) => {
+            put_fixed(out, payment_id);
+        }
+        TransactionType::AiAgentPaymentReclaim(payment_id) => {
+            put_fixed(out, payment_id);
         }
     }
 }

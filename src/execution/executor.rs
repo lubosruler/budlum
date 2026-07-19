@@ -848,6 +848,45 @@ impl Executor {
                 // credited until release_agent_payment is called (by executor
                 // on outcome finalization or by explicit release tx).
             }
+            TransactionType::AiAgentPaymentRelease(payment_id) => {
+                // V86: Release escrowed payment to recipient after outcome finalization.
+                // Get amount BEFORE release (release removes the payment from registry).
+                let payment_amount = state
+                    .ai_registry
+                    .get_agent_payment(&payment_id)
+                    .ok_or_else(|| {
+                        BudlumError::validation(
+                            "ai_payment_release_failed",
+                            "Agent payment: payment_id not found",
+                        )
+                    })?
+                    .amount;
+                let current_block = state.epoch_index.saturating_mul(100);
+                let recipient = state
+                    .ai_registry
+                    .release_agent_payment(&payment_id, current_block)
+                    .map_err(|e| BudlumError::validation("ai_payment_release_failed", e))?;
+                // Credit recipient
+                let recipient_acc = state.get_or_create(&recipient);
+                recipient_acc.balance = recipient_acc.balance.saturating_add(payment_amount);
+                // Deduct fee from sender
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_sub(tx.fee);
+                sender.nonce = sender.nonce.saturating_add(1);
+            }
+            TransactionType::AiAgentPaymentReclaim(payment_id) => {
+                // V86: Reclaim expired escrowed payment back to sender.
+                let current_block = state.epoch_index.saturating_mul(100);
+                let amount = state
+                    .ai_registry
+                    .reclaim_agent_payment(&payment_id, &tx.from, current_block)
+                    .map_err(|e| BudlumError::validation("ai_payment_reclaim_failed", e))?;
+                // Refund to sender
+                let sender = state.get_or_create(&tx.from);
+                sender.balance = sender.balance.saturating_add(amount);
+                sender.balance = sender.balance.saturating_sub(tx.fee);
+                sender.nonce = sender.nonce.saturating_add(1);
+            }
         }
 
         Ok(())
