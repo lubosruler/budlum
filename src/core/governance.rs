@@ -75,8 +75,10 @@ impl Proposal {
     }
 
     pub fn finalize(&mut self, total_stake: u64, quorum_pct: u64) {
-        let reached_quorum =
-            (self.votes_for + self.votes_against) * 100 >= total_stake * quorum_pct;
+        // V70: Use u128 to prevent overflow in the quorum calculation
+        let total_votes = (self.votes_for as u128) + (self.votes_against as u128);
+        let quorum_threshold = (total_stake as u128) * (quorum_pct as u128);
+        let reached_quorum = total_votes * 100 >= quorum_threshold;
         if reached_quorum && self.votes_for > self.votes_against {
             self.status = ProposalStatus::Passed;
         } else {
@@ -98,12 +100,31 @@ impl GovernanceState {
         p_type: ProposalType,
         current_epoch: u64,
         duration: u64,
-    ) -> u64 {
+    ) -> Result<u64, String> {
+        // V68: Validate proposal duration
+        const MIN_PROPOSAL_DURATION: u64 = 10; // Minimum 10 epochs
+        const MAX_PROPOSAL_DURATION: u64 = 100_000; // Maximum 100,000 epochs
+        if duration < MIN_PROPOSAL_DURATION || duration > MAX_PROPOSAL_DURATION {
+            return Err(format!(
+                "Proposal duration must be between {} and {} epochs",
+                MIN_PROPOSAL_DURATION, MAX_PROPOSAL_DURATION
+            ));
+        }
+
+        // V69: Limit active proposals to prevent state bloat
+        const MAX_ACTIVE_PROPOSALS: usize = 100;
+        let active_count = self.proposals.iter()
+            .filter(|p| p.status == ProposalStatus::Active)
+            .count();
+        if active_count >= MAX_ACTIVE_PROPOSALS {
+            return Err("Too many active proposals".into());
+        }
+
         let id = self.next_proposal_id;
         let proposal = Proposal::new(id, proposer, p_type, current_epoch, duration);
         self.proposals.push(proposal);
         self.next_proposal_id += 1;
-        id
+        Ok(id)
     }
 
     pub fn find_proposal_mut(&mut self, id: u64) -> Option<&mut Proposal> {
@@ -115,5 +136,29 @@ impl GovernanceState {
             .iter()
             .filter(|p| p.status == ProposalStatus::Active)
             .collect()
+    }
+
+    /// V71: Cancel a proposal. Only the original proposer can cancel.
+    /// The proposal must still be Active.
+    pub fn cancel_proposal(
+        &mut self,
+        proposal_id: u64,
+        caller: &Address,
+    ) -> Result<(), String> {
+        let proposal = self
+            .proposals
+            .iter_mut()
+            .find(|p| p.id == proposal_id)
+            .ok_or_else(|| format!("Proposal {} not found", proposal_id))?;
+
+        if proposal.proposer != *caller {
+            return Err("Only the proposer can cancel the proposal".into());
+        }
+        if proposal.status != ProposalStatus::Active {
+            return Err("Proposal is not active".into());
+        }
+
+        proposal.status = ProposalStatus::Failed;
+        Ok(())
     }
 }
