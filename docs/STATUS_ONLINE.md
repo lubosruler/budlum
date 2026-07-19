@@ -2091,4 +2091,190 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Ne bekliyor:** V87-V94 kapatmaları + devam eden derin denetim (blockchain.rs, registry/, network/, storage/ alt modülleri henüz tam derinlemesine incelenmedi).
 **Kim karar verecek:** Ayaz (V89/V90/V94 önceliklendirme) + CI (push sonrası)
 
+---
+
+## ADIM 2 — blockchain.rs (4626 satır) Derin Denetim + pos.rs + chain_actor.rs
+
+**Tarih:** 2026-07-20
+**Ajan:** ARENAS (Denetim)
+**Önceki SHA:** 0ae16d3 (V87-V94 push, CI pending)
+
+### V95 (🔴 Kritik) — try_reorg Split-Brain: Domain/Bridge/Settlement State Eski Zincirde Kalır
+
+**Dosya:** `src/chain/blockchain.rs` → `try_reorg()` (satır ~2475-2555)
+**Ciddiyet:** 🔴 Kritik
+**Kategori:** State tutarsızlığı / Reorg güvenliği
+
+**Açıklama:**
+`try_reorg` çağrıldığında sadece `self.chain` ve `self.state` (AccountState) yeni zincirden yeniden inşa edilir. Ancak `Blockchain` yapısındaki şu alanlar eski zincirin verisini korur:
+
+- `self.domain_registry` — ConsensusDomain kayıtları eski zincire ait
+- `self.domain_commitment_registry` — Domain commitment'leri eski zincire ait
+- `self.global_headers` — GlobalBlockHeader zinciri eski
+- `self.finalized_height` / `self.finalized_hash` — Eski zincirin finalized durumu
+- `self.pending_finality_certs` — Eski zincirin finality sertifikaları
+- `self.pending_slashing_evidence` — Kısmen temizlenir (sadece `verified_qc_blobs` temizleniyor)
+- `self.universal_relayer` — Relay ledger eski
+- `self.proof_claims` — ZK proof claim'ler eski zincire ait
+- `self.pending_storage_root` — Storage proof aggregation eski
+- `self.storage_slashed_bond_total`, `self.storage_burned_bond_total`, `self.storage_operator_rewards` — Storage economics eski zincirden
+
+Sonuç: Reorg sonrası account balance'lar yeni zincire göre hesaplanırken, bridge/domain/settlement katmanı eski zincire göre çalışır. Bu "split-brain" durumu:
+1. Yanlış domain commitment'lerinin kabulüne yol açabilir
+2. Eski finalized height'ına göre bridge mint/unlock yapılabilir
+3. Global header zinciri kopuk olabilir
+4. Eski slashing evidence yeni zincirde uygulanabilir
+
+**Etki:** Reorg sonrası tüm on-chain yapılar tutarsız hale gelir. Kötü niyetli bir miner fork'unu kabul ettirerek domain/bridge state'ini istismar edebilir.
+
+**Öneri:** `try_reorg` içinde tüm in-memory yapıları yeni zincirden yeniden inşa et. En azından `finalized_height`, `domain_registry`, `domain_commitment_registry`, `global_headers` ve `universal_relayer` storage'dan reload edilmeli.
+
+---
+
+### V96 (🟡 Yüksek) — validate_and_add_block: Height Continuity ve previous_hash Kontrolü Eksik
+
+**Dosya:** `src/chain/blockchain.rs` → `validate_and_add_block()` (satır ~1785)
+**Ciddiyet:** 🟡 Yüksek
+**Kategori:** Defense-in-depth eksikliği
+
+**Açıklama:**
+`validate_and_add_block` fonksiyonunda blok seviyesinde şu kontroller eksik:
+1. `block.index != self.chain.len() as u64` — Yükseklik sürekliliği
+2. `block.previous_hash != self.last_block().hash` — Hash zinciri sürekliliği
+
+PoW ve PoA konsensüs motorları `previous_hash` kontrolü yapıyor, ancak blockchain katmanında defense-in-depth olarak bu kontroller olmalı. Özellikle:
+- ZK ve BFT konsensüs tiplerinde bu kontroller yapılmayabilir
+- `full_validate` trait metoduna güvenmek tek katman güvenlik değil
+- Bir engine implementasyonundaki bug tüm zinciri riske atar
+
+**Öneri:** `validate_and_add_block` başına şu kontrolleri ekle:
+```rust
+if block.index != self.chain.len() as u64 {
+    return Err(format!("Block index gap: expected {}, got {}", self.chain.len(), block.index));
+}
+if block.previous_hash != self.last_block().hash {
+    return Err("Block previous_hash does not chain to our tip".into());
+}
+```
+
+---
+
+### V97 (🟡 Yüksek) — submit_relay_proof BridgeBurn: correlation_id Fallback Logic Hatası
+
+**Dosya:** `src/chain/blockchain.rs` → `submit_relay_proof()` (satır ~816)
+**Ciddiyet:** 🟡 Yüksek
+**Kategori:** Bridge güvenliği / Logic error
+
+**Açıklama:**
+`submit_relay_proof` fonksiyonunda `MessageKind::BridgeBurn` dalında:
+```rust
+let transfer_id = message.correlation_id.unwrap_or(message.message_id);
+```
+
+Eğer `correlation_id` `None` ise, burn mesajının kendi ID'si (`message.message_id`) transfer ID olarak kullanılır. Bu yanlıştır — transfer, orijinal lock mesajının ID'si altında yaşar. `correlation_id` olmadan burn mesajı ile lock transferi eşleştirilemez.
+
+Saldırı senaryosu: `correlation_id = None` olan bir burn mesajı, tesadüfen var olan bir `message_id` ile eşleşirse, yanlış transfer unlock edilebilir.
+
+**Öneri:** `correlation_id` `None` olduğunda hata döndürülmeli:
+```rust
+let transfer_id = message.correlation_id
+    .ok_or_else(|| "BridgeBurn message missing correlation_id".to_string())?;
+```
+
+---
+
+### V98 (🟡 Yüksek) — PoS calculate_seed: Lock Poisoning Sonrası Seed Sıfırlanır, VRF Leader Seçimi Öngörülebilir Olur
+
+**Dosya:** `src/consensus/pos.rs` → `calculate_seed()` (satır ~170)
+**Ciddiyet:** 🟡 Yüksek
+**Kategori:** Konsensüs güvenliği / Fault tolerance
+
+**Açıklama:**
+```rust
+let prev_seed = match self.epoch_seed.read() {
+    Ok(guard) => *guard,
+    Err(e) => {
+        tracing::error!("Epoch seed lock poisoned: {}", e);
+        [0u8; 32]  // ← SIFIR SEED!
+    }
+};
+```
+
+Eğer `epoch_seed` RwLock'u poison olursa (başka bir thread panik yaparsa), seed tüm sıfırlara döner. Bu durumda:
+1. Tüm sonraki VRF hesaplamaları öngörülebilir olur
+2. `chain_id + epoch + slot + [0;32] + validator_set_hash` ile seed tam olarak hesaplanabilir
+3. Saldırgan, hangi doğrulayıcının hangi slot'ta seçileceğini önceden bilebilir
+4. Hedefli slot kaçırma veya frontrunning mümkün olur
+
+**Etki:** Lock poisoning sonrası tüm konsensüs leader seçimi öngörülebilir hale gelir.
+
+**Öneri:** Lock poisoning durumunda fail-closed olunmalı — node durmalı veya seed hesaplaması durdurulmalı. Zero seed ile devam etmek güvenlik açığıdır.
+
+---
+
+### V99 (⚪ Düşük) — is_valid() Dummy AccountState Kullanıyor
+
+**Dosya:** `src/chain/blockchain.rs` → `is_valid()` (satır ~1995)
+**Ciddiyet:** ⚪ Düşük
+**Kategori:** Doğrulama eksikliği
+
+**Açıklama:**
+`is_valid()` her bloğu `AccountState::new()` ile doğrular. Bu, state transition'ları kontrol etmez — sadece konsensüs yapısal kontrollerini yapar. Sonuç olarak, geçersiz state transition'ları olan bir zincir `is_valid()`'den geçebilir.
+
+**Öneri:** Dokümantasyon ile işaretle veya gerçek state ile doğrulama yap.
+
+---
+
+### V100 (⚪ Düşük) — Storage Challenge Opener Her Zaman Zero Address
+
+**Dosya:** `src/chain/blockchain.rs` → `issue_storage_challenges()` (satır ~2230)
+**Ciddiyet:** ⚪ Düşük
+**Kategori:** Tasarım kararı / Ekonomik tutarsızlık
+
+**Açıklama:**
+```rust
+let opener = crate::core::address::Address::from([0u8; 32]);
+```
+
+Otomatik storage challenge'ları her zaman zero address (genesis) tarafından açılır. Bu durum:
+1. Zero address'ten bond (1 BUD) düşürülür
+2. Challenge ödülleri/cezaları zero address'e gider
+3. Zero address özel muamele görebilir
+
+**Öneri:** Protocol treasury address kullanılmalı veya challenge opener konsepti otomatik challenge'lar için kaldırılmalı.
+
+---
+
+### V101 (⚪ Düşük) — GetAiFeeReclaimStatus: Clone Üzerinde State-Changing İşlem
+
+**Dosya:** `src/chain/chain_actor.rs` → `GetAiFeeReclaimStatus` handler (satır ~1580)
+**Ciddiyet:** ⚪ Düşük
+**Kategori:** Sorgu/yan etki tutarsızlığı
+
+**Açıklama:**
+```rust
+let mut registry = self.blockchain.state.ai_registry.clone();
+let res = registry.reclaim_fee(&id, current_block);
+```
+
+AI registry klonlanır ve `reclaim_fee` klon üzerinde çağrılır. Bu bir sorgu olduğu için yan etkiler atılır. Ancak `reclaim_fee` muhtemelen fee'i "reclaimed" olarak işaretler — sorgu sonucu ile gerçek state arasındaki tutarsızlık, kullanıcıya yanlış bilgi verebilir.
+
+**Öneri:** Salt-read status metodu kullanılmalı: `check_fee_reclaim_status()`.
+
+---
+
+**Güncel Toplam Denetim Tablosu:**
+
+| Ciddiyet | Sayı | Durum |
+|----------|------|-------|
+| 🔴 Kritik | 10 | 4 kapatıldı, 6 açık (V24, V37, V38, V86, V89, **V95**) |
+| 🟡 Yüksek | 21 | 5 kapatıldı, 16 açık |
+| ⚪ Düşük | 36 | 4 kapatıldı, 32 açık |
+
+**Toplam: 67 bulgu (V22-V101), 13 kapatıldı, 54 açık**
+
+**Ne bitti:** ADIM 2 — blockchain.rs (4626 satır) tam derin denetim + pos.rs (738 satır) + chain_actor.rs (2688 satır) denetlendi. 7 yeni bulgu (V95-V101), 1 kritik (V95 — reorg split-brain).
+**Ne bekliyor:** V95-V101 kapatmaları + QC.rs + PoA.rs + RPC + network/ modülleri + storage/ modülleri denetimi.
+**Kim karar verecek:** Ayaz (V95 reorg onarımı önceliklendirmesi) + CI (push sonrası)
+
 Co-authored-by: ARENAS <arenas@budlum.ai>
