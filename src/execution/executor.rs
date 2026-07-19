@@ -788,16 +788,21 @@ impl Executor {
                 request_id,
                 verifier,
             } => {
-                // P5 ADIM8 Bulgu 23: Slash a verifier for equivocation.
-                let slashed_verifier = state
+                // P5 ADIM8 Bulgu 23 + ADIM9 Bulgu 25+26: Slash a verifier
+                // for equivocation (with dispute window enforcement).
+                let current_block = state.epoch_index.saturating_mul(100);
+                let (slashed_verifier, seized_stake) = state
                     .ai_registry
-                    .slash_equivocator(&request_id, &verifier)
+                    .slash_equivocator(&request_id, &verifier, current_block)
                     .map_err(|e| BudlumError::validation("ai_dispute_slash_failed", e))?;
                 if let Some(validator) = state.validators.get_mut(&slashed_verifier) {
                     validator.slashed = true;
                     validator.active = false;
                     validator.stake = 0;
                 }
+                // P5 ADIM9 Bulgu 26: Burn seized verifier stake (or send to treasury).
+                // For now, burned — prevents economic incentive to slash falsely.
+                let _ = seized_stake; // Burned
                 let sender = state.get_or_create(&tx.from);
                 sender.balance = sender.balance.saturating_sub(tx.fee);
                 sender.nonce = sender.nonce.saturating_add(1);

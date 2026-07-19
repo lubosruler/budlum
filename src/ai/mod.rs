@@ -2828,7 +2828,9 @@ mod tests {
         let fake_addr =
             Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
                 .unwrap();
-        registry.equivocation_events.insert((fake_req, fake_addr.0));
+        registry
+            .equivocation_events
+            .insert((fake_req, fake_addr.0), 100);
         assert!(!registry.is_empty());
 
         // Reset and add just a cancelled request
@@ -2870,7 +2872,7 @@ mod tests {
         p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
         let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
         assert!(registry.has_equivocated(&req_id, &v1));
-        let slashed = registry.slash_equivocator(&req_id, &v1).unwrap();
+        let (slashed, _seized) = registry.slash_equivocator(&req_id, &v1, 20).unwrap();
         assert_eq!(slashed, v1);
         assert!(!registry.has_equivocated(&req_id, &v1));
     }
@@ -2884,8 +2886,8 @@ mod tests {
                 .unwrap();
         p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
         let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
-        registry.slash_equivocator(&req_id, &v1).unwrap();
-        assert!(registry.slash_equivocator(&req_id, &v1).is_err());
+        registry.slash_equivocator(&req_id, &v1, 20).unwrap();
+        assert!(registry.slash_equivocator(&req_id, &v1, 20).is_err());
     }
 
     #[test]
@@ -2895,7 +2897,7 @@ mod tests {
         let fake_v =
             Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
                 .unwrap();
-        assert!(registry.slash_equivocator(&fake_req, &fake_v).is_err());
+        assert!(registry.slash_equivocator(&fake_req, &fake_v, 20).is_err());
     }
 
     #[test]
@@ -2908,7 +2910,7 @@ mod tests {
         p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
         let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
         let root_before = registry.state_root();
-        registry.slash_equivocator(&req_id, &v1).unwrap();
+        registry.slash_equivocator(&req_id, &v1, 20).unwrap();
         assert_ne!(root_before, registry.state_root());
     }
 
@@ -2933,5 +2935,151 @@ mod tests {
         let ai_kind = ConsensusKind::AiInference;
         let custom_kind = ConsensusKind::Custom("ai_inference".to_string());
         assert_ne!(ai_kind.as_bytes(), custom_kind.as_bytes());
+    }
+
+    // ===================== P5 ADIM9 — Dispute Window + Verifier Stake =====================
+
+    #[test]
+    fn test_p5_adim9_dispute_window_slash_within_window() {
+        // P5 Bulgu 25: Slash succeeds within dispute window
+        let (mut registry, model_id, owner) = p5_adim6_setup_registry(3, 2);
+        let req_id = p5_adim6_submit_request(&mut registry, model_id, owner, 10, 110, 100);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
+        let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
+        // Slash at block 50 — equivocation detected at block 16, well within window
+        assert!(registry.slash_equivocator(&req_id, &v1, 50).is_ok());
+    }
+
+    #[test]
+    fn test_p5_adim9_dispute_window_expired_rejected() {
+        // P5 Bulgu 25: Slash rejected after dispute window expires
+        let (mut registry, model_id, owner) = p5_adim6_setup_registry(3, 2);
+        let req_id = p5_adim6_submit_request(&mut registry, model_id, owner, 10, 110, 100);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
+        let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
+        // Detected at block 16, window = 10080, so after 10096 should fail
+        let result = registry.slash_equivocator(&req_id, &v1, 10_097);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Dispute window expired"));
+    }
+
+    #[test]
+    fn test_p5_adim9_dispute_window_is_disputable() {
+        // P5 Bulgu 25: is_disputable returns correct values
+        let (mut registry, model_id, owner) = p5_adim6_setup_registry(3, 2);
+        let req_id = p5_adim6_submit_request(&mut registry, model_id, owner, 10, 110, 100);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
+        let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
+        assert!(registry.is_disputable(&req_id, &v1, 50));
+        assert!(!registry.is_disputable(&req_id, &v1, 10_097));
+    }
+
+    #[test]
+    fn test_p5_adim9_expire_dispute_window() {
+        // P5 Bulgu 25: expire_dispute_window cleans old events
+        let (mut registry, model_id, owner) = p5_adim6_setup_registry(3, 2);
+        let req_id = p5_adim6_submit_request(&mut registry, model_id, owner, 10, 110, 100);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
+        let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
+        assert!(registry.has_equivocated(&req_id, &v1));
+        let expired = registry.expire_dispute_window(10_097);
+        assert_eq!(expired, 1);
+        assert!(!registry.has_equivocated(&req_id, &v1));
+    }
+
+    #[test]
+    fn test_p5_adim9_verifier_stake_lock() {
+        // P5 Bulgu 26: Lock verifier stake
+        let (mut registry, _, _) = p5_adim6_setup_registry(2, 2);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        let stake = registry.lock_verifier_stake(&v1, 5000).unwrap();
+        assert_eq!(stake, 5000);
+        assert!(registry.is_staked_verifier(&v1));
+        assert_eq!(registry.verifier_stake(&v1), 5000);
+        // Add more stake
+        let stake2 = registry.lock_verifier_stake(&v1, 3000).unwrap();
+        assert_eq!(stake2, 8000);
+    }
+
+    #[test]
+    fn test_p5_adim9_verifier_stake_zero_rejected() {
+        let (mut registry, _, _) = p5_adim6_setup_registry(2, 2);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        assert!(registry.lock_verifier_stake(&v1, 0).is_err());
+    }
+
+    #[test]
+    fn test_p5_adim9_verifier_stake_withdraw() {
+        // P5 Bulgu 26: Withdraw verifier stake when no pending disputes
+        let (mut registry, _, _) = p5_adim6_setup_registry(2, 2);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        registry.lock_verifier_stake(&v1, 5000).unwrap();
+        let withdrawn = registry.withdraw_verifier_stake(&v1, 3000, 100).unwrap();
+        assert_eq!(withdrawn, 3000);
+        assert_eq!(registry.verifier_stake(&v1), 2000);
+    }
+
+    #[test]
+    fn test_p5_adim9_verifier_stake_withdraw_blocked_by_dispute() {
+        // P5 Bulgu 26: Cannot withdraw if pending equivocation dispute
+        let (mut registry, model_id, owner) = p5_adim6_setup_registry(3, 2);
+        let req_id = p5_adim6_submit_request(&mut registry, model_id, owner, 10, 110, 100);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        registry.lock_verifier_stake(&v1, 5000).unwrap();
+        p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
+        let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
+        // Cannot withdraw while disputable
+        let result = registry.withdraw_verifier_stake(&v1, 3000, 50);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("pending equivocation"));
+    }
+
+    #[test]
+    fn test_p5_adim9_slash_seizes_stake() {
+        // P5 Bulgu 25+26: Slash seizes verifier stake
+        let (mut registry, model_id, owner) = p5_adim6_setup_registry(3, 2);
+        let req_id = p5_adim6_submit_request(&mut registry, model_id, owner, 10, 110, 100);
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        registry.lock_verifier_stake(&v1, 5000).unwrap();
+        p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
+        let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
+        let (_, seized) = registry.slash_equivocator(&req_id, &v1, 50).unwrap();
+        assert_eq!(seized, 5000);
+        assert!(!registry.is_staked_verifier(&v1));
+        assert_eq!(registry.verifier_stake(&v1), 0);
+    }
+
+    #[test]
+    fn test_p5_adim9_stake_changes_state_root() {
+        // P5 Bulgu 26: Stake changes affect state root
+        let (mut registry, _, _) = p5_adim6_setup_registry(2, 2);
+        let root_before = registry.state_root();
+        let v1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000011")
+                .unwrap();
+        registry.lock_verifier_stake(&v1, 5000).unwrap();
+        assert_ne!(root_before, registry.state_root());
     }
 }

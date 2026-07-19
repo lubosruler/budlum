@@ -11,6 +11,16 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// P5 ADIM9 Bulgu 25: Dispute window in blocks.
+/// Equivocation events older than this cannot be slashed.
+/// Prevents stale disputes and provides finality to verifiers.
+/// Default: 10080 blocks ≈ 7 days at 1 block/minute.
+pub const DISPUTE_WINDOW_BLOCKS: u64 = 10_080;
+
+/// P5 ADIM9 Bulgu 26: Minimum verifier stake to participate in AI inference.
+/// Prevents Sybil attacks — verifiers must have economic skin-in-the-game.
+pub const MIN_VERIFIER_STAKE: u64 = 1_000;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AiRegistry {
     pub models: BTreeMap<AiModelId, AiModelSpec>,
@@ -20,15 +30,21 @@ pub struct AiRegistry {
     /// P5 Bulgu 4: Set of request IDs whose max_fee has been reclaimed
     /// after deadline expiry without finalization. Prevents double-reclaim.
     pub reclaimed_fees: BTreeSet<AiRequestId>,
-    /// P5 Bulgu 18 (ADIM7): Equivocation event record.
-    /// Tracks (request_id, verifier) pairs where a verifier submitted
-    /// conflicting commitments for the same request. This on-chain record
-    /// enables future slashing hooks and dispute resolution.
-    pub equivocation_events: BTreeSet<(AiRequestId, [u8; 32])>,
+    /// P5 Bulgu 18 (ADIM7): Equivocation event record with block timestamp.
+    /// Maps (request_id, verifier_bytes) → block_number when detected.
+    /// P5 ADIM9 Bulgu 25: Dispute window enforcement — equivocation events
+    /// expire after `DISPUTE_WINDOW_BLOCKS` blocks, preventing stale slashing.
+    pub equivocation_events: BTreeMap<(AiRequestId, [u8; 32]), u64>,
     /// P5 Bulgu 21 (ADIM7): Set of request IDs that have been cancelled
     /// by the requester before the deadline. Prevents double-cancel and
     /// blocks result submission for cancelled requests.
     pub cancelled_requests: BTreeSet<AiRequestId>,
+    /// P5 ADIM9 Bulgu 26: AI verifier stake registry.
+    /// Maps verifier address → staked amount. Verifiers must stake to
+    /// participate in AI inference; slashed amount goes to zero on equivocation.
+    /// This is separate from validator stake — AI verifiers have their own
+    /// economic commitment to the inference layer.
+    pub verifier_stakes: BTreeMap<Address, u64>,
 }
 
 impl AiRegistry {
@@ -39,8 +55,9 @@ impl AiRegistry {
             results: BTreeMap::new(),
             outcomes: BTreeMap::new(),
             reclaimed_fees: BTreeSet::new(),
-            equivocation_events: BTreeSet::new(),
+            equivocation_events: BTreeMap::new(),
             cancelled_requests: BTreeSet::new(),
+            verifier_stakes: BTreeMap::new(),
         }
     }
 
@@ -52,6 +69,7 @@ impl AiRegistry {
             && self.reclaimed_fees.is_empty()
             && self.equivocation_events.is_empty()
             && self.cancelled_requests.is_empty()
+            && self.verifier_stakes.is_empty()
     }
 
     pub fn register_model(&mut self, spec: AiModelSpec) -> Result<AiModelId, String> {
@@ -174,10 +192,11 @@ impl AiRegistry {
                 return Err("Verifier has already submitted a result for this request".into());
             } else {
                 // P5 Bulgu 18 (ADIM7): Record the equivocation event on-chain
+                // with block timestamp (P5 ADIM9 Bulgu 25: dispute window).
                 // before returning the error. This enables future slashing
                 // hooks and dispute resolution mechanisms.
                 self.equivocation_events
-                    .insert((result.request_id, result.verifier.0));
+                    .insert((result.request_id, result.verifier.0), current_block);
                 return Err(format!(
                     "EQUIVOCATION: verifier {:?} submitted conflicting commitments for request {} — dispute flagged",
                     result.verifier,
@@ -574,10 +593,27 @@ impl AiRegistry {
     }
 
     /// P5 Bulgu 18 (ADIM7): Check if a verifier has equivocated on a request.
-    /// Returns true if the (request_id, verifier) pair is in the equivocation record.
+    /// Returns true if the (request_id, verifier) pair is in the equivocation record
+    /// AND the dispute window has not expired (P5 ADIM9 Bulgu 25).
     pub fn has_equivocated(&self, request_id: &AiRequestId, verifier: &Address) -> bool {
         self.equivocation_events
-            .contains(&(*request_id, verifier.0))
+            .contains_key(&(*request_id, verifier.0))
+    }
+
+    /// P5 ADIM9 Bulgu 25: Check if an equivocation event is still within
+    /// the dispute window. Returns false if the event expired.
+    pub fn is_disputable(
+        &self,
+        request_id: &AiRequestId,
+        verifier: &Address,
+        current_block: u64,
+    ) -> bool {
+        match self.equivocation_events.get(&(*request_id, verifier.0)) {
+            Some(&detected_block) => {
+                current_block <= detected_block.saturating_add(DISPUTE_WINDOW_BLOCKS)
+            }
+            None => false,
+        }
     }
 
     /// P5 Bulgu 18 (ADIM7): Get the total count of equivocation events
@@ -585,7 +621,7 @@ impl AiRegistry {
     pub fn equivocation_count_for_verifier(&self, verifier: &Address) -> usize {
         self.equivocation_events
             .iter()
-            .filter(|(_, addr)| *addr == verifier.0)
+            .filter(|((_, addr), _)| *addr == verifier.0)
             .count()
     }
 
@@ -594,21 +630,127 @@ impl AiRegistry {
         self.cancelled_requests.contains(request_id)
     }
 
-    /// P5 ADIM8 Bulgu 23: Slash a verifier for equivocation.
+    /// P5 ADIM8 Bulgu 23 + ADIM9 Bulgu 25: Slash a verifier for equivocation.
+    /// Now enforces dispute window — cannot slash after DISPUTE_WINDOW_BLOCKS
+    /// have passed since the equivocation was detected.
     pub fn slash_equivocator(
         &mut self,
         request_id: &AiRequestId,
         verifier: &Address,
-    ) -> Result<Address, String> {
+        current_block: u64,
+    ) -> Result<(Address, u64), String> {
         let key = (*request_id, verifier.0);
-        if !self.equivocation_events.remove(&key) {
+        match self.equivocation_events.get(&key) {
+            Some(&detected_block) => {
+                if current_block > detected_block.saturating_add(DISPUTE_WINDOW_BLOCKS) {
+                    return Err(format!(
+                        "Dispute window expired for verifier {} on request {} (detected at block {}, window {} blocks)",
+                        verifier.to_hex(),
+                        request_id.to_hex(),
+                        detected_block,
+                        DISPUTE_WINDOW_BLOCKS
+                    ));
+                }
+            }
+            None => {
+                return Err(format!(
+                    "No equivocation record for verifier {} on request {}",
+                    verifier.to_hex(),
+                    request_id.to_hex()
+                ));
+            }
+        }
+        self.equivocation_events.remove(&key);
+
+        // P5 ADIM9 Bulgu 26: Slash verifier stake if present.
+        // Return the staked amount that was seized.
+        let seized_stake = self.verifier_stakes.remove(verifier).unwrap_or(0);
+
+        Ok((*verifier, seized_stake))
+    }
+
+    // ===================== P5 ADIM9 — Verifier Stake (Bulgu 26) =====================
+
+    /// P5 ADIM9 Bulgu 26: Lock stake for an AI verifier.
+    /// Verifiers must stake to participate in AI inference.
+    /// This stake is slashable on equivocation — economic skin-in-the-game.
+    pub fn lock_verifier_stake(&mut self, verifier: &Address, amount: u64) -> Result<u64, String> {
+        if amount == 0 {
+            return Err("Verifier stake must be > 0".into());
+        }
+        let current = self.verifier_stakes.get(verifier).copied().unwrap_or(0);
+        let new_stake = current.saturating_add(amount);
+        self.verifier_stakes.insert(*verifier, new_stake);
+        Ok(new_stake)
+    }
+
+    /// P5 ADIM9 Bulgu 26: Withdraw verifier stake (only if no pending equivocation).
+    pub fn withdraw_verifier_stake(
+        &mut self,
+        verifier: &Address,
+        amount: u64,
+        current_block: u64,
+    ) -> Result<u64, String> {
+        // Cannot withdraw if there are active equivocation events
+        let has_pending = self
+            .equivocation_events
+            .iter()
+            .any(|((_, addr), &detected_block)| {
+                *addr == verifier.0
+                    && current_block <= detected_block.saturating_add(DISPUTE_WINDOW_BLOCKS)
+            });
+        if has_pending {
             return Err(format!(
-                "No equivocation record for verifier {} on request {}",
-                verifier.to_hex(),
-                request_id.to_hex()
+                "Cannot withdraw stake: verifier {} has pending equivocation disputes",
+                verifier.to_hex()
             ));
         }
-        Ok(*verifier)
+        let current = self
+            .verifier_stakes
+            .get(verifier)
+            .copied()
+            .ok_or_else(|| format!("No stake found for verifier {}", verifier.to_hex()))?;
+        if amount > current {
+            return Err(format!(
+                "Withdrawal {} exceeds staked amount {}",
+                amount, current
+            ));
+        }
+        let remaining = current.saturating_sub(amount);
+        if remaining == 0 {
+            self.verifier_stakes.remove(verifier);
+        } else {
+            self.verifier_stakes.insert(*verifier, remaining);
+        }
+        Ok(amount)
+    }
+
+    /// P5 ADIM9 Bulgu 26: Check if a verifier has staked.
+    pub fn is_staked_verifier(&self, verifier: &Address) -> bool {
+        self.verifier_stakes.contains_key(verifier)
+    }
+
+    /// P5 ADIM9 Bulgu 26: Get verifier's staked amount.
+    pub fn verifier_stake(&self, verifier: &Address) -> u64 {
+        self.verifier_stakes.get(verifier).copied().unwrap_or(0)
+    }
+
+    /// P5 ADIM9 Bulgu 25: Expire old equivocation events past dispute window.
+    /// Called during pruning to clean up stale events.
+    pub fn expire_dispute_window(&mut self, current_block: u64) -> usize {
+        let expired: Vec<_> = self
+            .equivocation_events
+            .iter()
+            .filter(|(_, &detected_block)| {
+                current_block > detected_block.saturating_add(DISPUTE_WINDOW_BLOCKS)
+            })
+            .map(|(k, _)| *k)
+            .collect();
+        let count = expired.len();
+        for key in expired {
+            self.equivocation_events.remove(&key);
+        }
+        count
     }
 
     /// Calculate deterministic Merkle/SHA256 root of all AI registry maps.
@@ -621,7 +763,7 @@ impl AiRegistry {
             return [0u8; 32];
         }
         let mut hasher = Sha256::new();
-        hasher.update(b"BDLM_AI_REGISTRY_ROOT_V2");
+        hasher.update(b"BDLM_AI_REGISTRY_ROOT_V3");
 
         // Domain: models
         hasher.update(b"BDLM_AI_MODELS");
@@ -662,17 +804,25 @@ impl AiRegistry {
             hasher.update(b"RECLAIMED");
         }
 
-        // Domain: equivocation_events (P5 Bulgu 18)
+        // Domain: equivocation_events (P5 Bulgu 18 + ADIM9 Bulgu 25)
         hasher.update(b"BDLM_AI_EQUIVOCATIONS");
-        for (req_id, verifier_bytes) in &self.equivocation_events {
+        for ((req_id, verifier_bytes), detected_block) in &self.equivocation_events {
             hasher.update(req_id.0);
             hasher.update(verifier_bytes);
+            hasher.update(detected_block.to_le_bytes());
         }
 
         // Domain: cancelled_requests (P5 Bulgu 21)
         hasher.update(b"BDLM_AI_CANCELLED");
         for id in &self.cancelled_requests {
             hasher.update(id.0);
+        }
+
+        // Domain: verifier_stakes (P5 ADIM9 Bulgu 26)
+        hasher.update(b"BDLM_AI_VERIFIER_STAKES");
+        for (verifier, stake) in &self.verifier_stakes {
+            hasher.update(verifier.as_bytes());
+            hasher.update(stake.to_le_bytes());
         }
 
         hasher.finalize().into()
