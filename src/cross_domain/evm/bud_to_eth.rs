@@ -190,6 +190,7 @@ mod tests {
             recipient_eth: [0xBB; 20],
             bridge_cap: DEFAULT_BRIDGE_CAP,
         };
-        let _ = build_bud_to_eth_claim(&input);
+        let result = build_bud_to_eth_claim(&input);
+        assert!(result.is_err(), "garbage input must be rejected, not accepted");
     }
 }

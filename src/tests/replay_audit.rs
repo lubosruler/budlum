@@ -149,21 +149,6 @@ async fn test_sub_registry_recovery() {
     }
 }
 
-macro_rules! gen_replay_tests {
-    ($($name:ident, $seed:expr),*) => {
-        $(
-            #[test]
-            fn $name() {
-                // Placeholder for seed-based replay variations
-                assert!(true);
-            }
-        )*
-    }
 }
 
-gen_replay_tests!(
-    replay_1, 1, replay_2, 2, replay_3, 3, replay_4, 4, replay_5, 5, replay_6, 6, replay_7, 7,
-    replay_8, 8, replay_9, 9, replay_10, 10, replay_11, 11, replay_12, 12, replay_13, 13,
-    replay_14, 14, replay_15, 15, replay_16, 16, replay_17, 17, replay_18, 18, replay_19, 19,
-    replay_20, 20
-);
+

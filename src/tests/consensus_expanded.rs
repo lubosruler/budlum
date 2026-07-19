@@ -51,11 +51,14 @@ fn test_blockchain_future_timestamp_buffer() {
     let mut bc = Blockchain::new(consensus, None, 1337, None);
     let mut block = Block::new(1, bc.chain[0].hash.clone(), vec![]);
     block.chain_id = 1337;
-    // Block far in the future (e.g., 1 hour)
+    // Block far in the future (e.g., 1 hour) — most protocols reject.
     block.timestamp = bc.chain[0].timestamp + 3600 * 1000 + 1000;
-    // Most protocols reject blocks too far in the future
     let res = bc.validate_and_add_block(block).map(|_| ());
-    // current impl might accept or reject depending on drift settings
+    // Future-timestamp block reddedilmeli (timestamp drift koruması).
+    assert!(
+        res.is_err(),
+        "future-timestamp block must be rejected (timestamp drift protection)"
+    );
 }
 
 macro_rules! gen_pow_difficulty_tests {
