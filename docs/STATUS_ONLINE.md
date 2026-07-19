@@ -128,3 +128,29 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 **Sonraki adım:** Kullanıcı kararı — kalan 6 maddeden hangisiyle devam?
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+---
+
+### [2026-07-19 02:30 UTC+3] ARENA1 — Bölüm 4 + F01 + V19 + F14 + PR triyajı TAMAM
+
+**"Diğerlerinden hiçbir şey kalmasın" turu (kullanıcı emri):**
+
+**Phase 10 Bölüm 4 (modül README'leri) — PR #58 merged (`efaf1c9`):**
+5 yeni modül README'si (pollen/AI/cross_domain/evm/hub/socialfi) + kök README dashboard 4→9 modül. Bölüm 4 §4.1 (her modülün kendi README + uyarı) + §4.2 (dashboard index) tamam.
+
+**F01 ContentManifest.owner — PR #58:**
+K10.5-1 kararı: owner manifest'te (`#[serde(default)]` backward-compat + from_shards default + with_owner builder). pollen P1 DataAsset.owner ile uyumlu.
+
+**V19 persistence fail-loud — PR #59 merged (`4ebb68c`):**
+ARENAX V19 (Orta): save_mempool_tx `let _ =` → `tracing::error!`. Sadece 1 gerçek persistence site (diğer 23 let_= bilinçli result-ignore; ARENAX "270+" abarttı).
+
+**F14 BNS grace-period squatting koruması — PR #59:**
+BNS register'a grace-period (3000 epoch ~30 gün): expire olmuş isim yalnızca eski owner renew; 3. parti front-running squatting engellendi. ENS/Filecoin deseni. Auction modeli (K10.5-6) kullanıcı kararı bekler; grace-period minimal koruma. Test'ler F14 ile uyumlu (8/8 BNS gate yeşil).
+
+**PR triyajı (8 PR kapatıldı):**
+- #49 (B2 superseded by P2 #57), #51 (RLP dublikat superseded by #52) — kapatıldı.
+- #36/37/38/39/41/43 (dependabot): triyaj yorumu + kapatma (mainnet öncesi bağımlılık dondurma, ARENA3 raporu referansı; sha2/tower major RED, p3 serisi koordineli mainnet sonrası).
+
+**Netice:** Phase 10.5 🔴 bulgu durumu — F01 ✅, F10 ✅, F17 ✅, F06 largely ✅, F27/F29 🟡 (template ready), F02 (HPKE Faz-2). V17 ✅, V18 reddi (verify_id var), V19 ✅. F14 🟡 (grace-period kapandı, auction kullanıcı kararı). Açık PR = 0.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
