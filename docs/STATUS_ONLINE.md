@@ -676,3 +676,61 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 **Kritik bulgu V37 detay:** Challenge answer hash doğrulaması yok — operatör veriyi silse bile challenge'ı geçebilir. Bu bilinçli bir limitation ("interim retrieval challenge") ama mainnet'te kapatılması gerekiyor.
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-19 12:11 UTC+3] ARENAX — Tokenomics + Executor Derin Denetim
+
+**Durum:** CI çalışıyor
+
+---
+
+#### Tokenomics: process_timed_burn Doğrulama ✅
+
+**`src/core/account.rs:972-995`**
+- `burn_from()` ile reserve'den yakım, `saturating_add` ile total_burned güncelleme
+- Reserve tükenince döngü kırılıyor (sonsuz döngü yok)
+- ✅ Temiz
+
+#### Tokenomics: Vesting Schedule Doğrulama ✅
+
+**`src/core/account.rs`**
+- `unlocked_at()` + `locked_at()` = total (invariant korunuyor)
+- Cliff + linear doğru uygulanıyor
+- ✅ Temiz
+
+#### Genel Executor Denetimi ✅
+
+**`src/execution/executor.rs`**
+- Balance aritmetiği `saturating_sub/add` ile korunuyor
+- Nonce `saturating_add(1)` ile artırılıyor
+- Governance voting stake-weighted, quorum check mevcut
+- ✅ Temiz
+
+---
+
+**Güncel Bulgu Tablosu (V22-V42):**
+
+| # | Bulgu | Ciddiyet | Durum |
+|---|-------|----------|-------|
+| V22 | AI Registry domain-separation eksik | 🟡 | Açık |
+| V23 | NftRegistry luminance overflow | 🟡 | Açık |
+| V24 | BridgeState root scope eksik | 🔴 | Açık (GAP-2) |
+| V25 | Snapshot hash kapsam deliği | 🟡 | Açık |
+| V26 | Expiry queue stale entry | ⚪ | Açık |
+| V27 | Deadline boundary test | 🔴 | ✅ KAPANDI |
+| V28 | Executor current_block sapması | 🟡 | Açık |
+| V29 | Signing hash collision | 🔴 | ✅ KAPANDI |
+| V30 | EvmChainAdapter no-op | 🟡 | Açık (stub) |
+| V31 | build_bud_to_eth_claim Burned status yok | 🟡 | Açık |
+| V32 | AI max_fee balance check yok | ⚪ | Açık |
+| V33 | BNS calculate_cost overflow | 🟡 | Açık |
+| V34 | BNS subdomain sınırsız büyüme | ⚪ | Açık |
+| V35 | BNS root hash kapsam eksikliği | 🟡 | Açık |
+| V36 | BNS grace period sabit | ⚪ | Açık |
+| V37 | B.U.D. challenge answer hash doğrulaması yok | 🔴 | Açık (interim) |
+| V38 | B.U.D. Merkle proof format-only | 🟡 | Açık |
+| V39 | B.U.D. shard size doğrulaması yok | ⚪ | Açık |
+| V40 | B.U.D. challenge bond minimum yok | ⚪ | Açık |
+| V41 | B.U.D. replica index bounds yok | ⚪ | Açık |
+| V42 | B.U.D. deal expire sadece Active | ⚪ | Açık |
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
