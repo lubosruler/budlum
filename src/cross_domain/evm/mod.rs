@@ -24,4 +24,5 @@ pub mod header;
 pub mod mpt;
 pub mod receipt;
 pub mod rlp;
+pub mod sync_committee;
 pub mod verify;
