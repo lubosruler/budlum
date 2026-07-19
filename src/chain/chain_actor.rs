@@ -197,6 +197,11 @@ pub enum ChainCommand {
     },
     /// P5 ADIM11 Bulgu 33: Get verifier whitelist.
     GetAiVerifierWhitelist(oneshot::Sender<Vec<crate::core::address::Address>>),
+    GetAiAgentReputation {
+        agent: crate::core::address::Address,
+        response: oneshot::Sender<Option<crate::ai::types::AiAgentReputation>>,
+    },
+    GetAiAgentRanking(oneshot::Sender<Vec<(crate::core::address::Address, f64)>>),
     GetPruneStatus(oneshot::Sender<serde_json::Value>),
     RequestPrune(Option<u64>, oneshot::Sender<Result<u64, String>>),
     BuildGlobalHeader(oneshot::Sender<Result<crate::settlement::GlobalBlockHeader, String>>),
@@ -1308,6 +1313,38 @@ impl ChainHandle {
         rx.await.unwrap_or_default()
     }
 
+    pub async fn get_ai_agent_reputation(
+        &self,
+        agent: crate::core::address::Address,
+    ) -> Option<crate::ai::types::AiAgentReputation> {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiAgentReputation {
+                agent,
+                response: tx,
+            })
+            .await
+            .is_err()
+        {
+            return None;
+        }
+        rx.await.ok()?
+    }
+
+    pub async fn get_ai_agent_ranking(&self) -> Vec<(crate::core::address::Address, f64)> {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiAgentRanking(tx))
+            .await
+            .is_err()
+        {
+            return Vec::new();
+        }
+        rx.await.unwrap_or_default()
+    }
+
     pub async fn get_prune_status(&self) -> Result<serde_json::Value, String> {
         let (tx, rx) = oneshot::channel();
         if let Err(e) = self.tx.send(ChainCommand::GetPruneStatus(tx)).await {
@@ -2263,6 +2300,19 @@ impl ChainActor {
                         .cloned()
                         .collect();
                     let _ = res_tx.send(whitelist);
+                }
+                ChainCommand::GetAiAgentReputation { agent, response } => {
+                    let rep = self
+                        .blockchain
+                        .state
+                        .ai_registry
+                        .get_agent_reputation(&agent)
+                        .cloned();
+                    let _ = response.send(rep);
+                }
+                ChainCommand::GetAiAgentRanking(res_tx) => {
+                    let ranking = self.blockchain.state.ai_registry.agents_by_trust_score();
+                    let _ = res_tx.send(ranking);
                 }
                 ChainCommand::GetPruneStatus(res_tx) => {
                     let height = self.blockchain.chain.len() as u64;

@@ -886,6 +886,14 @@ impl AccountState {
                     Err(e) => tracing::warn!("Rejecting ParameterUpdate {}={}: {}", key, value, e),
                 }
             }
+            ProposalType::WhitelistVerifier { address } => {
+                self.ai_registry.whitelist_verifier(*address);
+                tracing::info!("Executing Governance: Whitelisted verifier {}", address);
+            }
+            ProposalType::DewhitelistVerifier { address } => {
+                self.ai_registry.dewhitelist_verifier(address);
+                tracing::info!("Executing Governance: Dewhitelisted verifier {}", address);
+            }
         }
     }
 

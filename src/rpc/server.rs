@@ -3278,6 +3278,49 @@ impl BudlumApiServer for RpcServer {
         }))
     }
 
+    async fn ai_agent_reputation(
+        &self,
+        agent: crate::core::address::Address,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let rep = self.chain.get_ai_agent_reputation(agent).await;
+        match rep {
+            Some(r) => Ok(serde_json::json!({
+                "agent": format!("0x{}", r.agent.to_hex()),
+                "payments_completed": r.payments_completed,
+                "payments_defaulted": r.payments_defaulted,
+                "requests_submitted": r.requests_submitted,
+                "results_submitted": r.results_submitted,
+                "results_finalized": r.results_finalized,
+                "equivocations": r.equivocations,
+                "trust_score": r.trust_score(),
+                "active_block_span": r.active_block_span,
+                "first_active_block": r.first_active_block,
+                "last_active_block": r.last_active_block,
+            })),
+            None => Ok(serde_json::json!({
+                "error": "agent not found",
+                "agent": format!("0x{}", agent.to_hex()),
+            })),
+        }
+    }
+
+    async fn ai_agent_ranking(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let ranking = self.chain.get_ai_agent_ranking().await;
+        let entries: Vec<serde_json::Value> = ranking
+            .iter()
+            .map(|(addr, score)| {
+                serde_json::json!({
+                    "agent": format!("0x{}", addr.to_hex()),
+                    "trust_score": score,
+                })
+            })
+            .collect();
+        Ok(serde_json::json!({
+            "agent_count": entries.len(),
+            "ranking": entries,
+        }))
+    }
+
     async fn prune_status(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
         self.chain.get_prune_status().await.map_err(|e| {
             ErrorObjectOwned::owned(

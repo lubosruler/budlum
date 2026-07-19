@@ -4,9 +4,9 @@
 //! and finalized consensus outcomes. Provides deterministic `state_root()` calculation.
 
 use crate::ai::types::{
-    AiAgentPayment, AiCallbackEvent, AiDisputeStatusInfo, AiExecutionProof, AiInferenceOutcome,
-    AiInferenceRequest, AiInferenceResult, AiModelId, AiModelSpec, AiPaymentEscrowStatus,
-    AiRequestId, AiVerifierQos, AiVerifierStakeInfo,
+    AiAgentPayment, AiAgentReputation, AiCallbackEvent, AiDisputeStatusInfo, AiExecutionProof,
+    AiInferenceOutcome, AiInferenceRequest, AiInferenceResult, AiModelId, AiModelSpec,
+    AiPaymentEscrowStatus, AiRequestId, AiVerifierQos, AiVerifierStakeInfo,
 };
 use crate::core::address::Address;
 use serde::{Deserialize, Serialize};
@@ -73,6 +73,10 @@ pub struct AiRegistry {
     /// are allowed (permissioned mode). This enables governance-controlled
     /// verifier onboarding for the Agentic Economy.
     pub verifier_whitelist: BTreeSet<Address>,
+    /// P5 ADIM11 Bulgu 34: Agent reputation registry.
+    /// Maps agent address → AiAgentReputation. Tracks payment reliability,
+    /// inference quality, and uptime for trust scoring in the Agentic Economy.
+    pub agent_reputations: BTreeMap<Address, AiAgentReputation>,
 }
 
 impl AiRegistry {
@@ -91,6 +95,7 @@ impl AiRegistry {
             verifier_qos: BTreeMap::new(),
             agent_payments: BTreeMap::new(),
             verifier_whitelist: BTreeSet::new(),
+            agent_reputations: BTreeMap::new(),
         }
     }
 
@@ -108,6 +113,7 @@ impl AiRegistry {
             && self.verifier_qos.is_empty()
             && self.agent_payments.is_empty()
             && self.verifier_whitelist.is_empty()
+            && self.agent_reputations.is_empty()
     }
 
     pub fn register_model(&mut self, spec: AiModelSpec) -> Result<AiModelId, String> {
@@ -1192,6 +1198,85 @@ impl AiRegistry {
         self.verifier_whitelist.clear();
     }
 
+    // ─── P5 ADIM11 Bulgu 34: Agent Reputation ────────────────────────────
+
+    /// Get or create an agent's reputation record.
+    /// Returns a mutable reference so the caller can record events.
+    pub fn get_or_create_reputation(&mut self, agent: Address) -> &mut AiAgentReputation {
+        if !self.agent_reputations.contains_key(&agent) {
+            self.agent_reputations
+                .insert(agent, AiAgentReputation::new(agent));
+        }
+        self.agent_reputations.get_mut(&agent).unwrap()
+    }
+
+    /// Record a completed payment for an agent (as payer).
+    pub fn record_reputation_payment_completed(&mut self, agent: &Address, current_block: u64) {
+        let agent = *agent;
+        self.get_or_create_reputation(agent)
+            .record_payment_completed(current_block);
+    }
+
+    /// Record a defaulted/expired payment for an agent (as payer).
+    pub fn record_reputation_payment_defaulted(&mut self, agent: &Address, current_block: u64) {
+        let agent = *agent;
+        self.get_or_create_reputation(agent)
+            .record_payment_defaulted(current_block);
+    }
+
+    /// Record an inference request submission for an agent.
+    pub fn record_reputation_request(&mut self, agent: &Address, current_block: u64) {
+        let agent = *agent;
+        self.get_or_create_reputation(agent)
+            .record_request(current_block);
+    }
+
+    /// Record a result submission for a verifier agent.
+    pub fn record_reputation_result_submitted(&mut self, verifier: &Address, current_block: u64) {
+        let verifier = *verifier;
+        let rep = self.get_or_create_reputation(verifier);
+        rep.results_submitted = rep.results_submitted.saturating_add(1);
+        rep.update_activity(current_block);
+    }
+
+    /// Record that a verifier's result contributed to finalization.
+    pub fn record_reputation_result_finalized(&mut self, verifier: &Address, current_block: u64) {
+        let verifier = *verifier;
+        let rep = self.get_or_create_reputation(verifier);
+        rep.results_finalized = rep.results_finalized.saturating_add(1);
+        rep.update_activity(current_block);
+    }
+
+    /// Record an equivocation detection for a verifier.
+    pub fn record_reputation_equivocation(&mut self, verifier: &Address, current_block: u64) {
+        let verifier = *verifier;
+        let rep = self.get_or_create_reputation(verifier);
+        rep.equivocations = rep.equivocations.saturating_add(1);
+        rep.update_activity(current_block);
+    }
+
+    /// Get an agent's reputation record.
+    pub fn get_agent_reputation(&self, agent: &Address) -> Option<&AiAgentReputation> {
+        self.agent_reputations.get(agent)
+    }
+
+    /// Get all agents sorted by trust score (descending — highest trust first).
+    /// Returns Vec of (agent_address, trust_score) tuples.
+    pub fn agents_by_trust_score(&self) -> Vec<(Address, f64)> {
+        let mut scored: Vec<(Address, f64)> = self
+            .agent_reputations
+            .iter()
+            .map(|(addr, rep)| (*addr, rep.trust_score()))
+            .collect();
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        scored
+    }
+
+    /// Get the top-N agents by trust score.
+    pub fn top_agents(&self, n: usize) -> Vec<(Address, f64)> {
+        self.agents_by_trust_score().into_iter().take(n).collect()
+    }
+
     /// Calculate deterministic Merkle/SHA256 root of all AI registry maps.
     /// P5 Bulgu 19 (ADIM7): Domain-separated map roots prevent cross-map
     /// collision attacks (ARENAX V38). Each map gets a unique domain prefix
@@ -1302,6 +1387,13 @@ impl AiRegistry {
         hasher.update(b"BDLM_AI_VERIFIER_WHITELIST");
         for verifier in &self.verifier_whitelist {
             hasher.update(verifier.as_bytes());
+        }
+
+        // Domain: agent_reputations (P5 ADIM11 Bulgu 34)
+        hasher.update(b"BDLM_AI_AGENT_REPUTATIONS");
+        for (addr, rep) in &self.agent_reputations {
+            hasher.update(addr.as_bytes());
+            hasher.update(rep.calculate_leaf());
         }
 
         hasher.finalize().into()

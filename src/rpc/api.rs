@@ -694,4 +694,13 @@ pub trait BudlumApi {
     /// is in permissionless mode (any staked verifier can submit).
     #[method(name = "bud_aiVerifierWhitelist")]
     async fn ai_verifier_whitelist(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    #[method(name = "bud_aiAgentReputation")]
+    async fn ai_agent_reputation(
+        &self,
+        agent: crate::core::address::Address,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    #[method(name = "bud_aiAgentRanking")]
+    async fn ai_agent_ranking(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
 }

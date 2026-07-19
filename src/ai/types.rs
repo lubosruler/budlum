@@ -651,7 +651,7 @@ impl AiAgentReputation {
     }
 
     /// Update activity tracking.
-    fn update_activity(&mut self, current_block: u64) {
+    pub(crate) fn update_activity(&mut self, current_block: u64) {
         if self.first_active_block == 0 {
             self.first_active_block = current_block;
         }
