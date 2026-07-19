@@ -1333,7 +1333,8 @@ impl Blockchain {
         // 1. verify_id: message_id canonical preimage ile eşleşmeli (kanıt uydurma yüzeyi).
         if !message.verify_id() {
             return Err(
-                "Cross-domain message ID does not match canonical preimage (potential forgery)".into(),
+                "Cross-domain message ID does not match canonical preimage (potential forgery)"
+                    .into(),
             );
         }
         // 2. Domain-spoofing: source_domain ≠ target_domain (aynı domain'e cross-message yok).

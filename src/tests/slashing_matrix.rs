@@ -8,8 +8,8 @@
 mod tests {
     use crate::core::address::Address;
     use crate::registry::evidence::{ProofProvenance, SlashingProof, SlashingReport};
-    use crate::registry::permissionless::PermissionlessRegistry;
     use crate::registry::params::RegistryParams;
+    use crate::registry::permissionless::PermissionlessRegistry;
     use crate::registry::roles;
 
     fn setup_registry() -> PermissionlessRegistry {
@@ -176,14 +176,24 @@ mod tests {
         reg.register(val2, roles::VALIDATOR, 10_000).unwrap();
 
         let r1 = SlashingReport::consensus_double_sign(
-            val1, 100, "aaa".to_string(), "bbb".to_string(),
-            vec![0xAA; 64], vec![0xBB; 64], Some(addr(0x01)),
+            val1,
+            100,
+            "aaa".to_string(),
+            "bbb".to_string(),
+            vec![0xAA; 64],
+            vec![0xBB; 64],
+            Some(addr(0x01)),
         );
         let _ = reg.slash_from_report(&r1);
 
         let r2 = SlashingReport::consensus_double_sign(
-            val2, 200, "ccc".to_string(), "ddd".to_string(),
-            vec![0xCC; 64], vec![0xDD; 64], Some(addr(0x01)),
+            val2,
+            200,
+            "ccc".to_string(),
+            "ddd".to_string(),
+            vec![0xCC; 64],
+            vec![0xDD; 64],
+            Some(addr(0x01)),
         );
         let _ = reg.slash_from_report(&r2);
 
@@ -202,8 +212,13 @@ mod tests {
         reg.register(val, roles::VALIDATOR, 10_000).unwrap();
 
         let report = SlashingReport::consensus_double_sign(
-            val, 100, "aaa".to_string(), "bbb".to_string(),
-            vec![0xAA; 64], vec![0xBB; 64], Some(addr(0x01)),
+            val,
+            100,
+            "aaa".to_string(),
+            "bbb".to_string(),
+            vec![0xAA; 64],
+            vec![0xBB; 64],
+            Some(addr(0x01)),
         );
         let _ = reg.slash_from_report(&report);
 
@@ -225,8 +240,13 @@ mod tests {
         reg.register(val, roles::VALIDATOR, 10_000).unwrap();
 
         let report = SlashingReport::consensus_double_sign(
-            val, 100, "aaa".to_string(), "bbb".to_string(),
-            vec![0xAA; 64], vec![0xBB; 64], Some(addr(0x01)),
+            val,
+            100,
+            "aaa".to_string(),
+            "bbb".to_string(),
+            vec![0xAA; 64],
+            vec![0xBB; 64],
+            Some(addr(0x01)),
         );
 
         let r1 = reg.slash_from_report(&report);
