@@ -5,7 +5,7 @@
 #  sayı ARTARSA fail — düşmesi serbest, yeni baseline bilinçli PR'la düşürülür)
 #
 # Baseline kanıtı (2026-07-17, yerel, `98b0fd9` worktree):
-#   cargo clippy --all-targets -- -W pedantic -W nursery → 191 uyarı, 20 lint
+#   cargo clippy --all-targets -- -W pedantic -W nursery → 217 uyarı, 20 lint
 #   (en yüksek: uninlined_format_args 106, cast_precision_loss 14, cast_sign_loss 10)
 #
 # Kullanım:
