@@ -596,8 +596,7 @@ impl Vm {
                     let registered_model = read_u64(model_addr + 8);
 
                     // Phase 1+2: proof type must match AND model commitment must match
-                    if stored_proof_type != proof_type as u64
-                        || model_commitment != registered_hash
+                    if stored_proof_type != proof_type as u64 || model_commitment != registered_hash
                     {
                         0u64
                     }
