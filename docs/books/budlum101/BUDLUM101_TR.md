@@ -452,3 +452,59 @@ snapshot, bridge ve fuzz bölümlerine odaklanmalıdır.
 Her teknik değişiklikte şu soru sorulmalıdır: Bu değişiklik hangi state’i
 etkiliyor, hangi hash/signature bunu bağlıyor, hangi test mutation’ı reddediyor,
 hangi CI job bunu çalıştırıyor ve failure halinde node ne yapıyor?
+
+# Bölüm 15 — Kararların teknik hayata dönüşmesi
+
+Budlum’da bir kararın değerli olması için yalnız iyi niyetli olması yetmez.
+Karar; veri modeline, admission kuralına, hash/snapshot kapsamına, test
+matrisine, CI gate’ine ve operasyon runbook’ına yansımalıdır.
+
+## 15.1 Karar zinciri örneği: strict signing
+
+1. Risk bulunur: transaction payload alanlarının imza kapsamı eksiktir.
+2. Karar alınır: explicit canonical V4 signing ve legacy non-genesis red.
+3. Kod değişir: type payload alanları domain-separated signing preimage’e girer.
+4. Wire değişir: signature version transportta taşınır.
+5. Test değişir: imzalı transaction mutate edilince rejection beklenir.
+6. Operasyon değişir: mempool/legacy transaction migrationı açıklanır.
+7. CI değişir: format, compiler, transport ve regression gate’leri sonucu
+   commit SHA üzerinde değerlendirilir.
+
+Bu zincirin bir halkası yoksa, kararın uygulanmış olduğu değil yalnız niyet
+olarak ifade edildiği söylenebilir.
+
+## 15.2 Karar zinciri örneği: B.U.D. ve BNS ayrımı
+
+B.U.D. content/deal ekonomisi ile BNS isim çözümleme farklı state sahipliği,
+test ve operasyon gerektirir. Bağımsız crate sınırı şu soruları zorunlu kılar:
+
+- Hangi primitive ortak ve dependency-cycle oluşturmadan paylaşılabilir?
+- Core hangi API’leri tüketir, hangi iş mantığını sahiplenmez?
+- Snapshot serde/root canonical type değişiminden etkileniyor mu?
+- Eski public path’ler geçici mi, strict cutover mı?
+- Modül testi gerçekten kendi crate’inde mi koşuyor?
+
+<div class="plain">
+Bir kütüphane ile bir adres rehberi aynı binada bulunabilir; ama aynı kurum
+olmak zorunda değildir. B.U.D. verinin düzenini, BNS insanların o veriye nasıl
+ulaşacağını anlatır. Ayrı odalar kurmak yalnız tabelayı değiştirmek değil,
+sorumlulukları doğru yere koymaktır.
+</div>
+
+# Bölüm 16 — Açık soruların dürüst yönetimi
+
+Budlum’un bazı hedefleri kesin teknik karar, bazıları ise açık araştırma veya
+operasyon kararıdır. Açık soru saklanmamalı; sahibi, karar girdisi ve kabul
+kriteriyle kayıt altına alınmalıdır.
+
+| Açık alan | Neden karar gerekir? | Kanıt kapısı |
+|---|---|---|
+| BLS/PQ vendor-native HSM | Donanım, vendor ve custody modeli | gerçek HSM devnet rehearsal |
+| VerifyMerkle 64-depth | Soundness/production ISA | ayrı positive/negative CI gate |
+| Snapshot trust policy | signer/trust-list/legacy davranışı | schema migration + auth tests |
+| Persistence fail-stop | failure sonrası node davranışı | injection/restart tests |
+| External audit/bounty | dış güven ve disclosure | gerçek scope/channel/engagement |
+| Relayer finality modeli | confirmation/light-client güven varsayımı | RFC + adversarial bridge tests |
+
+Açık soru, teknik zayıflık ilanı değil; yanlış varsayımla kod yazmama
+kararlılığıdır.
