@@ -15,7 +15,6 @@
 //!    bağımlılığı YOK, permissionless challenge, farklı hesaplar aynı
 //!    shard için yarışabilir, vb. (Phase 0.39 plan §4 + §0.5).
 
-use budlum_primitives::Address;
 use budlum_bud::ContentId;
 use budlum_bud::ContentManifest;
 use budlum_bud::StorageDomainParams;
@@ -23,6 +22,7 @@ use budlum_bud::{
     ChallengeOutcome, DealStatus, RetrievalChallengeRequest, StorageEconomicsParams, StorageError,
     StorageRegistry,
 };
+use budlum_primitives::Address;
 
 // --- Ortak test yardımcıları --------------------------------------------
 
