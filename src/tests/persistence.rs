@@ -265,7 +265,8 @@ fn schema_2_snapshot_without_new_fields_still_deserializes() {
     }"#;
     let v2 = StateSnapshotV2::from_bytes(json.as_bytes())
         .expect("old schema-2 snapshot must still deserialize");
-    assert_eq!(v2.schema_version, 2);
+    // from_bytes upgrades schema-2 to current (4) via C6 legacy-import
+    assert_eq!(v2.schema_version, 4);
     // New fields default to empty/None (means: feature not active at snapshot time).
     assert!(v2.registry.clone().unwrap_or_default().is_empty());
     assert!(v2.tokenomics_burn.is_none());

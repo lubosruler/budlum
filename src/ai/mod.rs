@@ -2885,8 +2885,7 @@ mod tests {
         p5_adim6_submit_result(&mut registry, req_id, v1, [9u8; 32], 1, 15).unwrap();
         let _ = p5_adim6_submit_result(&mut registry, req_id, v1, [88u8; 32], 2, 16);
         registry.slash_equivocator(&req_id, &v1).unwrap();
-        let result = registry.slash_equivocator(&req_id, &v1);
-        assert!(result.is_err());
+        assert!(registry.slash_equivocator(&req_id, &v1).is_err());
     }
 
     #[test]

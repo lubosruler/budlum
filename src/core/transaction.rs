@@ -159,8 +159,6 @@ pub enum TransactionType {
     /// Returns escrowed max_fee for refund by the executor layer.
     AiRequestCancel(crate::ai::types::AiRequestId),
     /// Phase 10 (§1 P5 ADIM8): Slash a verifier for equivocation.
-    /// Anyone can submit; if the (request_id, verifier) pair is in
-    /// equivocation_events, the verifier's stake is slashed.
     AiDisputeSlash {
         request_id: crate::ai::types::AiRequestId,
         verifier: crate::core::address::Address,

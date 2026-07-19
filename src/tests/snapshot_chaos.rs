@@ -119,18 +119,8 @@ mod tests {
             .expect("register");
         snap.bns_registry = Some(forged);
 
-        // GAP PIN: verify hâlâ true (bns_registry hash hesabında yok).
-        assert!(snap.verify(), "GAP: hash-siz alana sahtecilik verify gecer");
-        pm.save_snapshot_v2(&snap).expect("save");
-        let loaded = pm.load_latest_snapshot_v2().expect("load").expect("some");
-        assert!(
-            loaded
-                .bns_registry
-                .as_ref()
-                .and_then(|r| r.resolve("evil.bud", 0))
-                .is_some(),
-            "sahte kayit yukleme yoluyla state'e gider (GAP)"
-        );
+        // Schema-4 GAP-2: BNS registry digest'e dahildir; mutation red olmalı.
+        assert!(!snap.verify(), "schema-4 must reject BNS registry forgery");
     }
 
     // ── 3) Bilinçli rehash sahtesi (GAP) — authenticity yok ────────────────
@@ -202,11 +192,12 @@ mod tests {
         snap.balances.insert(eve, 9_000_000);
         snap.snapshot_hash = recompute_v2_hash_for_test(&snap);
 
-        // GAP PIN: verify geçer — integrity mekanizması sahteciliği ayırt edemez.
-        assert!(snap.verify(), "GAP: rehash'li sahtecilik kabul gorur");
-        pm.save_snapshot_v2(&snap).expect("save");
-        let loaded = pm.load_latest_snapshot_v2().expect("load").expect("some");
-        assert_eq!(loaded.balances.get(&eve).copied(), Some(9_000_000));
+        // Integrity alone cannot distinguish an attacker who recomputes a digest;
+        // schema-4 authenticity policy is tested separately at the trust boundary.
+        assert!(
+            snap.verify(),
+            "rehash remains integrity-valid without signature policy"
+        );
     }
 
     // ── 4) Torn-write (yarım dosya) → karantina → eski snapshot'a düşüş ────
