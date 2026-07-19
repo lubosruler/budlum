@@ -16,10 +16,6 @@
 //! `domain/` because the data shapes it owns are consensus types, not
 //! transport types).
 
-pub mod content_id;
 pub mod db;
-pub mod manifest;
 pub mod traits;
 
-pub use content_id::{ContentId, DEFAULT_CHUNK_SIZE_BYTES};
-pub use manifest::{manifest_id_from_shards, ContentManifest, ShardRef};
