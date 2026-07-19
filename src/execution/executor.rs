@@ -200,7 +200,9 @@ impl Executor {
                             p_type,
                             state.epoch_index,
                             duration,
-                        );
+                        ).map_err(|e| {
+                            BudlumError::validation("governance_proposal_creation_failed", e)
+                        })?;
                     }
                 }
             }
