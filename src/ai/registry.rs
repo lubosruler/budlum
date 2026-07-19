@@ -1012,6 +1012,17 @@ impl AiRegistry {
                 "Agent payment: amount must be greater than zero",
             ));
         }
+        // V85 fix (Phase 11): expiry_block must not be unreasonably far in the
+        // future. Without a maximum, an attacker can create payments with
+        // expiry = u64::MAX, locking escrow forever. Cap at ~1 year (52560
+        // epochs × 100 blocks/epoch ≈ 5_256_000 blocks from current_block).
+        const MAX_PAYMENT_EXPIRY_HORIZON: u64 = 5_256_000;
+        if payment.expiry_block > current_block.saturating_add(MAX_PAYMENT_EXPIRY_HORIZON) {
+            return Err(format!(
+                "Agent payment: expiry_block too far in the future (max {} blocks from current)",
+                MAX_PAYMENT_EXPIRY_HORIZON
+            ));
+        }
         if payment.is_expired(current_block) {
             return Err(String::from(
                 "Agent payment: expiry_block already expired (must be in the future)",

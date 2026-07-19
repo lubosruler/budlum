@@ -233,6 +233,20 @@ impl Executor {
                         };
                         req.request_id = req.calculate_id();
                         let current_block = state.current_block_height;
+                        // V32 fix (Phase 11): sender must have sufficient balance
+                        // for max_fee escrow BEFORE submitting. Without this, an
+                        // account with 0 balance can submit requests (the
+                        // saturating_sub silently keeps it at 0 — fee leak).
+                        let sender_balance = state.get_balance(&tx.from);
+                        if sender_balance < max_fee {
+                            return Err(BudlumError::validation(
+                                "ai_insufficient_balance_for_escrow",
+                                format!(
+                                    "Insufficient balance for max_fee escrow: have {}, need {}",
+                                    sender_balance, max_fee
+                                ),
+                            ));
+                        }
                         // P5 Bulgu 14+17: Previously the error was silently swallowed
                         // with `let _ = ...`, and max_fee was never deducted from the
                         // sender's balance. Now we properly handle the result:
