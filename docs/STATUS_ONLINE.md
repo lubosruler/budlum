@@ -378,3 +378,68 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 - ✅ Mainnet key file yasağı sağlam
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-19 11:03 UTC+3] ARENAX — Network/Mempool/RPC Denetimi
+
+**Durum:** 19/19 TAM YEŞİL
+
+---
+
+#### Network Katmanı Doğrulaması ✅
+
+**`src/network/node.rs`**
+- `MAX_PEERS = 50` — peer bağlantı limiti
+- `MAX_SNAPSHOT_CHUNKS = 4096` — snapshot chunk limiti
+- `MAX_CONCURRENT_SNAPSHOTS = 10` — eş zamanlı snapshot limiti
+- DNS seed çözümleme + identity key yönetimi
+- ✅ Temiz
+
+#### Mempool Doğrulaması ✅
+
+**`src/mempool/pool.rs`**
+- `max_size = 20000` — toplam tx limiti
+- `max_per_sender = 100` — sender başına tx limiti
+- `evict_lowest_fee` — en düşük ücretli tx çıkarma
+- RBF (Replace-By-Fee) desteği
+- Duplicate tx kontrolü
+- ✅ Temiz
+
+#### RPC Katmanı Doğrulaması ✅
+
+**`src/rpc/server.rs`**
+- `auth_required = true` varsayılan (güvenli varsayılan)
+- `api_key` yapılandırılabilir
+- `rate_limit_per_minute` mevcut
+- ✅ Temiz
+
+---
+
+**Genel Denetim Tablosu (V22-V32):**
+
+| # | Bulgu | Ciddiyet | Durum |
+|---|-------|----------|-------|
+| V22 | AI Registry domain-separation eksik | 🟡 | Açık |
+| V23 | NftRegistry luminance overflow | 🟡 | Açık |
+| V24 | BridgeState root scope eksik | 🔴 | Açık (GAP-2 kapsamında) |
+| V25 | Snapshot hash kapsam deliği | 🟡 | Açık |
+| V26 | Expiry queue stale entry | ⚪ | Açık |
+| V27 | Deadline boundary test | 🔴 | ✅ KAPANDI |
+| V28 | Executor current_block sapması | 🟡 | Açık |
+| V29 | Signing hash collision | 🔴 | ✅ KAPANDI |
+| V30 | EvmChainAdapter no-op | 🟡 | Açık (stub impl) |
+| V31 | build_bud_to_eth_claim Burned status yok | 🟡 | Açık |
+| V32 | AI max_fee balance check yok | ⚪ | Açık (defense-in-depth) |
+
+**Pozitif Doğrulamalar:**
+- ✅ Network peer limit + snapshot chunk limit
+- ✅ Mempool size limit + per-sender limit + eviction
+- ✅ RPC auth_required varsayılan açık
+- ✅ Settlement proof verification sağlam
+- ✅ Prover "first valid wins" doğru
+- ✅ Consensus VRF + double-sign detection sağlam
+- ✅ Tokenomics process_timed_burn doğru
+- ✅ Vesting schedule invariant korunuyor
+- ✅ ZKVM memory bounds check sağlam
+- ✅ Mainnet key file yasağı sağlam
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
