@@ -12,7 +12,7 @@
 //!   (Phase 0.39 plan §0.5).
 //!
 //! The domain-level deal / challenge accounting lives in
-//! `crate::domain::storage_deal::StorageRegistry` (kept under
+//! `budlum_bud::StorageRegistry` (kept under
 //! `domain/` because the data shapes it owns are consensus types, not
 //! transport types).
 

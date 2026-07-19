@@ -297,7 +297,7 @@ pub trait BudlumApi {
         replica_index: u8,
         start_epoch: u64,
         end_epoch: u64,
-        economics: crate::domain::storage_deal::StorageEconomicsParams,
+        economics: budlum_bud::StorageEconomicsParams,
         domain_params: budlum_bud::StorageDomainParams,
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<crate::domain::Hash32>,
@@ -335,7 +335,7 @@ pub trait BudlumApi {
     #[method(name = "bud_storageOpenChallenge")]
     async fn storage_open_challenge(
         &self,
-        request: crate::domain::storage_deal::RetrievalChallengeRequest,
+        request: budlum_bud::RetrievalChallengeRequest,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Operator answers an open challenge with a `range_hash`. The chain
@@ -345,7 +345,7 @@ pub trait BudlumApi {
     #[method(name = "bud_storageAnswerChallenge")]
     async fn storage_answer_challenge(
         &self,
-        response: crate::domain::storage_deal::RetrievalResponse,
+        response: budlum_bud::RetrievalResponse,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     /// Query aggregate storage economics accounting from the chain actor.

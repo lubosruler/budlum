@@ -486,7 +486,7 @@ mod rpc_tests {
                 0,
                 10,
                 100,
-                crate::domain::storage_deal::StorageEconomicsParams {
+                budlum_bud::StorageEconomicsParams {
                     operator_bond: 2_000_000,
                     fee_per_epoch: 10,
                 },
@@ -513,7 +513,7 @@ mod rpc_tests {
         let open_sig = watcher_keypair.sign(&open_msg).to_vec();
 
         let chal_res = server
-            .storage_open_challenge(crate::domain::storage_deal::RetrievalChallengeRequest {
+            .storage_open_challenge(budlum_bud::RetrievalChallengeRequest {
                 deal_id,
                 byte_start: 0,
                 byte_end: 15,
@@ -537,7 +537,7 @@ mod rpc_tests {
         let answer_sig = op_keypair.sign(&answer_msg).to_vec();
 
         let ans_res = server
-            .storage_answer_challenge(crate::domain::storage_deal::RetrievalResponse {
+            .storage_answer_challenge(budlum_bud::RetrievalResponse {
                 challenge_id,
                 _range_hash: budlum_bud::ContentId([0u8; 32]),
                 responder: op,

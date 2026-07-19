@@ -433,7 +433,7 @@ pub struct StateSnapshotV2 {
     #[serde(default)]
     pub hub: Option<crate::hub::HubRegistry>,
     #[serde(default)]
-    pub storage_registry: Option<crate::domain::storage_deal::StorageRegistry>,
+    pub storage_registry: Option<budlum_bud::StorageRegistry>,
     #[serde(default)]
     pub ai_registry: Option<crate::ai::registry::AiRegistry>,
     #[serde(default)]

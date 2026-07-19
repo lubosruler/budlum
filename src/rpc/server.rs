@@ -3,7 +3,7 @@ use crate::chain::chain_actor::ChainHandle;
 use crate::core::address::Address;
 use crate::core::block::Block;
 use crate::core::transaction::Transaction;
-use crate::domain::storage_deal::{
+use budlum_bud::{
     RetrievalChallenge, RetrievalChallengeRequest, RetrievalResponse, StorageDeal, StorageRegistry,
 };
 use crate::network::node::NodeClient;
@@ -1454,7 +1454,7 @@ impl BudlumApiServer for RpcServer {
         replica_index: u8,
         start_epoch: u64,
         end_epoch: u64,
-        economics: crate::domain::storage_deal::StorageEconomicsParams,
+        economics: budlum_bud::StorageEconomicsParams,
         domain_params: budlum_bud::StorageDomainParams,
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<crate::domain::Hash32>,

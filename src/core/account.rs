@@ -4,7 +4,7 @@ use crate::core::governance::GovernanceState;
 use crate::core::transaction::{Transaction, TransactionType};
 use crate::cross_domain::message_registry::CrossDomainMessageRegistry;
 use crate::cross_domain::BridgeState;
-use crate::domain::storage_deal::StorageRegistry;
+use budlum_bud::StorageRegistry;
 use crate::storage::db::Storage;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};

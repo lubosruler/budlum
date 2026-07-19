@@ -19,7 +19,7 @@ use crate::consensus::pow::PoWEngine;
 use crate::core::address::Address;
 use crate::core::transaction::{Transaction, TransactionType};
 use crate::crypto::primitives::KeyPair;
-use crate::domain::storage_deal::StorageEconomicsParams;
+use budlum_bud::StorageEconomicsParams;
 use budlum_bud::StorageDomainParams;
 use budlum_bud::ContentId;
 use crate::storage::db::Storage;

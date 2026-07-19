@@ -16,7 +16,7 @@
 //!    shard için yarışabilir, vb. (Phase 0.39 plan §4 + §0.5).
 
 use crate::core::address::Address;
-use crate::domain::storage_deal::{
+use budlum_bud::{
     ChallengeOutcome, DealStatus, RetrievalChallengeRequest, StorageEconomicsParams, StorageError,
     StorageRegistry,
 };
@@ -563,7 +563,7 @@ fn invariant_9_manifest_id_is_deterministic_across_nodes() {
             Some([0x42u8; 32]),
         )
         .unwrap();
-    let leaf1 = crate::domain::storage_deal::storage_deal_leaf_hash(r1.get_deal(d1).unwrap());
-    let leaf2 = crate::domain::storage_deal::storage_deal_leaf_hash(r2.get_deal(d2).unwrap());
+    let leaf1 = budlum_bud::storage_deal_leaf_hash(r1.get_deal(d1).unwrap());
+    let leaf2 = budlum_bud::storage_deal_leaf_hash(r2.get_deal(d2).unwrap());
     assert_eq!(leaf1, leaf2);
 }

@@ -229,7 +229,7 @@ pub enum ChainCommand {
         replica_index: u8,
         start_epoch: u64,
         end_epoch: u64,
-        economics: crate::domain::storage_deal::StorageEconomicsParams,
+        economics: budlum_bud::StorageEconomicsParams,
         domain_params: budlum_bud::StorageDomainParams,
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<crate::domain::Hash32>,
@@ -244,7 +244,7 @@ pub enum ChainCommand {
     /// accumulation into pending_storage_root.
     SubmitStorageProof(crate::domain::Hash32, oneshot::Sender<Result<(), String>>),
     /// B.U.D. Faz 5 (ARENA2): Query all active storage deals.
-    GetStorageDeals(oneshot::Sender<Vec<crate::domain::storage_deal::StorageDeal>>),
+    GetStorageDeals(oneshot::Sender<Vec<budlum_bud::StorageDeal>>),
     /// B.U.D. Faz 5 (ARENA3): Query storage economics event log.
     GetStorageEconomicsEvents(
         oneshot::Sender<Vec<crate::chain::blockchain::StorageEconomicsEvent>>,
@@ -252,7 +252,7 @@ pub enum ChainCommand {
     /// B.U.D. Faz 5 (ARENA3): Query storage economics accounting summary.
     GetStorageEconomicsSummary(oneshot::Sender<serde_json::Value>),
     /// B.U.D. Faz 5 (ARENA2): Query all storage challenges.
-    GetStorageChallenges(oneshot::Sender<Vec<crate::domain::storage_deal::RetrievalChallenge>>),
+    GetStorageChallenges(oneshot::Sender<Vec<budlum_bud::RetrievalChallenge>>),
     SignPrevote {
         epoch: u64,
         checkpoint_height: u64,
@@ -638,7 +638,7 @@ impl ChainHandle {
         replica_index: u8,
         start_epoch: u64,
         end_epoch: u64,
-        economics: crate::domain::storage_deal::StorageEconomicsParams,
+        economics: budlum_bud::StorageEconomicsParams,
         domain_params: budlum_bud::StorageDomainParams,
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<crate::domain::Hash32>,
@@ -1317,7 +1317,7 @@ impl ChainHandle {
     /// Query all storage deals.
     pub async fn get_storage_deals(
         &self,
-    ) -> Result<Vec<crate::domain::storage_deal::StorageDeal>, String> {
+    ) -> Result<Vec<budlum_bud::StorageDeal>, String> {
         let (tx, rx) = oneshot::channel();
         let _ = self.tx.send(ChainCommand::GetStorageDeals(tx)).await;
         rx.await.map_err(|_| "Actor dropped".to_string())
@@ -1326,7 +1326,7 @@ impl ChainHandle {
     /// Query all storage challenges.
     pub async fn get_storage_challenges(
         &self,
-    ) -> Result<Vec<crate::domain::storage_deal::RetrievalChallenge>, String> {
+    ) -> Result<Vec<budlum_bud::RetrievalChallenge>, String> {
         let (tx, rx) = oneshot::channel();
         let _ = self.tx.send(ChainCommand::GetStorageChallenges(tx)).await;
         rx.await.map_err(|_| "Actor dropped".to_string())

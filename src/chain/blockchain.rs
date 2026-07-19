@@ -3683,7 +3683,7 @@ impl Blockchain {
         replica_index: u8,
         start_epoch: u64,
         end_epoch: u64,
-        economics: crate::domain::storage_deal::StorageEconomicsParams,
+        economics: budlum_bud::StorageEconomicsParams,
         domain_params: &budlum_bud::StorageDomainParams,
         merkle_proof: Option<Vec<u8>>,
         storage_root: Option<crate::domain::Hash32>,
@@ -3972,7 +3972,7 @@ impl Blockchain {
                 .storage_registry
                 .finalize_missed_challenge(challenge_id, current_epoch)
             {
-                if result.outcome == crate::domain::storage_deal::ChallengeOutcome::Missed {
+                if result.outcome == budlum_bud::ChallengeOutcome::Missed {
                     total_slashed = total_slashed.saturating_add(result.slashed_bond);
                     self.storage_slashed_bond_total = self
                         .storage_slashed_bond_total
