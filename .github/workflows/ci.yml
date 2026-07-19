@@ -180,7 +180,7 @@ jobs:
         run: bash ./scripts/check-bud-e2e.sh --self-test
       - name: bud_e2e — 9 invariant + 3 e2e (isim kanaryalı)
         run: |
-          cargo test --lib bud_e2e 2>&1 | tee /tmp/bud-e2e.txt
+          cargo test -p budlum-bud --test bud_e2e 2>&1 | tee /tmp/bud-e2e.txt
           bash ./scripts/check-bud-e2e.sh /tmp/bud-e2e.txt
 
   # ============================ Phase 10 / Bolum 4 (BNS gate) ============================
@@ -204,7 +204,7 @@ jobs:
         run: bash ./scripts/check-bns-gate.sh --self-test
       - name: bns — 8 test (isim kanaryali)
         run: |
-          cargo test --lib bns 2>&1 | tee /tmp/bns-gate.txt
+          cargo test -p budlum-bns --test bns --test bns_expanded 2>&1 | tee /tmp/bns-gate.txt
           bash ./scripts/check-bns-gate.sh /tmp/bns-gate.txt
 
   # ============================ Phase 8 / Faz 1 (P0) ============================
