@@ -943,6 +943,21 @@ impl Executor {
                 }
             }
         }
+
+        // P5 ADIM11 Bulgu 33+Governance: Execute passed governance proposals
+        // (e.g. whitelist/dewhitelist verifiers) and apply their actions.
+        let governance_actions = state.governance.execute_passed_proposals();
+        for action in governance_actions {
+            match action {
+                crate::core::governance::GovernanceAction::WhitelistVerifier(addr) => {
+                    state.ai_registry.whitelist_verifier(addr);
+                }
+                crate::core::governance::GovernanceAction::DewhitelistVerifier(addr) => {
+                    state.ai_registry.dewhitelist_verifier(&addr);
+                }
+            }
+        }
+
         Ok(())
     }
 }

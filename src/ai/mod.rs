@@ -3849,4 +3849,135 @@ mod tests {
         registry.whitelist_verifier(v1);
         assert_ne!(root_before, registry.state_root());
     }
+
+    // ─── P5 ADIM11 Bulgu 34: Agent Reputation Tests ──────────────────────
+
+    #[test]
+    fn test_p5_adim11_reputation_new_agent_starts_at_zero() {
+        let mut registry = AiRegistry::new();
+        let agent =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000090")
+                .unwrap();
+        // No reputation yet
+        assert!(registry.get_agent_reputation(&agent).is_none());
+
+        // Create on first access
+        let rep = registry.get_or_create_reputation(agent);
+        assert_eq!(rep.payments_completed, 0);
+        assert_eq!(rep.payments_defaulted, 0);
+        assert_eq!(rep.requests_submitted, 0);
+        assert_eq!(rep.results_submitted, 0);
+        assert_eq!(rep.results_finalized, 0);
+        assert_eq!(rep.equivocations, 0);
+        assert_eq!(rep.trust_score(), 0.0);
+    }
+
+    #[test]
+    fn test_p5_adim11_reputation_payment_events() {
+        let mut registry = AiRegistry::new();
+        let agent =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000091")
+                .unwrap();
+        registry.record_reputation_payment_completed(&agent, 100);
+        registry.record_reputation_payment_completed(&agent, 110);
+        registry.record_reputation_payment_defaulted(&agent, 120);
+
+        let rep = registry.get_agent_reputation(&agent).unwrap();
+        assert_eq!(rep.payments_completed, 2);
+        assert_eq!(rep.payments_defaulted, 1);
+        // Trust: payment_reliability = 2/3 ≈ 0.667, inference neutral=1.0
+        // score = 0.667*0.4 + 1.0*0.6 = 0.267 + 0.6 = 0.867
+        let score = rep.trust_score();
+        assert!(score > 0.85 && score < 0.87, "expected ~0.867, got {score}");
+    }
+
+    #[test]
+    fn test_p5_adim11_reputation_inference_events() {
+        let mut registry = AiRegistry::new();
+        let verifier =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000092")
+                .unwrap();
+        registry.record_reputation_result_submitted(&verifier, 100);
+        registry.record_reputation_result_submitted(&verifier, 110);
+        registry.record_reputation_result_finalized(&verifier, 110);
+        registry.record_reputation_equivocation(&verifier, 120);
+
+        let rep = registry.get_agent_reputation(&verifier).unwrap();
+        assert_eq!(rep.results_submitted, 2);
+        assert_eq!(rep.results_finalized, 1);
+        assert_eq!(rep.equivocations, 1);
+        // inference_quality = (1/2) * (1 - 0.15) = 0.5 * 0.85 = 0.425
+        // payment neutral=1.0, score = 1.0*0.4 + 0.425*0.6 = 0.4 + 0.255 = 0.655
+        let score = rep.trust_score();
+        assert!(score > 0.64 && score < 0.66, "expected ~0.655, got {score}");
+    }
+
+    #[test]
+    fn test_p5_adim11_reputation_agents_by_trust_score() {
+        let mut registry = AiRegistry::new();
+        let a1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000093")
+                .unwrap();
+        let a2 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000094")
+                .unwrap();
+
+        // a1: 3 completed, 0 defaulted → payment_reliability = 1.0
+        registry.record_reputation_payment_completed(&a1, 100);
+        registry.record_reputation_payment_completed(&a1, 110);
+        registry.record_reputation_payment_completed(&a1, 120);
+
+        // a2: 1 completed, 1 defaulted → payment_reliability = 0.5
+        registry.record_reputation_payment_completed(&a2, 100);
+        registry.record_reputation_payment_defaulted(&a2, 110);
+
+        let ranking = registry.agents_by_trust_score();
+        assert_eq!(ranking.len(), 2);
+        // a1 should rank higher (better payment reliability)
+        assert!(
+            ranking[0].0 == a1,
+            "a1 should be first in ranking: got {:?}",
+            ranking
+        );
+        assert!(ranking[0].1 > ranking[1].1);
+    }
+
+    #[test]
+    fn test_p5_adim11_reputation_changes_state_root() {
+        let mut registry = AiRegistry::new();
+        let root_before = registry.state_root();
+        let agent =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000095")
+                .unwrap();
+        registry.record_reputation_payment_completed(&agent, 100);
+        assert_ne!(
+            root_before,
+            registry.state_root(),
+            "reputation change must alter state root"
+        );
+    }
+
+    #[test]
+    fn test_p5_adim11_reputation_top_agents() {
+        let mut registry = AiRegistry::new();
+        let a1 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000096")
+                .unwrap();
+        let a2 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000097")
+                .unwrap();
+        let a3 =
+            Address::from_hex("0000000000000000000000000000000000000000000000000000000000000098")
+                .unwrap();
+
+        registry.record_reputation_payment_completed(&a1, 100);
+        registry.record_reputation_payment_completed(&a2, 100);
+        registry.record_reputation_payment_defaulted(&a2, 110);
+        registry.record_reputation_payment_completed(&a3, 100);
+
+        let top2 = registry.top_agents(2);
+        assert_eq!(top2.len(), 2);
+        // a1 and a3 should be top (both 100% reliability)
+        assert!(top2.iter().all(|(a, _)| *a == a1 || *a == a3));
+    }
 }

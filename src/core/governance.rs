@@ -13,6 +13,15 @@ pub enum ProposalType {
         evidence_hash: [u8; 32],
     },
     ParameterUpdate(String, String),
+    /// P5 ADIM11 Bulgu 33+Governance: Whitelist a verifier via governance vote.
+    /// Enables decentralized, vote-based verifier onboarding.
+    WhitelistVerifier {
+        address: Address,
+    },
+    /// P5 ADIM11 Bulgu 33+Governance: Remove a verifier from the whitelist.
+    DewhitelistVerifier {
+        address: Address,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -158,5 +167,128 @@ impl GovernanceState {
 
         proposal.status = ProposalStatus::Failed;
         Ok(())
+    }
+
+    /// P5 ADIM11 Bulgu 33+Governance: Execute all passed-but-not-yet-executed
+    /// proposals. Returns a list of executed proposal IDs and their actions
+    /// for the caller to apply state changes.
+    ///
+    /// This method ONLY transitions status from Passed → Executed.
+    /// The actual state mutations (whitelist/dewhitelist) are returned
+    /// as GovernanceAction enums for the executor/blockchain to apply.
+    pub fn execute_passed_proposals(&mut self) -> Vec<GovernanceAction> {
+        let mut actions = Vec::new();
+        for proposal in &mut self.proposals {
+            if proposal.status != ProposalStatus::Passed {
+                continue;
+            }
+            let action = match &proposal.p_type {
+                ProposalType::WhitelistVerifier { address } => {
+                    Some(GovernanceAction::WhitelistVerifier(*address))
+                }
+                ProposalType::DewhitelistVerifier { address } => {
+                    Some(GovernanceAction::DewhitelistVerifier(*address))
+                }
+                _ => None, // Other proposal types: no auto-execution yet
+            };
+            if let Some(a) = action {
+                proposal.status = ProposalStatus::Executed;
+                actions.push(a);
+            }
+        }
+        actions
+    }
+}
+
+/// P5 ADIM11 Bulgu 33+Governance: Actions produced by governance proposal
+/// execution. The executor applies these to the AI registry state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum GovernanceAction {
+    WhitelistVerifier(Address),
+    DewhitelistVerifier(Address),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::address::Address;
+
+    #[test]
+    fn governance_execute_passed_proposals_whitelist() {
+        let mut gov = GovernanceState {
+            proposals: Vec::new(),
+            next_proposal_id: 0,
+        };
+        let verifier = Address::from([0xAA; 32]);
+        let proposer = Address::from([0x01; 32]);
+
+        // Create and pass a WhitelistVerifier proposal
+        gov.create_proposal(
+            proposer,
+            ProposalType::WhitelistVerifier { address: verifier },
+            0,
+            10,
+        )
+        .unwrap();
+
+        // Vote to pass (add enough stake)
+        let proposal = gov.find_proposal_mut(0).unwrap();
+        proposal.add_vote(proposer, 100_000, true).unwrap();
+        proposal.status = ProposalStatus::Passed; // simulate passage
+
+        let actions = gov.execute_passed_proposals();
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0], GovernanceAction::WhitelistVerifier(verifier));
+
+        // Proposal should now be Executed
+        let p = gov.find_proposal(0).unwrap();
+        assert_eq!(p.status, ProposalStatus::Executed);
+    }
+
+    #[test]
+    fn governance_execute_passed_proposals_dewhitelist() {
+        let mut gov = GovernanceState {
+            proposals: Vec::new(),
+            next_proposal_id: 0,
+        };
+        let verifier = Address::from([0xBB; 32]);
+        let proposer = Address::from([0x01; 32]);
+
+        gov.create_proposal(
+            proposer,
+            ProposalType::DewhitelistVerifier { address: verifier },
+            0,
+            10,
+        )
+        .unwrap();
+
+        let proposal = gov.find_proposal_mut(0).unwrap();
+        proposal.add_vote(proposer, 100_000, true).unwrap();
+        proposal.status = ProposalStatus::Passed;
+
+        let actions = gov.execute_passed_proposals();
+        assert_eq!(actions.len(), 1);
+        assert_eq!(actions[0], GovernanceAction::DewhitelistVerifier(verifier));
+    }
+
+    #[test]
+    fn governance_no_action_for_non_verifier_proposals() {
+        let mut gov = GovernanceState {
+            proposals: Vec::new(),
+            next_proposal_id: 0,
+        };
+        let proposer = Address::from([0x01; 32]);
+
+        gov.create_proposal(proposer, ProposalType::ChangeBaseFee(500), 0, 10)
+            .unwrap();
+
+        let proposal = gov.find_proposal_mut(0).unwrap();
+        proposal.status = ProposalStatus::Passed;
+
+        let actions = gov.execute_passed_proposals();
+        assert!(
+            actions.is_empty(),
+            "ChangeBaseFee should not produce governance actions"
+        );
     }
 }
