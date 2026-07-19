@@ -130,6 +130,11 @@ impl NftRegistry {
         }
         hasher.finalize().into()
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
 
     /// V23 regression: luminance overflow to u64::MAX must be clamped.
     #[test]
