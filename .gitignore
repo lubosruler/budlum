@@ -1,3 +1,4 @@
 target/
 # CI artifact (scripts/generate-sbom.sh çıktısı) — repoya commit'lenmez
 sbom.cdx.json
+protoc-*.zip

@@ -261,6 +261,54 @@ impl AiInferenceResult {
     }
 }
 
+/// P5 ADIM10 Bulgu 28: Callback event recorded when an outcome is finalized
+/// with a non-empty callback address. These events are queued in the registry
+/// and queryable via `bud_aiCallbackQueue` RPC. Off-chain systems poll the
+/// queue to deliver inference results to the registered callback address.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiCallbackEvent {
+    /// The request that was finalized.
+    pub request_id: AiRequestId,
+    /// The output commitment (hash of the inference result).
+    pub output_commitment: [u8; 32],
+    /// Block at which the outcome was finalized.
+    pub finalized_at_block: u64,
+    /// The callback address that should be notified.
+    pub callback_address: Address,
+}
+
+/// P5 ADIM10 Bulgu 27: Dispute status info for a (request, verifier) pair.
+/// Returned by `bud_aiSlashingStatus` RPC.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiDisputeStatusInfo {
+    /// Whether the verifier has an equivocation record for this request.
+    pub has_equivocated: bool,
+    /// Whether the equivocation is still within the dispute window (slashable).
+    pub is_disputable: bool,
+    /// The block number when equivocation was detected, if any.
+    pub detected_block: Option<u64>,
+    /// Remaining blocks until the dispute window expires.
+    pub dispute_window_remaining: Option<u64>,
+    /// Whether the verifier has staked in the AI verifier stake registry.
+    pub is_staked: bool,
+    /// The verifier's current staked amount (0 if not staked).
+    pub stake_amount: u64,
+}
+
+/// P5 ADIM10 Bulgu 27: Verifier stake info for a single address.
+/// Returned by `bud_aiVerifierStake` RPC.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiVerifierStakeInfo {
+    /// The verifier address.
+    pub verifier: Address,
+    /// Whether the verifier has staked.
+    pub is_staked: bool,
+    /// The current staked amount.
+    pub stake_amount: u64,
+    /// Total equivocation events for this verifier across all requests.
+    pub total_equivocations: usize,
+}
+
 /// Finalized Consensus Outcome reaching agreement threshold among verifiers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AiInferenceOutcome {

@@ -142,6 +142,28 @@ pub enum ChainCommand {
         crate::ai::types::AiRequestId,
         oneshot::Sender<Result<(crate::core::address::Address, u64), String>>,
     ),
+    GetAiEquivocationStatus(
+        crate::ai::types::AiRequestId,
+        crate::core::address::Address,
+        oneshot::Sender<bool>,
+    ),
+    GetAiCancelStatus(crate::ai::types::AiRequestId, oneshot::Sender<bool>),
+    /// P5 ADIM10 Bulgu 27: Get comprehensive dispute status for a (request, verifier) pair.
+    GetAiDisputeStatus(
+        crate::ai::types::AiRequestId,
+        crate::core::address::Address,
+        oneshot::Sender<crate::ai::types::AiDisputeStatusInfo>,
+    ),
+    /// P5 ADIM10 Bulgu 27: Get verifier stake info.
+    GetAiVerifierStake(
+        crate::core::address::Address,
+        oneshot::Sender<crate::ai::types::AiVerifierStakeInfo>,
+    ),
+    /// P5 ADIM10 Bulgu 28: Get callback events for a callback address.
+    GetAiCallbackQueue(
+        crate::core::address::Address,
+        oneshot::Sender<Vec<crate::ai::types::AiCallbackEvent>>,
+    ),
     GetPruneStatus(oneshot::Sender<serde_json::Value>),
     RequestPrune(Option<u64>, oneshot::Sender<Result<u64, String>>),
     BuildGlobalHeader(oneshot::Sender<Result<crate::settlement::GlobalBlockHeader, String>>),
@@ -1029,6 +1051,116 @@ impl ChainHandle {
             .map_err(|_| "ChainActor response dropped".to_string())?
     }
 
+    pub async fn get_ai_equivocation_status(
+        &self,
+        request_id: crate::ai::types::AiRequestId,
+        verifier: crate::core::address::Address,
+    ) -> bool {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiEquivocationStatus(
+                request_id, verifier, tx,
+            ))
+            .await
+            .is_err()
+        {
+            return false;
+        }
+        rx.await.unwrap_or(false)
+    }
+
+    pub async fn get_ai_cancel_status(&self, request_id: crate::ai::types::AiRequestId) -> bool {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiCancelStatus(request_id, tx))
+            .await
+            .is_err()
+        {
+            return false;
+        }
+        rx.await.unwrap_or(false)
+    }
+
+    /// P5 ADIM10 Bulgu 27: Get comprehensive dispute status.
+    pub async fn get_ai_dispute_status(
+        &self,
+        request_id: crate::ai::types::AiRequestId,
+        verifier: crate::core::address::Address,
+    ) -> crate::ai::types::AiDisputeStatusInfo {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiDisputeStatus(request_id, verifier, tx))
+            .await
+            .is_err()
+        {
+            return crate::ai::types::AiDisputeStatusInfo {
+                has_equivocated: false,
+                is_disputable: false,
+                detected_block: None,
+                dispute_window_remaining: None,
+                is_staked: false,
+                stake_amount: 0,
+            };
+        }
+        rx.await
+            .unwrap_or_else(|_| crate::ai::types::AiDisputeStatusInfo {
+                has_equivocated: false,
+                is_disputable: false,
+                detected_block: None,
+                dispute_window_remaining: None,
+                is_staked: false,
+                stake_amount: 0,
+            })
+    }
+
+    /// P5 ADIM10 Bulgu 27: Get verifier stake info.
+    pub async fn get_ai_verifier_stake(
+        &self,
+        verifier: crate::core::address::Address,
+    ) -> crate::ai::types::AiVerifierStakeInfo {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiVerifierStake(verifier, tx))
+            .await
+            .is_err()
+        {
+            return crate::ai::types::AiVerifierStakeInfo {
+                verifier,
+                is_staked: false,
+                stake_amount: 0,
+                total_equivocations: 0,
+            };
+        }
+        rx.await
+            .unwrap_or_else(|_| crate::ai::types::AiVerifierStakeInfo {
+                verifier,
+                is_staked: false,
+                stake_amount: 0,
+                total_equivocations: 0,
+            })
+    }
+
+    /// P5 ADIM10 Bulgu 28: Get callback events for a callback address.
+    pub async fn get_ai_callback_queue(
+        &self,
+        callback_address: crate::core::address::Address,
+    ) -> Vec<crate::ai::types::AiCallbackEvent> {
+        let (tx, rx) = oneshot::channel();
+        if self
+            .tx
+            .send(ChainCommand::GetAiCallbackQueue(callback_address, tx))
+            .await
+            .is_err()
+        {
+            return Vec::new();
+        }
+        rx.await.unwrap_or_default()
+    }
+
     pub async fn get_prune_status(&self) -> Result<serde_json::Value, String> {
         let (tx, rx) = oneshot::channel();
         if let Err(e) = self.tx.send(ChainCommand::GetPruneStatus(tx)).await {
@@ -1875,6 +2007,43 @@ impl ChainActor {
                     let mut registry = self.blockchain.state.ai_registry.clone();
                     let res = registry.reclaim_fee(&id, current_block);
                     let _ = res_tx.send(res);
+                }
+                ChainCommand::GetAiEquivocationStatus(request_id, verifier, res_tx) => {
+                    let has_equivocated = self
+                        .blockchain
+                        .state
+                        .ai_registry
+                        .has_equivocated(&request_id, &verifier);
+                    let _ = res_tx.send(has_equivocated);
+                }
+                ChainCommand::GetAiCancelStatus(request_id, res_tx) => {
+                    let is_cancelled = self.blockchain.state.ai_registry.is_cancelled(&request_id);
+                    let _ = res_tx.send(is_cancelled);
+                }
+                ChainCommand::GetAiDisputeStatus(request_id, verifier, res_tx) => {
+                    let current_block = self.blockchain.state.epoch_index.saturating_mul(100);
+                    let status = self.blockchain.state.ai_registry.get_dispute_status(
+                        &request_id,
+                        &verifier,
+                        current_block,
+                    );
+                    let _ = res_tx.send(status);
+                }
+                ChainCommand::GetAiVerifierStake(verifier, res_tx) => {
+                    let info = self
+                        .blockchain
+                        .state
+                        .ai_registry
+                        .get_verifier_stake_info(&verifier);
+                    let _ = res_tx.send(info);
+                }
+                ChainCommand::GetAiCallbackQueue(callback_address, res_tx) => {
+                    let events = self
+                        .blockchain
+                        .state
+                        .ai_registry
+                        .get_callback_queue(&callback_address);
+                    let _ = res_tx.send(events);
                 }
                 ChainCommand::GetPruneStatus(res_tx) => {
                     let height = self.blockchain.chain.len() as u64;

@@ -1920,6 +1920,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::BnsRegister,
         };
 
@@ -1960,6 +1961,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::BnsRegisterSubdomain,
         };
 
@@ -2014,6 +2016,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::BnsSetContent,
         };
         Ok(serde_json::json!({
@@ -2121,6 +2124,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::NftMint,
         };
 
@@ -2159,6 +2163,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::NftBurn,
         };
 
@@ -2194,6 +2199,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::NftBoost { nft_id, amount },
         };
 
@@ -2246,6 +2252,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::AiOfferData {
                 cid: cid_obj,
                 price,
@@ -2287,6 +2294,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::AiPurchaseData { offer_id },
         };
 
@@ -2345,6 +2353,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::HubRegisterApp {
                 name,
                 category,
@@ -2398,6 +2407,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::UniversalRelay(ext_tx),
         };
 
@@ -2504,6 +2514,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::AiModelRegister(spec),
         };
 
@@ -2618,6 +2629,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::AiInferenceRequest(req.clone()),
         };
 
@@ -2713,6 +2725,7 @@ impl BudlumApiServer for RpcServer {
             hash: String::new(),
             signature: None,
             chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
             tx_type: crate::core::transaction::TransactionType::AiInferenceResult(res),
         };
 
@@ -2797,6 +2810,259 @@ impl BudlumApiServer for RpcServer {
                 "message": e,
             })),
         }
+    }
+
+    async fn ai_equivocation_status(
+        &self,
+        request_id: String,
+        verifier: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_id = request_id.strip_prefix("0x").unwrap_or(&request_id);
+        let rid_bytes = hex::decode(clean_id).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid request_id hex: {e}"), None::<()>)
+        })?;
+        if rid_bytes.len() != 32 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "request_id must be 32 bytes (64 hex chars)".to_string(),
+                None::<()>,
+            ));
+        }
+        let mut id_bytes = [0u8; 32];
+        id_bytes.copy_from_slice(&rid_bytes);
+        let rid = crate::ai::types::AiRequestId::new(id_bytes);
+
+        let clean_verifier = verifier.strip_prefix("0x").unwrap_or(&verifier);
+        let verifier_addr =
+            crate::core::address::Address::from_hex(clean_verifier).map_err(|e| {
+                ErrorObjectOwned::owned(
+                    -32602,
+                    format!("Invalid verifier address: {e}"),
+                    None::<()>,
+                )
+            })?;
+
+        let has_equivocated = self
+            .chain
+            .get_ai_equivocation_status(rid, verifier_addr)
+            .await;
+
+        Ok(serde_json::json!({
+            "request_id": request_id,
+            "verifier": verifier,
+            "has_equivocated": has_equivocated,
+        }))
+    }
+
+    async fn ai_cancel_status(
+        &self,
+        request_id: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_id = request_id.strip_prefix("0x").unwrap_or(&request_id);
+        let rid_bytes = hex::decode(clean_id).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid request_id hex: {e}"), None::<()>)
+        })?;
+        if rid_bytes.len() != 32 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "request_id must be 32 bytes (64 hex chars)".to_string(),
+                None::<()>,
+            ));
+        }
+        let mut id_bytes = [0u8; 32];
+        id_bytes.copy_from_slice(&rid_bytes);
+        let rid = crate::ai::types::AiRequestId::new(id_bytes);
+
+        let is_cancelled = self.chain.get_ai_cancel_status(rid).await;
+
+        Ok(serde_json::json!({
+            "request_id": request_id,
+            "is_cancelled": is_cancelled,
+        }))
+    }
+
+    async fn ai_dispute_slash(
+        &self,
+        submitter: String,
+        request_id: String,
+        verifier: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_sub = submitter.strip_prefix("0x").unwrap_or(&submitter);
+        let sub_addr = crate::core::address::Address::from_hex(clean_sub).map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32602,
+                format!("Invalid submitter address: {e}"),
+                None::<()>,
+            )
+        })?;
+
+        let clean_rid = request_id.strip_prefix("0x").unwrap_or(&request_id);
+        let rid_bytes = hex::decode(clean_rid).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid request_id hex: {e}"), None::<()>)
+        })?;
+        if rid_bytes.len() != 32 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "request_id must be 32 bytes (64 hex chars)".to_string(),
+                None::<()>,
+            ));
+        }
+        let mut rid_arr = [0u8; 32];
+        rid_arr.copy_from_slice(&rid_bytes);
+        let rid = crate::ai::types::AiRequestId::new(rid_arr);
+
+        let clean_v = verifier.strip_prefix("0x").unwrap_or(&verifier);
+        let v_addr = crate::core::address::Address::from_hex(clean_v).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid verifier address: {e}"), None::<()>)
+        })?;
+
+        // Check dispute status before preparing tx
+        let status = self.chain.get_ai_dispute_status(rid, v_addr).await;
+        if !status.has_equivocated {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                format!(
+                    "No equivocation record for verifier {} on request {}",
+                    v_addr.to_hex(),
+                    rid.to_hex()
+                ),
+                None::<()>,
+            ));
+        }
+        if !status.is_disputable {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                format!(
+                    "Dispute window expired for verifier {} on request {}",
+                    v_addr.to_hex(),
+                    rid.to_hex()
+                ),
+                None::<()>,
+            ));
+        }
+
+        let tx = crate::core::transaction::Transaction {
+            from: sub_addr,
+            to: crate::core::address::Address::zero(),
+            amount: 0,
+            fee: crate::core::account::MIN_TX_FEE,
+            nonce: 0,
+            data: Vec::new(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis(),
+            hash: String::new(),
+            signature: None,
+            chain_id: self.chain.get_chain_id().await,
+            signature_version: crate::core::transaction::SIGNATURE_VERSION_V4,
+            tx_type: crate::core::transaction::TransactionType::AiDisputeSlash {
+                request_id: rid,
+                verifier: v_addr,
+            },
+        };
+
+        Ok(serde_json::json!({
+            "submitter": submitter,
+            "request_id": request_id,
+            "verifier": verifier,
+            "tx_template": tx,
+            "dispute_status": {
+                "has_equivocated": status.has_equivocated,
+                "is_disputable": status.is_disputable,
+                "detected_block": status.detected_block,
+                "stake_at_risk": status.stake_amount,
+            },
+        }))
+    }
+
+    async fn ai_slashing_status(
+        &self,
+        request_id: String,
+        verifier: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_rid = request_id.strip_prefix("0x").unwrap_or(&request_id);
+        let rid_bytes = hex::decode(clean_rid).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid request_id hex: {e}"), None::<()>)
+        })?;
+        if rid_bytes.len() != 32 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "request_id must be 32 bytes (64 hex chars)".to_string(),
+                None::<()>,
+            ));
+        }
+        let mut rid_arr = [0u8; 32];
+        rid_arr.copy_from_slice(&rid_bytes);
+        let rid = crate::ai::types::AiRequestId::new(rid_arr);
+
+        let clean_v = verifier.strip_prefix("0x").unwrap_or(&verifier);
+        let v_addr = crate::core::address::Address::from_hex(clean_v).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid verifier address: {e}"), None::<()>)
+        })?;
+
+        let status = self.chain.get_ai_dispute_status(rid, v_addr).await;
+
+        Ok(serde_json::json!({
+            "request_id": request_id,
+            "verifier": verifier,
+            "has_equivocated": status.has_equivocated,
+            "is_disputable": status.is_disputable,
+            "detected_block": status.detected_block,
+            "dispute_window_remaining": status.dispute_window_remaining,
+            "is_staked": status.is_staked,
+            "stake_amount": status.stake_amount,
+        }))
+    }
+
+    async fn ai_verifier_stake(
+        &self,
+        verifier: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_v = verifier.strip_prefix("0x").unwrap_or(&verifier);
+        let v_addr = crate::core::address::Address::from_hex(clean_v).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid verifier address: {e}"), None::<()>)
+        })?;
+
+        let info = self.chain.get_ai_verifier_stake(v_addr).await;
+
+        Ok(serde_json::json!({
+            "verifier": verifier,
+            "is_staked": info.is_staked,
+            "stake_amount": info.stake_amount,
+            "total_equivocations": info.total_equivocations,
+        }))
+    }
+
+    async fn ai_callback_queue(
+        &self,
+        callback_address: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let clean_cb = callback_address
+            .strip_prefix("0x")
+            .unwrap_or(&callback_address);
+        let cb_addr = crate::core::address::Address::from_hex(clean_cb).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid callback address: {e}"), None::<()>)
+        })?;
+
+        let events = self.chain.get_ai_callback_queue(cb_addr).await;
+        let events_json: Vec<serde_json::Value> = events
+            .iter()
+            .map(|e| {
+                serde_json::json!({
+                    "request_id": format!("0x{}", e.request_id.to_hex()),
+                    "output_commitment": format!("0x{}", hex::encode(e.output_commitment)),
+                    "finalized_at_block": e.finalized_at_block,
+                    "callback_address": format!("0x{}", e.callback_address.to_hex()),
+                })
+            })
+            .collect();
+
+        Ok(serde_json::json!({
+            "callback_address": callback_address,
+            "pending_count": events_json.len(),
+            "events": events_json,
+        }))
     }
 
     async fn prune_status(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
