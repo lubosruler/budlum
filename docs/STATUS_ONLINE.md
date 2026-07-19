@@ -300,3 +300,81 @@ Co-authored-by: ARENAX <arenax@budlum.ai>
 | V32 | AI max_fee balance check yok | ⚪ | Açık (defense-in-depth) |
 
 Co-authored-by: ARENAX <arenax@budlum.ai>
+
+### [2026-07-19 11:02 UTC+3] ARENAX — Derin Denetim Devam: Settlement + Prover + Consensus
+
+**Durum:** 19/19 TAM YEŞİL (SHA `0c07c82`)
+
+---
+
+#### Settlement Modülü Doğrulaması ✅
+
+**1. `commitment_tree.rs` — Merkle Root**
+- Domain-separated hashing (`BDLM_MERKLE_NODE_V1`)
+- Empty leaf special case (`BDLM_EMPTY_MERKLE_ROOT_V1`)
+- Deterministik + collision-resistant
+- ✅ Temiz
+
+**2. `proof_verifier.rs` — SettlementProofVerifier**
+- Domain/height/index/leaf eşleşme kontrolü
+- Merkle proof doğrulaması
+- `expected_block_hash` forgery gate
+- ✅ Temiz
+
+**3. `global_block.rs` — GlobalBlockHeader**
+- 12+ root field (domain_registry, commitment, message, bridge, replay, settlement, storage, AI)
+- Domain-separation V2 (`BDLM_GLOBAL_BLOCK_V2`)
+- `#[serde(default)]` geriye uyumluluk
+- ✅ Temiz
+
+#### Prover Modülü Doğrulaması ✅
+
+**`prover/mod.rs` — ProofClaimRegistry**
+- "First valid wins" politikası
+- `classify()` → New/Duplicate/ConflictingClaim
+- `record()` → BTreeMap ile kalıcı kayıt
+- Fee kontrolü + payload hash doğrulaması
+- ✅ Temiz
+
+#### Consensus Modülü Doğrulaması ✅
+
+**`consensus/mod.rs` — ConsensusEngine trait**
+- `preview_block`, `prepare_block`, `validate_block` ayrımı
+- Block size limiti (`MAX_BLOCK_SIZE = 1MB`)
+- Transaction sayısı limiti (`MAX_TRANSACTIONS_PER_BLOCK`)
+- ✅ Temiz
+
+**`consensus/pos.rs` — PoSEngine**
+- VRF threshold hesaplaması (u128 overflow korumalı)
+- Double-sign detection (slashing evidence)
+- Epoch-based liveness tracking
+- ✅ Temiz
+
+---
+
+**Genel Denetim Tablosu (V22-V32):**
+
+| # | Bulgu | Ciddiyet | Durum |
+|---|-------|----------|-------|
+| V22 | AI Registry domain-separation eksik | 🟡 | Açık |
+| V23 | NftRegistry luminance overflow | 🟡 | Açık |
+| V24 | BridgeState root scope eksik | 🔴 | Açık (GAP-2 kapsamında) |
+| V25 | Snapshot hash kapsam deliği | 🟡 | Açık |
+| V26 | Expiry queue stale entry | ⚪ | Açık |
+| V27 | Deadline boundary test | 🔴 | ✅ KAPANDI |
+| V28 | Executor current_block sapması | 🟡 | Açık |
+| V29 | Signing hash collision | 🔴 | ✅ KAPANDI |
+| V30 | EvmChainAdapter no-op | 🟡 | Açık (stub impl) |
+| V31 | build_bud_to_eth_claim Burned status yok | 🟡 | Açık |
+| V32 | AI max_fee balance check yok | ⚪ | Açık (defense-in-depth) |
+
+**Pozitif Doğrulamalar:**
+- ✅ Settlement proof verification sağlam
+- ✅ Prover "first valid wins" doğru uygulanıyor
+- ✅ Consensus VRF + double-sign detection sağlam
+- ✅ Tokenomics process_timed_burn doğru
+- ✅ Vesting schedule invariant korunuyor
+- ✅ ZKVM memory bounds check sağlam
+- ✅ Mainnet key file yasağı sağlam
+
+Co-authored-by: ARENAX <arenax@budlum.ai>
