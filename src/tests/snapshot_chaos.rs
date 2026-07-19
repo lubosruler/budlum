@@ -196,12 +196,9 @@ mod tests {
         snap.balances.insert(eve, 9_000_000);
         snap.snapshot_hash = recompute_v2_hash_for_test(&snap);
 
-        // Integrity alone cannot distinguish an attacker who recomputes a digest;
-        // schema-4 authenticity policy is tested separately at the trust boundary.
-        assert!(
-            snap.verify(),
-            "rehash remains integrity-valid without signature policy"
-        );
+        // Schema-4 digest has a domain-separated canonical field manifest;
+        // the legacy helper cannot recreate a valid schema-4 digest.
+        assert!(!snap.verify(), "schema-4 rejects legacy rehash forgery");
     }
 
     // ── 4) Torn-write (yarım dosya) → karantina → eski snapshot'a düşüş ────
