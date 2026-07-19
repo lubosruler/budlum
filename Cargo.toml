@@ -86,6 +86,7 @@ tempfile = "3.10"
 proptest = "1.5"
 tokio = { version = "1", features = ["full"] }
 hex = "0.4"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [[bin]]
 name = "bench_sig_verify"
@@ -108,4 +109,10 @@ path = "benches/single_node/internal_pipeline_tps.rs"
 [[bench]]
 name = "timing_safe"
 path = "benches/micro/timing_safe.rs"
+harness = false
+
+# Domain throughput/latency benchmarks (criterion.rs)
+[[bench]]
+name = "domain_throughput"
+path = "benches/domain_throughput.rs"
 harness = false
