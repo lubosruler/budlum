@@ -41,10 +41,9 @@ mod integration_tests {
 
         Executor::apply_transaction(&mut state, &vote_tx).unwrap();
 
-        // V68: MIN_PROPOSAL_DURATION=10, so end_epoch = 0 + 10 = 10.
-        // advance_epoch increments epoch_index by 1 each call.
-        // Need current_epoch >= end_epoch (10) for finalization.
-        // At call N, current_epoch = N-1, so need N-1 >= 10 → N >= 11.
+        // V68: MIN_PROPOSAL_DURATION=10 → end_epoch=10. advance_epoch
+        // check-before-increment yaptığı için 11 çağrı gerek (epoch 0→10,
+        // 11. çağrıda 10>=10 → finalize → Executed).
         for _ in 0..11 {
             state.advance_epoch(1000);
         }
