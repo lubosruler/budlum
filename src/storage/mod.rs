@@ -19,6 +19,7 @@
 pub mod content_id;
 pub mod db;
 pub mod manifest;
+pub mod merkle_trie;
 pub mod traits;
 
 pub use content_id::{ContentId, DEFAULT_CHUNK_SIZE_BYTES};

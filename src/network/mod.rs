@@ -1,3 +1,4 @@
+pub mod gossip_dedup;
 pub mod node;
 pub mod peer_manager;
 pub mod protocol;
