@@ -195,14 +195,12 @@ impl Executor {
                             ));
                         }
 
-                        state.governance.create_proposal(
-                            tx.from,
-                            p_type,
-                            state.epoch_index,
-                            duration,
-                        ).map_err(|e| {
-                            BudlumError::validation("governance_proposal_creation_failed", e)
-                        })?;
+                        state
+                            .governance
+                            .create_proposal(tx.from, p_type, state.epoch_index, duration)
+                            .map_err(|e| {
+                                BudlumError::validation("governance_proposal_creation_failed", e)
+                            })?;
                     }
                 }
             }
