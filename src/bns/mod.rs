@@ -1,5 +1,2 @@
-pub mod registry;
-pub mod types;
-
-pub use registry::BnsRegistry;
-pub use types::{BnsError, NameRecord};
+//! Compatibility re-export; canonical BNS ownership is `BNS/`.
+pub use budlum_bns::{BnsError, BnsRegistry, BnsResolved, NameRecord};

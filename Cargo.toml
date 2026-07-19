@@ -15,6 +15,7 @@ pq-ml-dsa = ["dep:ml-dsa"]
 [dependencies]
 budlum-primitives = { path = "budlum-primitives" }
 budlum-bud = { path = "B.U.D" }
+budlum-bns = { path = "BNS" }
 sha2 = "0.10"
 hex = "0.4"
 chrono = "0.4"
