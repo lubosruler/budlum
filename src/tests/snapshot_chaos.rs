@@ -198,7 +198,10 @@ mod tests {
 
         // Integrity alone cannot distinguish an attacker who recomputes a digest;
         // schema-4 authenticity policy is tested separately at the trust boundary.
-        assert!(snap.verify(), "rehash remains integrity-valid without signature policy");
+        assert!(
+            snap.verify(),
+            "rehash remains integrity-valid without signature policy"
+        );
     }
 
     // ── 4) Torn-write (yarım dosya) → karantina → eski snapshot'a düşüş ────
