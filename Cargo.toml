@@ -109,3 +109,7 @@ path = "benches/single_node/internal_pipeline_tps.rs"
 name = "timing_safe"
 path = "benches/micro/timing_safe.rs"
 harness = false
+
+[workspace]
+members = ["B.U.D", "BNS", "budlum-primitives"]
+resolver = "2"

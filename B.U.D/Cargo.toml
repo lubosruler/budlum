@@ -1,0 +1,12 @@
+[package]
+name = "budlum-bud"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.94.0"
+license = "MIT"
+publish = false
+
+[dependencies]
+budlum-primitives = { path = "../budlum-primitives" }
+serde = { version = "1.0", features = ["derive"] }
+sha2 = "0.10"
