@@ -1,5 +1,27 @@
-# BNS workspace crate
+# BNS — Budlum Name Service (`.bud`) (modül README'si)
 
-This is the independent crate boundary for Budlum Name Service logic. It is an
-in-progress Phase 10 migration; `budlum-core` remains the active implementation
-owner until the source/API migration commits are complete and CI-proven.
+**Bu dosya, Phase 10 Bölüm 4 modül-ayrımı kuralı gereği BNS'in kendi README'sidir.**
+
+## Durum
+
+- **Olgunluk:** iskelet mevcut — `src/bns/` (`registry.rs`: `BnsRegistry`,
+  `types.rs`: `NameRecord`/`BnsError`/`BnsResolved`).
+- **Düzeltme (2026-07-18 kod doğrulaması):** Phase 10 dokümanın Bölüm 4.3'teki
+  "henüz mimarisi yok, sıfırdan" ifadesi güncel değildir — kayıt/resolve/transfer/
+  renewal/subdomain/maliyet-ölçekleme davranışları kodlu ve testlidir.
+- **Kapsam dışı (bu tur):** squatting/speaking-rights ekonomisi, B.U.D./AI layer
+  entegrasyon sözleşmesi — Phase 10 dokümanı §4.4 gereği ayrı talimat turu.
+
+## Mevcut davranış (test-kilitli)
+
+Kayıt + resolve, süre sonu (expiration), yenileme (renewal), yalnız-sahip
+subdomain, geçersiz-ad reddi, devir (transfer), storage ile full-resolve,
+maliyet ölçekleme (cost scaling).
+
+## Test suite
+
+- 9 test, hepsi `test_bns_` prefix'li: `src/tests/bns.rs` (2),
+  `src/tests/bns_expanded.rs` (7).
+- Şu an Core lib suite içinde (`cargo test --lib`) koşar — **bu sprint (P10
+  Bölüm 4) kapsamında ayrı isim-kanaryalı CI gate'i ekleniyor**
+  (`scripts/check-bns-gate.sh`, B.U.D. kapı deseni kopyası; vacuous-gate korumalı).
