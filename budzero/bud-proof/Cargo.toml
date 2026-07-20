@@ -12,7 +12,7 @@ serde = { version = "1.0", features = ["derive"] }
 
 p3-air = "0.5.2"
 p3-matrix = "0.5.2"
-p3-uni-stark = "0.5.2"
+p3-uni-stark = "0.6.1"
 p3-field = "0.5.2"
 p3-commit = "0.5.2"
 p3-challenger = "0.5.2"
