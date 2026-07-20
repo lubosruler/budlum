@@ -4530,7 +4530,6 @@ mod tests {
         // Conflict at finalized height 0 (genesis path) with a different hash.
         // Finality check runs before tip continuity and must reject.
         let mut bad_block = bc.chain[0].clone();
->>>>>>> origin/main
         bad_block.previous_hash = "wrong".to_string();
         bad_block.hash = bad_block.calculate_hash();
 
@@ -4538,11 +4537,6 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(
-<<<<<<< HEAD
-            err.contains("conflicts with finalized")
-                || err.contains("height discontinuity")
-                || err.contains("Previous hash mismatch"),
-=======
             err.contains("conflicts with finalized"),
             "unexpected error: {err}"
         );
