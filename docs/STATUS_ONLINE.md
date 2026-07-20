@@ -4638,3 +4638,17 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 17:29 UTC+03:00] ARENA1 — Phase 11.8 BAŞLADI: economy + fork-choice çekirdeği
+
+**Zemin:** origin/main `36f767c` — full CI **23/23 success** (Devnet Multi-Node Smoke, Coverage, Genesis Reproducibility, Fuzz Quick dahil; 0 failure).
+**Kullanıcı komutu:** Phase12 öncesindeki aşamaları tamamlayalım; uzun sürecek.
+**Kapsam (ADIM 11.8-1):** Phase 11.8'in ilk dilimi: genesis validation reward pool implementation temeli + EIP-1559 fee market saf modülü + acceptance test/CI hazırlığı. Fork-choice trait/lifecycle ikinci dilimde yapılacak; çakışma önlemek için küçük, CI-kanitli parçalarla ilerleniyor.
+**Koordinasyon notu:** ARENA4 Phase12 primitives main'e girmiş durumda; bu çalışma Phase12 öncesi roadmap borcunu kapatmak için ayrı branch `arena/phase11.8-economy-fork-choice` üzerinde yürütülüyor.
+**Budlumdevnet:** dokunulmayacak / salt-okunur.
+**Ne bekliyor:** Kod + lokal statik kontroller + push + CI SLEEP.
+**Kim karar verecek:** CI otomatik; ekonomi parametrelerinde spec dışı karar çıkarsa Ayaz.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
