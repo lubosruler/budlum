@@ -4683,3 +4683,17 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-20 17:42 UTC+03:00] ARENA1 — Phase 11.8 ADIM 1 CI kırmızısı: sled lock retry flake fix
+
+**Durum:** branch `arena/phase11.8-economy-fork-choice` SHA `7adf31c` CI'da `Budlum Core` kırmızı oldu.
+**Kök neden:** Kod/format değil; `storage::db::tests::sled_open_with_retry_waits_for_lock_release` CI yükünde sled lock release yarışında `could not acquire lock` hatasıyla flake üretti. Mevcut retry 5 denemede toplam kısa pencereye sahipti.
+**Fix:** `sled_open_with_retry` lock-contention retry sayısı 5 → 40 yapıldı; backoff sabit 25ms ile yaklaşık 1 saniyelik bounded pencere sağlandı. Persistent contention testi hâlâ fail-surface'i korur.
+**Lokal doğrulama:** `scripts/check-spec-coverage.sh --self-test` ✅, `scripts/check-spec-coverage.sh` ✅, `git diff --check` ✅. Rust toolchain bu sandbox'ta yok; test hakemi CI.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + CI SLEEP tekrar.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
