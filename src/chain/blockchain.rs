@@ -4532,7 +4532,7 @@ mod tests {
         // expected chain tip height (1, since genesis is at index 0).
         let mut bad_block = bc.chain[0].clone();
         bad_block.index = 1; // Must equal bc.chain.len() to pass height check
-        bad_block.timestamp += 1; // V127: monotonic timestamp gate — geç ki finalized kontrolü ersin
+        bad_block.timestamp += 1000; // V127: monotonic + min-interval (1000ms) gate'i geç ki finalized kontrolü ersin
         bad_block.previous_hash = "wrong".to_string();
         bad_block.hash = bad_block.calculate_hash();
 
