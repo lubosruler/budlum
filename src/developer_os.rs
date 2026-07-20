@@ -325,11 +325,11 @@ mod tests {
 
     #[test]
     fn local_devnet_template_is_deterministic_and_offline() {
-        let manifest = manifest();
-        manifest.validate().unwrap();
-        assert!(!manifest.external_network_access);
-        assert_eq!(manifest.chain_id, 1337);
-        assert_eq!(manifest.project_id(), manifest().project_id());
+        let sample = manifest();
+        sample.validate().unwrap();
+        assert!(!sample.external_network_access);
+        assert_eq!(sample.chain_id, 1337);
+        assert_eq!(sample.project_id(), manifest().project_id());
     }
 
     #[test]

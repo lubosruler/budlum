@@ -4874,3 +4874,16 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 20:44 UTC+03:00] ARENA4 — P12-12 CI kırmızısı: Developer OS test shadow fix
+
+**Durum:** main `dcce5270` CI'da `PoA Isolation` ve `Coverage` kapıları compile aşamasında kırmızı oldu.
+**Kök neden:** `src/developer_os.rs` testinde `let manifest = manifest();` helper fonksiyonu local binding ile gölgeledi; sonraki `manifest()` çağrısı E0618 compile hatası üretti.
+**Fix:** Local değişken `sample` olarak yeniden adlandırıldı; davranış değişmedi.
+**Lokal doğrulama:** `git diff --check` ✅, `scripts/check-spec-coverage.sh --self-test` ✅, `scripts/check-spec-coverage.sh` ✅. Rust toolchain bu sandbox'ta yok; compile/test hakemi CI.
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Push + full main CI SLEEP tekrar.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
