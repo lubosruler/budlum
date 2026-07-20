@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use super::{
-    AccessGrant, AiDataInputRef, AssetId, DataAsset, DataAssetStatus, GrantId,
-    SaleAuthorization, SaleAuthorizationId,
+    AccessGrant, AiDataInputRef, AssetId, DataAsset, DataAssetStatus, GrantId, SaleAuthorization,
+    SaleAuthorizationId,
 };
 
 /// Phase 5 §5.5: AI Data Marketplace — Economic layer for user-to-AI data sales.
@@ -145,7 +145,6 @@ impl MarketplaceRegistry {
         Ok(())
     }
 
-
     pub fn create_sale_authorization(
         &mut self,
         authorization: SaleAuthorization,
@@ -275,15 +274,8 @@ mod tests {
     }
 
     fn signed_sale_authorization(asset: &DataAsset) -> SaleAuthorization {
-        let mut authorization = SaleAuthorization::new_unsigned(
-            asset.asset_id,
-            asset.owner,
-            42,
-            10,
-            20,
-            2,
-            [0xAA; 32],
-        );
+        let mut authorization =
+            SaleAuthorization::new_unsigned(asset.asset_id, asset.owner, 42, 10, 20, 2, [0xAA; 32]);
         authorization.seller_signature = super::super::Signature64::from([0x44; 64]);
         authorization
     }
@@ -398,7 +390,9 @@ mod tests {
             authorization.max_grants,
             &authorization.terms_hash,
         );
-        let err = registry.create_sale_authorization(authorization).unwrap_err();
+        let err = registry
+            .create_sale_authorization(authorization)
+            .unwrap_err();
         assert!(err.contains("seller must match"));
     }
 

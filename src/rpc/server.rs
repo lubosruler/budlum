@@ -659,7 +659,9 @@ fn parse_content_id(hex_str: &str) -> Result<ContentId, ErrorObjectOwned> {
 }
 
 fn parse_pollen_asset_id(hex_str: &str) -> Result<crate::pollen::AssetId, ErrorObjectOwned> {
-    Ok(crate::pollen::AssetId(parse_hex32_field(hex_str, "AssetId")?))
+    Ok(crate::pollen::AssetId(parse_hex32_field(
+        hex_str, "AssetId",
+    )?))
 }
 
 fn storage_deal_to_json(deal: &StorageDeal) -> serde_json::Value {

@@ -18,7 +18,6 @@ use super::{AssetId, GrantId, Signature64};
 /// sayılır ve strict AccessGrant kontrolünden geçmek zorundadır.
 pub const POLLEN_AI_INPUT_REF_PREFIX: &[u8] = b"BDLM_POLLEN_AI_INPUT_REF_V1";
 
-
 /// SaleAuthorization kimliği = canonical seller authorization hash.
 pub type SaleAuthorizationId = AssetId;
 

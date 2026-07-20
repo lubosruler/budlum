@@ -1779,9 +1779,7 @@ impl ChainHandle {
         rx.await.unwrap_or_default()
     }
 
-    pub async fn pollen_get_sale_authorizations(
-        &self,
-    ) -> Vec<crate::pollen::SaleAuthorization> {
+    pub async fn pollen_get_sale_authorizations(&self) -> Vec<crate::pollen::SaleAuthorization> {
         let (tx, rx) = oneshot::channel();
         let _ = self
             .tx
