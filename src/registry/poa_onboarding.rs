@@ -53,15 +53,9 @@ pub enum OnboardingDecision {
         kyc_expiry_block: u64,
     },
     /// Admin rejected a pending application.
-    Rejected {
-        applicant: Address,
-        reason: String,
-    },
+    Rejected { applicant: Address, reason: String },
     /// Admin revoked an active member (offboarding / compliance action).
-    Revoked {
-        applicant: Address,
-        reason: String,
-    },
+    Revoked { applicant: Address, reason: String },
     /// A (re-)approved member refreshed its KYC before expiry lapsed it.
     RenewedKyc {
         applicant: Address,
@@ -70,10 +64,7 @@ pub enum OnboardingDecision {
     /// Observed that an approved member's KYC horizon elapsed. Appended lazily
     /// by [`PoaOnboarding::whitelist`] the first time the expiry is observed so
     /// the audit trail explains *why* a formerly-active member vanished.
-    KycExpired {
-        applicant: Address,
-        at_block: u64,
-    },
+    KycExpired { applicant: Address, at_block: u64 },
 }
 
 /// One immutable audit-log entry.
@@ -256,10 +247,7 @@ impl PoaOnboarding {
             domain,
             at_block,
             actor: admin,
-            decision: OnboardingDecision::Rejected {
-                applicant,
-                reason,
-            },
+            decision: OnboardingDecision::Rejected { applicant, reason },
         });
         Ok(())
     }
@@ -285,10 +273,7 @@ impl PoaOnboarding {
             domain,
             at_block,
             actor: admin,
-            decision: OnboardingDecision::Revoked {
-                applicant,
-                reason,
-            },
+            decision: OnboardingDecision::Revoked { applicant, reason },
         });
         Ok(())
     }
@@ -384,10 +369,7 @@ impl PoaOnboarding {
             }
             members.insert(m.account, expiry);
         }
-        PoAWhitelist {
-            domain,
-            members,
-        }
+        PoAWhitelist { domain, members }
     }
 
     /// Convenience: is `account` authorized to act in `domain` right now,
