@@ -88,6 +88,16 @@ impl BatteryStatus {
             PowerMode::Critical
         }
     }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.level_pct > 100 {
+            return Err("BatteryStatus level_pct must be <= 100".into());
+        }
+        if !self.charging && self.level_pct == 0 && self.estimated_minutes > 0 {
+            return Err("BatteryStatus empty battery cannot report remaining minutes".into());
+        }
+        Ok(())
+    }
 }
 
 /// Güç modu.
@@ -145,6 +155,21 @@ pub enum NatType {
     Unknown,
 }
 
+impl NetworkStatus {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.bandwidth_kbps == 0 {
+            return Err("NetworkStatus bandwidth_kbps must be >= 1".into());
+        }
+        if self.latency_ms > 60_000 {
+            return Err("NetworkStatus latency_ms too high".into());
+        }
+        if self.nat_type == NatType::None && !self.public_ip {
+            return Err("NetworkStatus NatType::None requires public_ip".into());
+        }
+        Ok(())
+    }
+}
+
 /// Depolama durumu.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageStatus {
@@ -157,6 +182,19 @@ pub struct StorageStatus {
 }
 
 impl StorageStatus {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.total_bytes == 0 {
+            return Err("StorageStatus total_bytes must be >= 1".into());
+        }
+        if self.available_bytes > self.total_bytes {
+            return Err("StorageStatus available_bytes cannot exceed total_bytes".into());
+        }
+        if self.bud_reserved_bytes > self.total_bytes {
+            return Err("StorageStatus bud_reserved_bytes cannot exceed total_bytes".into());
+        }
+        Ok(())
+    }
+
     /// B.U.D. için kullanılabilir alan (bayt).
     pub fn bud_available(&self) -> u64 {
         self.bud_reserved_bytes.min(self.available_bytes)
@@ -248,6 +286,24 @@ impl Default for NatTraversalStatus {
     }
 }
 
+impl NatTraversalStatus {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.using_relay {
+            let relay = self
+                .relay_address
+                .as_ref()
+                .ok_or_else(|| "NatTraversalStatus relay_address required when using_relay".to_string())?;
+            if relay.is_empty() || relay.len() > 256 || relay.bytes().any(|b| b.is_ascii_whitespace()) {
+                return Err("NatTraversalStatus relay_address invalid".into());
+            }
+            if self.hole_punched {
+                return Err("NatTraversalStatus cannot use relay and claim hole_punched".into());
+            }
+        }
+        Ok(())
+    }
+}
+
 impl MobileNodeProfile {
     /// Yeni bir mobil düğüm profili oluşturur.
     pub fn new(address: Address, device_type: DeviceType) -> Self {
@@ -271,6 +327,37 @@ impl MobileNodeProfile {
             nat_status: NatTraversalStatus::default(),
             last_seen_epoch: 0,
         }
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.address == Address::zero() {
+            return Err("MobileNodeProfile address cannot be zero".into());
+        }
+        self.battery.validate()?;
+        self.network.validate()?;
+        self.storage.validate()?;
+        self.nat_status.validate()?;
+        if self.last_seen_epoch == u64::MAX {
+            return Err("MobileNodeProfile last_seen_epoch sentinel invalid".into());
+        }
+        Ok(())
+    }
+
+    pub fn try_update_battery(
+        &mut self,
+        level_pct: u8,
+        charging: bool,
+        estimated_minutes: u32,
+    ) -> Result<(), String> {
+        let battery = BatteryStatus {
+            level_pct,
+            charging,
+            estimated_minutes,
+        };
+        battery.validate()?;
+        self.battery = battery;
+        self.challenge_policy = ChallengePolicy::from_power_mode(self.battery.power_mode());
+        Ok(())
     }
 
     /// Pil durumunu günceller ve challenge policy'yi ayarlar.
@@ -298,6 +385,13 @@ impl MobileNodeProfile {
         }
 
         self.nat_status.nat_detected = true;
+    }
+
+    pub fn set_relay_address(&mut self, relay_address: String) -> Result<(), String> {
+        self.nat_status.using_relay = true;
+        self.nat_status.relay_address = Some(relay_address);
+        self.nat_status.hole_punched = false;
+        self.nat_status.validate()
     }
 
     /// Düğüm aktif görev kabul edebilir mi?
@@ -432,4 +526,36 @@ mod tests {
         assert!(summary.contains("phone"));
         assert!(summary.contains("100%"));
     }
+
+    #[test]
+    fn mobile_profile_validate_rejects_impossible_battery() {
+        let mut profile = MobileNodeProfile::new(test_address(), DeviceType::Phone);
+        assert!(profile.validate().is_ok());
+        assert!(profile.try_update_battery(101, false, 1).is_err());
+    }
+
+    #[test]
+    fn mobile_profile_validate_rejects_invalid_storage_accounting() {
+        let mut profile = MobileNodeProfile::new(test_address(), DeviceType::Phone);
+        profile.storage.available_bytes = profile.storage.total_bytes.saturating_add(1);
+        assert!(profile.validate().unwrap_err().contains("available_bytes"));
+    }
+
+    #[test]
+    fn relay_address_required_for_symmetric_nat_profile() {
+        let mut profile = MobileNodeProfile::new(test_address(), DeviceType::Phone);
+        profile.update_nat(NatType::Symmetric, false);
+        assert!(profile.validate().unwrap_err().contains("relay_address"));
+        profile
+            .set_relay_address("relay.budlum.local:4001".into())
+            .unwrap();
+        assert!(profile.validate().is_ok());
+    }
+
+    #[test]
+    fn exported_mobile_module_compiles_and_rejects_zero_address() {
+        let profile = MobileNodeProfile::new(Address::zero(), DeviceType::Phone);
+        assert!(profile.validate().unwrap_err().contains("address cannot be zero"));
+    }
+
 }

@@ -5036,3 +5036,23 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP tekrar.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 22:20 UTC+03:00] ARENA4 — ADIM P12-16 BAŞLADI: Mobile Self network profile hardening
+
+**Zemin:** main `58e3a4da` ve ARENAX/ARENAS devir süreci; kullanıcı komutu: yalnız main kullanılacak, P12-4/5/6/7/8/9 ARENAX'e devredildi ve iki taraf commitleri inceleyerek sertleştirecek.
+**Koordinasyon:** ARENAX/ARENAS'in `src/network/mobile.rs` eklediği P12-9 Mobile Self mobil düğüm profili incelendi. Dosya main'de vardı ama `src/network/mod.rs` içinde export edilmiyordu; bu nedenle module/tests compile kapsamına alınmalı.
+
+**Kapsam:**
+1. `src/network/mod.rs`: `mobile` module export + `MobileNodeProfile` / `PowerMode` re-export.
+2. `BatteryStatus::validate`: impossible battery state reject.
+3. `NetworkStatus::validate`: zero bandwidth, aşırı latency, NAT None + no public IP reject.
+4. `StorageStatus::validate`: storage accounting overflow/inconsistency reject.
+5. `NatTraversalStatus::validate`: relay kullanımı için valid relay address zorunlu; relay + hole-punched çelişkisi reject.
+6. `MobileNodeProfile::validate`, `try_update_battery`, `set_relay_address` + negatif testler.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
