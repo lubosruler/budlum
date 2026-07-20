@@ -4949,3 +4949,22 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP tekrar.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 21:40 UTC+03:00] ARENA4 — ADIM P12-15 BAŞLADI: ARENAX devir + P12-4/9 hardening turu
+
+**Zemin:** main `e928315c` — CI **23/23 success**. Kullanıcı komutu: artık yalnız main kullanılacak; Phase12 4/5/6/7/8/9 ARENAX'e devredildi; ARENA4 + ARENAX çalışmayı sertleştirecek ve atılan commitleri inceleyecek.
+**Koordinasyon:** `origin/arenas/audit-v145-plus` yeniden incelendi. ARENAX/ARENAS tarafındaki P12-4→P12-9 ters-sıra commit'i (`360cad22`) ve sonraki V183-V203 hardening serisi not edildi; büyük branch doğrudan merge edilmeyecek, main üzerinde küçük CI-kanitli sertleştirme ADIM'ları uygulanacak.
+
+**Bu ADIM kapsamı:** P12-5 Relayer Policy Layer ilk sertleştirme paketi.
+1. `RelayerActionKind::validate()` eklenecek: external payload hash / target shape, D-Web name shape, Pollen asset/grant id sıfır kontrolü.
+2. `PolicyEnvelope` zero owner/session/domain ve domain-list bloat guard.
+3. `UserIntent` zero owner/domain/action/policy hash fail-closed.
+4. `SolverBid` zero proof_commitment reject.
+5. Negatif regresyon testleri eklenecek.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
