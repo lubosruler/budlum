@@ -18,6 +18,172 @@ use super::{AssetId, GrantId, Signature64};
 /// sayılır ve strict AccessGrant kontrolünden geçmek zorundadır.
 pub const POLLEN_AI_INPUT_REF_PREFIX: &[u8] = b"BDLM_POLLEN_AI_INPUT_REF_V1";
 
+
+/// SaleAuthorization kimliği = canonical seller authorization hash.
+pub type SaleAuthorizationId = AssetId;
+
+/// Owner/seller signed authorization to sell pollen for a DataAsset.
+///
+/// This is the bridge between "tomurcuk benim" and "polenimi satıyorum":
+/// the DataAsset remains owned by `seller`, while grants may be issued under
+/// this bounded authorization.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SaleAuthorization {
+    pub authorization_id: SaleAuthorizationId,
+    pub asset_id: AssetId,
+    pub seller: Address,
+    pub unit_price: u64,
+    pub valid_from_block: u64,
+    pub expires_at_block: u64,
+    pub max_grants: u32,
+    #[serde(default)]
+    pub grants_issued: u32,
+    pub terms_hash: [u8; 32],
+    pub seller_signature: Signature64,
+}
+
+impl SaleAuthorization {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_unsigned(
+        asset_id: AssetId,
+        seller: Address,
+        unit_price: u64,
+        valid_from_block: u64,
+        expires_at_block: u64,
+        max_grants: u32,
+        terms_hash: [u8; 32],
+    ) -> Self {
+        let authorization_id = Self::derive_id(
+            &asset_id,
+            &seller,
+            unit_price,
+            valid_from_block,
+            expires_at_block,
+            max_grants,
+            &terms_hash,
+        );
+        Self {
+            authorization_id,
+            asset_id,
+            seller,
+            unit_price,
+            valid_from_block,
+            expires_at_block,
+            max_grants,
+            grants_issued: 0,
+            terms_hash,
+            seller_signature: Signature64::SENTINEL,
+        }
+    }
+
+    pub fn derive_id(
+        asset_id: &AssetId,
+        seller: &Address,
+        unit_price: u64,
+        valid_from_block: u64,
+        expires_at_block: u64,
+        max_grants: u32,
+        terms_hash: &[u8; 32],
+    ) -> SaleAuthorizationId {
+        let mut hasher = Sha256::new();
+        hasher.update(b"BDLM_POLLEN_SALE_AUTHORIZATION_V1");
+        hasher.update(asset_id.0);
+        hasher.update(seller.as_bytes());
+        hasher.update(unit_price.to_le_bytes());
+        hasher.update(valid_from_block.to_le_bytes());
+        hasher.update(expires_at_block.to_le_bytes());
+        hasher.update(max_grants.to_le_bytes());
+        hasher.update(terms_hash);
+        AssetId(hasher.finalize().into())
+    }
+
+    /// Signing hash for wallets. This deliberately excludes `seller_signature`
+    /// and mutable `grants_issued`.
+    pub fn signing_hash(&self) -> [u8; 32] {
+        let mut hasher = Sha256::new();
+        hasher.update(b"BDLM_POLLEN_SALE_AUTHORIZATION_SIGNING_V1");
+        hasher.update(self.authorization_id.0);
+        hasher.update(self.asset_id.0);
+        hasher.update(self.seller.as_bytes());
+        hasher.update(self.unit_price.to_le_bytes());
+        hasher.update(self.valid_from_block.to_le_bytes());
+        hasher.update(self.expires_at_block.to_le_bytes());
+        hasher.update(self.max_grants.to_le_bytes());
+        hasher.update(self.terms_hash);
+        hasher.finalize().into()
+    }
+
+    pub fn validate_shape(&self) -> Result<(), String> {
+        if self.authorization_id == SaleAuthorizationId::zero() {
+            return Err("SaleAuthorization authorization_id cannot be zero".into());
+        }
+        if self.asset_id == AssetId::zero() {
+            return Err("SaleAuthorization asset_id cannot be zero".into());
+        }
+        if self.seller == Address::zero() {
+            return Err("SaleAuthorization seller cannot be zero".into());
+        }
+        if self.unit_price == 0 {
+            return Err("SaleAuthorization unit_price must be >= 1".into());
+        }
+        if self.expires_at_block <= self.valid_from_block {
+            return Err("SaleAuthorization expires_at_block must be after valid_from_block".into());
+        }
+        if self.max_grants == 0 {
+            return Err("SaleAuthorization max_grants must be >= 1".into());
+        }
+        if self.grants_issued > self.max_grants {
+            return Err("SaleAuthorization grants_issued exceeds max_grants".into());
+        }
+        if self.seller_signature.is_sentinel() {
+            return Err("SaleAuthorization seller_signature sentinel is invalid".into());
+        }
+        let expected = Self::derive_id(
+            &self.asset_id,
+            &self.seller,
+            self.unit_price,
+            self.valid_from_block,
+            self.expires_at_block,
+            self.max_grants,
+            &self.terms_hash,
+        );
+        if self.authorization_id != expected {
+            return Err("SaleAuthorization id does not match canonical preimage".into());
+        }
+        Ok(())
+    }
+
+    pub fn can_issue(&self, current_block: u64) -> bool {
+        current_block >= self.valid_from_block
+            && current_block <= self.expires_at_block
+            && self.grants_issued < self.max_grants
+    }
+
+    pub fn record_issued_grant(&mut self) -> Result<(), String> {
+        if self.grants_issued >= self.max_grants {
+            return Err("SaleAuthorization grant limit exhausted".into());
+        }
+        self.grants_issued = self.grants_issued.saturating_add(1);
+        Ok(())
+    }
+
+    pub fn calculate_leaf(&self) -> [u8; 32] {
+        let mut hasher = Sha256::new();
+        hasher.update(b"BDLM_POLLEN_SALE_AUTHORIZATION_LEAF_V1");
+        hasher.update(self.authorization_id.0);
+        hasher.update(self.asset_id.0);
+        hasher.update(self.seller.as_bytes());
+        hasher.update(self.unit_price.to_le_bytes());
+        hasher.update(self.valid_from_block.to_le_bytes());
+        hasher.update(self.expires_at_block.to_le_bytes());
+        hasher.update(self.max_grants.to_le_bytes());
+        hasher.update(self.grants_issued.to_le_bytes());
+        hasher.update(self.terms_hash);
+        hasher.update(self.seller_signature.as_bytes());
+        hasher.finalize().into()
+    }
+}
+
 /// DataAsset lifecycle state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DataAssetStatus {
@@ -358,6 +524,53 @@ mod tests {
             [7u8; 32],
         );
         assert!(grant.validate_shape().unwrap_err().contains("sentinel"));
+    }
+
+    #[test]
+    fn sale_authorization_id_and_signing_hash_are_stable() {
+        let mut auth = SaleAuthorization::new_unsigned(
+            AssetId::from([6u8; 32]),
+            addr(1),
+            99,
+            10,
+            20,
+            2,
+            [3u8; 32],
+        );
+        assert_eq!(
+            auth.authorization_id,
+            SaleAuthorization::derive_id(
+                &AssetId::from([6u8; 32]),
+                &addr(1),
+                99,
+                10,
+                20,
+                2,
+                &[3u8; 32]
+            )
+        );
+        let signing_hash = auth.signing_hash();
+        auth.seller_signature = Signature64::from([1u8; 64]);
+        assert_eq!(signing_hash, auth.signing_hash());
+        assert!(auth.validate_shape().is_ok());
+        assert!(auth.can_issue(10));
+        auth.record_issued_grant().unwrap();
+        auth.record_issued_grant().unwrap();
+        assert!(!auth.can_issue(10));
+    }
+
+    #[test]
+    fn sale_authorization_sentinel_signature_rejected() {
+        let auth = SaleAuthorization::new_unsigned(
+            AssetId::from([6u8; 32]),
+            addr(1),
+            99,
+            10,
+            20,
+            2,
+            [3u8; 32],
+        );
+        assert!(auth.validate_shape().unwrap_err().contains("sentinel"));
     }
 
     #[test]

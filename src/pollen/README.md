@@ -9,8 +9,8 @@ Kök `README.md` yalnızca dashboard'dur; olgunluk/risk uyarıları burada yaşa
   `AccessGrant` primitifleri artık kodda; AI input_ref Pollen/B.U.D. verisine
   işaret ediyorsa grant olmadan reddedilir (strict no-override).
 - **Kod konumu:** `src/pollen/` — `mod.rs` (temel tipler: `AssetId`, `Signature64`,
-  `GrantId`), `data_rights.rs` (`DataAsset`, `AccessGrant`, `AiDataInputRef`),
-  `offers.rs` (`MarketplaceRegistry` + geçici `DataOffer`).
+  `GrantId`), `data_rights.rs` (`DataAsset`, `AccessGrant`, `SaleAuthorization`,
+  `AiDataInputRef`), `offers.rs` (`MarketplaceRegistry` + geçici `DataOffer`).
 - **Test sayısı:** CI summary doğrulamalı; Data Rights regresyonları
   `pollen_ai_data_rights` ve `pollen::data_rights/offers` testlerindedir.
 - **İsimlendirme:** 2026-07-18 kullanıcı emriyle `bud_marketplace` → `pollen` rename.
@@ -30,8 +30,8 @@ Kök `README.md` yalnızca dashboard'dur; olgunluk/risk uyarıları burada yaşa
   Faz-2'de (HSM/encryption domain'i).
 - ✅ **P0/P1 temel tipler mevcut** (`AssetId` JSON-safe, `Signature64`
   sentinel-default, `DataAsset`, `AccessGrant`, `AiDataInputRef`).
-  Sıradaki genişleme: `SaleAuthorization`, HPKE key-wrapping, DAO encryption
-  parametreleri ve RPC yüzeyi.
+  Sıradaki genişleme: HPKE key-wrapping, DAO encryption parametreleri ve
+  transaction-backed grant/authorization registration RPC yüzeyi.
 
 ## Veri egemenliği
 

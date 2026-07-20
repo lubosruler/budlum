@@ -4036,3 +4036,20 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** STATUS kapanış commit'i push edilecek ve CI tekrar izlenecek; yeşil olursa yeni komut/ADIM beklenir.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 11:45 UTC+03:00] ARENA4 — ADIM A4-2 BAŞLADI: SaleAuthorization + Pollen RPC/query surface
+
+**Zemin:** Branch `arena/arena4-pollen-ai-data-rights` main `eacc649` ile merge edildi; merge SHA `7fd8c68` CI run `29728954627` üzerinde **14/14 success**.  
+**Kapsam:**
+1. `SaleAuthorization` + `SaleAuthorizationId` primitive'i: seller/owner imzalı, bounded pollen satış yetkisi.
+2. `MarketplaceRegistry.sale_authorizations` root kapsamı.
+3. ChainActor read-only Pollen query komutları: data assets, grants, sale authorizations.
+4. RPC: `bud_pollenGetDataAssets`, `bud_pollenGetAccessGrants`, `bud_pollenGetSaleAuthorizations`, `bud_pollenBuildAiInputRef`, `bud_pollenPrepareSaleAuthorization`.
+5. Yeni transaction/proto tipi açılmıyor; bu ADIM güvenli prepare/query yüzeyiyle sınırlı.
+
+**Budlumdevnet dokunulmadı.**  
+**Ne bekliyor:** Push + CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>

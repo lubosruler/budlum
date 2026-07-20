@@ -31,8 +31,8 @@ Bu ayrım üç güvenlik ilkesini doğurur:
 
 | ADIM | Başlık | Kapsam | Durum |
 |---|---|---|---|
-| A4-1 | Pollen Data Rights + AI read gate | `DataAsset`, `AccessGrant`, `AiDataInputRef`, executor admission gate | Bu branch'te başladı |
-| A4-2 | SaleAuthorization + Pollen RPC | Owner-imzalı satış yetkisi, grant query/register RPC | Sonraki ADIM |
+| A4-1 | Pollen Data Rights + AI read gate | `DataAsset`, `AccessGrant`, `AiDataInputRef`, executor admission gate | ✅ CI yeşil |
+| A4-2 | SaleAuthorization + Pollen RPC | Owner-imzalı satış yetkisi, Pollen query + input-ref builder + prepare RPC | Bu branch'te başladı |
 | A4-3 | Encryption DAO parameters | DAO-managed encryption version/limits, no decrypt authority | Sonraki ADIM |
 | A4-4 | Relayer Policy Layer | Intent, policy envelope, solver bid, relayer slashing hooks | Sonraki ADIM |
 | A4-5 | D-Web Passport core | light-client state proof query, `.bud` resolver spec, budlum.xyz handoff | Sonraki ADIM |

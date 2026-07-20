@@ -9,7 +9,10 @@ use crate::storage::content_id::ContentId;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-use super::{AccessGrant, AiDataInputRef, AssetId, DataAsset, DataAssetStatus, GrantId};
+use super::{
+    AccessGrant, AiDataInputRef, AssetId, DataAsset, DataAssetStatus, GrantId,
+    SaleAuthorization, SaleAuthorizationId,
+};
 
 /// Phase 5 §5.5: AI Data Marketplace — Economic layer for user-to-AI data sales.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -34,6 +37,10 @@ pub struct MarketplaceRegistry {
     /// Pollen: owner-signed access grants. Strict AI gate consumes these.
     #[serde(default)]
     pub access_grants: BTreeMap<GrantId, AccessGrant>,
+    /// Pollen: seller/owner signed sale authorizations. These define the
+    /// bounded pollen sale terms without transferring DataAsset ownership.
+    #[serde(default)]
+    pub sale_authorizations: BTreeMap<SaleAuthorizationId, SaleAuthorization>,
 }
 
 impl MarketplaceRegistry {
@@ -138,6 +145,40 @@ impl MarketplaceRegistry {
         Ok(())
     }
 
+
+    pub fn create_sale_authorization(
+        &mut self,
+        authorization: SaleAuthorization,
+    ) -> Result<SaleAuthorizationId, String> {
+        authorization.validate_shape()?;
+        let asset = self
+            .data_assets
+            .get(&authorization.asset_id)
+            .ok_or("SaleAuthorization references unknown DataAsset")?;
+        if !asset.is_active() {
+            return Err("SaleAuthorization references inactive DataAsset".into());
+        }
+        if authorization.seller != asset.owner {
+            return Err("SaleAuthorization seller must match DataAsset owner".into());
+        }
+        if self
+            .sale_authorizations
+            .contains_key(&authorization.authorization_id)
+        {
+            return Err("SaleAuthorization already registered".into());
+        }
+        let id = authorization.authorization_id;
+        self.sale_authorizations.insert(id, authorization);
+        Ok(id)
+    }
+
+    pub fn get_sale_authorization(
+        &self,
+        authorization_id: &SaleAuthorizationId,
+    ) -> Option<&SaleAuthorization> {
+        self.sale_authorizations.get(authorization_id)
+    }
+
     /// Strict AI gate. Returns `Ok(None)` for non-Pollen input_ref payloads
     /// (legacy prompt/opaque bytes). Returns `Err` for Pollen references that
     /// lack a valid grant. There is no DAO/admin override.
@@ -215,6 +256,11 @@ impl MarketplaceRegistry {
             hasher.update(grant_id.0);
             hasher.update(grant.calculate_leaf());
         }
+        for (authorization_id, authorization) in &self.sale_authorizations {
+            hasher.update(b"sale_authorization");
+            hasher.update(authorization_id.0);
+            hasher.update(authorization.calculate_leaf());
+        }
         hasher.finalize().into()
     }
 }
@@ -226,6 +272,20 @@ mod tests {
 
     fn addr(byte: u8) -> Address {
         Address::from([byte; 32])
+    }
+
+    fn signed_sale_authorization(asset: &DataAsset) -> SaleAuthorization {
+        let mut authorization = SaleAuthorization::new_unsigned(
+            asset.asset_id,
+            asset.owner,
+            42,
+            10,
+            20,
+            2,
+            [0xAA; 32],
+        );
+        authorization.seller_signature = super::super::Signature64::from([0x44; 64]);
+        authorization
     }
 
     fn signed_grant(asset: &DataAsset, grantee: Address, max_reads: u32) -> AccessGrant {
@@ -255,7 +315,12 @@ mod tests {
         registry
             .create_access_grant(signed_grant(&asset, addr(2), 1))
             .unwrap();
-        assert_ne!(root1, registry.root());
+        let root2 = registry.root();
+        assert_ne!(root1, root2);
+        registry
+            .create_sale_authorization(signed_sale_authorization(&asset))
+            .unwrap();
+        assert_ne!(root2, registry.root());
     }
 
     #[test]
@@ -315,6 +380,26 @@ mod tests {
         assert!(registry
             .validate_ai_read_ref(&reference.encode(), &addr(2), 10)
             .is_err());
+    }
+
+    #[test]
+    fn sale_authorization_requires_matching_asset_owner() {
+        let mut registry = MarketplaceRegistry::new();
+        let asset = DataAsset::new(addr(1), ContentId::of(b"asset"), [1u8; 32], true);
+        registry.register_data_asset(asset.clone()).unwrap();
+        let mut authorization = signed_sale_authorization(&asset);
+        authorization.seller = addr(9);
+        authorization.authorization_id = SaleAuthorization::derive_id(
+            &authorization.asset_id,
+            &authorization.seller,
+            authorization.unit_price,
+            authorization.valid_from_block,
+            authorization.expires_at_block,
+            authorization.max_grants,
+            &authorization.terms_hash,
+        );
+        let err = registry.create_sale_authorization(authorization).unwrap_err();
+        assert!(err.contains("seller must match"));
     }
 
     #[test]

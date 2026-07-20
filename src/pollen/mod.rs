@@ -285,7 +285,7 @@ mod tests {
 pub mod data_rights;
 pub use data_rights::{
     AccessGrant, AccessGrantStatus, AiDataInputRef, DataAsset, DataAssetStatus,
-    POLLEN_AI_INPUT_REF_PREFIX,
+    SaleAuthorization, SaleAuthorizationId, POLLEN_AI_INPUT_REF_PREFIX,
 };
 
 /// Phase 5 §5.5 AI Data Marketplace (satıcı-teklifi ekonomisi) — geçiş modülü.
