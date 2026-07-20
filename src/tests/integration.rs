@@ -396,17 +396,16 @@ mod integration_tests {
             .map(|_| ());
         assert!(result.is_err());
         // V127: height continuity check may fire before the finalized check.
-        // Both correctly reject the block.
+        // Both correctly reject the block. ARENA2 collective repair: borrow via
+        // a single `err` binding (the original used `result` after moving it,
+        // E0382) and drop the trailing assertion that contradicted the V127
+        // either/or contract above.
         let err = result.unwrap_err();
         assert!(
             err.contains("conflicts with finalized checkpoint")
                 || err.contains("height discontinuity"),
             "unexpected error: {err}"
         );
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("conflicts with finalized checkpoint"));
     }
 
     #[test]
