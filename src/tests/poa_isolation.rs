@@ -279,9 +279,7 @@ mod poa_isolation_tests {
 
         // Ters yönlü sızma: PoA whitelist üyeliği permissionless aktiflik vermez
         assert!(
-            !perm_state
-                .registry
-                .is_active(&poa_member, roles::VALIDATOR),
+            !perm_state.registry.is_active(&poa_member, roles::VALIDATOR),
             "PoA whitelist membership must NOT grant permissionless validator status"
         );
     }
