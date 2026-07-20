@@ -1,6 +1,6 @@
 //! PoA katılımcı onboarding test matrisi — Phase 11.3 Görev 4.
 //!
-//! [`crate::registry::poa_onboarding::PoaOnboarding`] modülünün tam yaşam
+//! [`crate::registry::poa_onboarding::PoAOnboarding`] modülünün tam yaşam
 //! döngüsünü, whitelist zorunluluğunu, KYC son kullanma (expiry) davranışını
 //! ve karar denetim (audit) izini kapsar.
 //!
@@ -212,7 +212,7 @@ mod poa_onboarding_matrix {
         let admin = addr(0xAD);
         let member = addr(0xAA);
         let nobody = addr(0x99);
-        let mut poa = PoaOnboarding::new();
+        let mut poa = PoAOnboarding::new();
         poa.add_admin(DOMAIN, admin);
         poa.submit_application(DOMAIN, member, kyc(1), 0).unwrap();
 

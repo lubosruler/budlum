@@ -62,7 +62,7 @@ pub enum OnboardingDecision {
         new_expiry_block: u64,
     },
     /// Observed that an approved member's KYC horizon elapsed. Appended lazily
-    /// by [`PoaOnboarding::whitelist`] the first time the expiry is observed so
+    /// by [`PoAOnboarding::whitelist`] the first time the expiry is observed so
     /// the audit trail explains *why* a formerly-active member vanished.
     KycExpired { applicant: Address, at_block: u64 },
 }
@@ -129,7 +129,7 @@ impl PoAWhitelist {
 /// underlying [`PoaMembershipRegistry`] plus the compliance layer
 /// (audit trail + KYC expiry tracking).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct PoaOnboarding {
+pub struct PoAOnboarding {
     registry: PoaMembershipRegistry,
     audit: Vec<OnboardingEvent>,
     /// Per (domain, account): the block after which the KYC dossier is stale.
@@ -140,7 +140,7 @@ pub struct PoaOnboarding {
     logged_expiry: BTreeSet<(DomainId, Address)>,
 }
 
-impl PoaOnboarding {
+impl PoAOnboarding {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
@@ -410,7 +410,7 @@ mod tests {
     fn whitelist_member_round_trip() {
         let admin = addr(0xAD);
         let member = addr(0xAA);
-        let mut poa = PoaOnboarding::new();
+        let mut poa = PoAOnboarding::new();
         poa.add_admin(0, admin);
         assert!(poa.submit_application(0, member, kyc(1), 0).is_ok());
         assert!(!poa.whitelist(0, 0).contains(&member));

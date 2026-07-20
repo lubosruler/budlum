@@ -239,7 +239,7 @@ mod poa_isolation_tests {
     /// statü VERMEZ. Bu test "PoA Isolation" CI kapısının (≥7) bir parçasıdır.
     #[test]
     fn poa_whitelist_independent_of_permissionless_stake() {
-        use crate::registry::poa_onboarding::PoaOnboarding;
+        use crate::registry::poa_onboarding::PoAOnboarding;
 
         let mut perm_state = AccountState::new();
         let mut poa = PoAOnboarding::new();
