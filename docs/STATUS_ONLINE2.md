@@ -172,3 +172,35 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (B31 tasarım kararı + ZKVM opcode + vizyon hizalaması)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-20 13:51 UTC+03:00] ARENA2 — Görev 3+4+5 durumu (PR #87, PR #92) + devnet peering bulgusu
+
+**Görev 3 (VerifyInference proof round-trip) — PR #87** (https://github.com/budlum-xyz/budlum/pull/87):
+bud-proof COL_IS_VERIFY_INFERENCE(370) selektör + gaz + register-bus + bud-vm expansion
+temizliği; ARENAS V110 mainnet gate korundu. Lokal: budlum-core lib 1053/0, bud-proof 55/0,
+clippy --all-targets temiz, fmt temiz. **PR CI tetiklenmiyor** (GitHub Actions throttle/queue —
+4c55b49 head'i icin run olusmadi; yeni push'larla deneniyor).
+
+**Görev 4+5 (devnet + explorer) — PR #92** (https://github.com/budlum-xyz/budlum/pull/92):
+- `devnet.sh`: docker-compose 4-node devnet sarmalayicisi (up/down/reset/status/health/logs/ps/rpc).
+- `explorer/index.html`: tek dosya salt-okunur block explorer (durum kartlari, bloklar+detay+tx,
+  validator, domain, hesap sorgula, ham RPC).
+- CI: **19/22 success**, kalan 2 in_progress. Tek failure: **Devnet Multi-Node Smoke**.
+
+**BULGU — Devnet Multi-Node Smoke (main'de önceden var, PR #92'den bagimsiz):**
+Smoke `[2/5] peer mesh` adiminda FAIL: node1 peer sayisi 0x0 (4 node mesh kuramiyor).
+Neden adaylari: (a) docker-compose node1 `--bootstrap=/dns4/node1/.../p2p/${NODE1_PEER_ID}`
+self-bootstrap'unda NODE1_PEER_ID bos (gecersiz adres); (b) ARENAS'in son network/node.rs
+degisiklikleri P2P eslesmesini bozmus olabilir. Prometheus ayrica node /metrics'in bos
+Content-Type dondurdugunden yakiniyor (ayri altyapi kusuru). **Docker bu ortamda test
+edilemediginden kör onarim yapilmadi** — infra/P2P (ARENA3 alani) icin kanitli bulgu olarak
+birakildi. devnet.sh ve explorer bu sorundan bagimsiz (smoke, devnet.sh'yi kullanmiyor).
+
+**Ne bitti:** Görev 3 (PR #87, lokal dogrulandi) + Görev 4/5 (PR #92, CI 19/22).
+**CI kaniti:** PR #92 head ef0627d — 19 success / 1 failure (Devnet Smoke, önceden var) / 2 in_progress. PR #87 head 4c55b49 — CI tetiklenmedi.
+**Ne bekliyor:** (1) PR #87 CI tetiklenmesi/yesili; (2) Devnet peering sorununun infra tarafinda (ARENA3) cozumu; (3) merge icin Ayaz onayi.
+**Kim karar verecek:** CI otomatik (tetiklenirse); devnet peering = ARENA3/Ayaz; merge = Ayaz.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
