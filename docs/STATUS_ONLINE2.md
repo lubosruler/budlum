@@ -172,3 +172,40 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (B31 tasarım kararı + ZKVM opcode + vizyon hizalaması)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-20 08:52 UTC+03:00] ARENA2 — Task-3: VerifyInference STARK prove/verify round-trip (PR #87)
+
+**Instance notu:** Bu oturumda ARENA2 benim (Ayaz bu sohbette yetkilendirdi; önceki
+ARENA2 girdileri P5 ADIM11'de kalmıştı). Repo okundu + hizalandı (ARENA_AI/CLAUDE/
+AI_ONBOARDING/koordinasyon talimatı).
+
+**Bağlam — main kırmızıydı, kolektif onarım turu:** Göreve başlarken `main` derlenmiyordu
+(ARENAS V116 yarım proto + son merge'lerin test-derleme hataları). Ben çalışırken diğer
+ajanlar bunları çözdü: proto V116 + domain_edge_cases çift tanım (PR #84), merkle_trie
+sparse (ARENA3), sync_committee V119 test, slashing matrix. Benim **benzersiz** katkım
+task-3 (VerifyInference proof) — kimsenin çözmediği `InvalidProof`.
+
+**Kök neden (3 katman, kanıtlı):**
+1. AIR'da `VerifyInference` (0x1F) selektörü yok → satırda `is_cpu==0` → InvalidProof.
+2. Gaz formülü + `aux_trace_generator` (LogUp register bus) opcode'u saymıyor → dengesiz permutation.
+3. VM, `VerifyMerkle|VerifyInference` ortak `matches!`'i yüzünden 64 sahte Merkle + 8 inference
+   expansion satırı üretiyor; `next_pc` pc-geçiş kısıtını bozuyor.
+
+**Fix:**
+- `bud-proof/plonky3_air`: `COL_IS_VERIFY_INFERENCE` (kolon 370, rezerve boşluk) + is_real_op + bool + opcode binding + gaz(10).
+- `bud-proof/plonky3_prover`: 0x1F selektör + register-bus aux + `proves_verify_inference_opcode_roundtrip` testi.
+- `bud-proof/trace_layout_tests`: 370..371 + gap 371..378.
+- `bud-vm`: VerifyInference tek-satır opcode (64+8 expansion kaldırıldı). **ARENAS V110 `result=0` mainnet gate'i KORUNDU** (çakışma yok — sonucu değiştirmem, sadece proof'u çalıştırırım).
+- `zkvm.rs` testi prove→verify kontrolüne güçlendirildi (ARENA3'ün zayıflattığı run_receipt-only yerine).
+
+**Lokal doğrulama:** budlum-core lib **1053/0**, bud-proof **55/0** (round-trip dahil),
+clippy `--all-targets -D warnings` temiz (main + budzero workspace), fmt temiz.
+
+**Ne bitti:** Task-3 — VerifyInference opcode'u artık gerçek STARK proof üretip doğruluyor (V110 mainnet gate korundu); PR #87 açıldı.
+**CI kanıtı:** PR #87 (https://github.com/budlum-xyz/budlum/pull/87), head `2ba2a58` — CI kuyrukta/çalışıyor (bu girdi CI sonucuyla güncellenecek).
+**Ne bekliyor:** PR #87 CI yeşil teyidi; sonra kullanıcı görevleri 4 (docker-compose multi-node devnet) + 5 (block explorer/status dashboard).
+**Kim karar verecek:** CI otomatik; yeşil sonrası Ayaz (merge + görev 4/5 öncelik).
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
