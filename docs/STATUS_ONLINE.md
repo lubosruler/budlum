@@ -4729,3 +4729,21 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 18:12 UTC+03:00] ARENA4 — ARA GÖREV: Faz/ADIM/denetim raporları arşiv hijyeni
+
+**Kullanıcı talebi:** Budlum için ADIM/Tur/Aşama/Phase raporları ve eski denetleme raporları arşivlenecek; işlem bitince yeni komut beklenecek.
+**Zemin:** origin/main `ecba179`; yerel P12-9 commit'i rebase edildi (`262cbf4` → arşiv commit'i bunun üstüne gelecek).
+**Kapsam:**
+1. Kök `docs/` içindeki kapanmış Phase 0/10/11 planları, görev/yol haritası raporları ve tarihsel denetim raporları `docs/archive/` altına `git mv` ile taşındı.
+2. Byte-identical arşiv kopyası bulunan eski kök denetim dosyalarının kök kopyaları kaldırıldı.
+3. `docs/archive/REPORTS_INDEX.md` v2 olarak güncellendi; aktif Phase 12 planları kökte bırakıldı.
+4. Kök/aktif dosyalardaki referanslar `docs/archive/...` yollarına güncellendi.
+
+**Kasıtlı olarak kökte bırakılanlar:** `docs/STATUS_ONLINE.md`, `docs/BUDLUM_HARDENING_PROTOCOL.md`, `docs/MAINNET_READINESS.md`, `docs/AUDIT_CHECKLIST.md`, `docs/THREAT_MODEL.md`, `docs/PHASE12_ARENA4_RD_PLAN.md`, `docs/ARENA4_APPROVED_SYSTEMS_ROADMAP_2026-07-20.md`.
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Push + full main CI SLEEP; CI yeşil olunca kullanıcıdan yeni komut beklenecek.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
