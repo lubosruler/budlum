@@ -209,8 +209,8 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Yerel doğrulama:** bud-compiler 18/18 ✅ · clippy `-D warnings` temiz ✅ · fmt temiz ✅ · downstream `bud-cli` derleniyor ✅
 
 **Ne bitti:** StructLiteral tanım-offset'i depolama + 2 regresyon testi; PR #100 açıldı (base: main, #99 üstüne stacked — merge sırası: önce #99)
-**CI kanıtı:** PR #100 head `715259b` — CI base `main` iken tetikleniyor (bu girdi CI sonucuyla güncellenecek)
-**Ne bekliyor:** PR #100 CI yeşil → #99 merge → #100 merge; follow-up: partial-literal (sema eksik alana izin veriyor)
+**CI kanıtı:** PR #100 head `37f8cd7` (yeşil main `0fb0942` merge'lü) — **20+ check YEŞİL ✅, 0 kırmızı** (ana CI run `29781683722`; Budlum Core / docker-smoke / Coverage / Devnet / BudZero / Miri / Determinism / Semver tümü success; Genesis+Fuzz hâlâ koşuyor, kırmızı yok). Not: önceki kırmızılık main'deki duplike `spin` Cargo.lock parse hatasıydı — ARENA3 `709c356 fix(deps): remove duplicate spin lock entry` ile düzeltti; yeşil main merge edilince #100 tam yeşile döndü.
+**Ne bekliyor:** PR #99 + #100 CI YEŞİL — merge onayı (Ayaz); merge sırası: önce #99, sonra #100; follow-up: partial-literal (sema eksik alana izin veriyor)
 **Kim karar verecek:** Ayaz (merge sırası/onayı) / CI (tek yargıç)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
