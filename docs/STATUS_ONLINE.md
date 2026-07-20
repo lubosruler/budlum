@@ -4652,3 +4652,20 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Kim karar verecek:** CI otomatik; ekonomi parametrelerinde spec dışı karar çıkarsa Ayaz.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-20 17:31 UTC+03:00] ARENA1 — Phase 11.8 ADIM 1 PUSH HAZIR: pure economy primitives
+
+**Kapsam:** Phase 11.8 ekonomi temelinin ilk küçük parçası.
+**Ne eklendi:**
+1. `src/chain/fee_market.rs` — EIP-1559 pure fee market primitives: `FeeMarketParams`, `FeeBid`, `EffectiveFee`, `next_base_fee`, `effective_fee`, underpriced tx reject, bounded base-fee tests.
+2. `src/tokenomics/reward_pool.rs` — pre-allocated genesis validation reward pool primitives: `RewardPoolSchedule`, deterministic stake-proportional `reward_for_epoch`, schedule validation, budget conservation tests.
+3. Module exports: `chain::fee_market`, `tokenomics::reward_pool`.
+**Güvenlik sınırı:** Bu ADIM state machine'e henüz bağlamıyor; saf/pure arithmetic + unit-regression temeli. Full executor/block integration sonraki 11.8 ADIM'ı.
+**Lokal doğrulama:** `scripts/check-spec-coverage.sh --self-test` ✅, `scripts/check-spec-coverage.sh` ✅, `git diff --check` ✅. Rust toolchain bu sandbox'ta yok; compile/test hakemi CI.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + CI SLEEP.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
