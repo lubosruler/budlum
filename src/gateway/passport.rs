@@ -10,6 +10,34 @@ use crate::storage::{ContentId, ContentManifest};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+pub const MAX_PASSPORT_EVIDENCE_ITEMS: usize = 64;
+
+pub fn validate_passport_name(name: &str) -> Result<(), String> {
+    let valid = !name.is_empty()
+        && name.len() <= 253
+        && !name.contains("..")
+        && !name.contains('/')
+        && !name.bytes().any(|b| b == 0 || b.is_ascii_control());
+    if valid {
+        Ok(())
+    } else {
+        Err("D-Web Passport name invalid".into())
+    }
+}
+
+fn validate_label(field: &str, value: &str) -> Result<(), String> {
+    let valid = !value.is_empty()
+        && value.len() <= 128
+        && !value.contains("..")
+        && !value.contains('/')
+        && !value.bytes().any(|b| b == 0 || b.is_ascii_control());
+    if valid {
+        Ok(())
+    } else {
+        Err(format!("{field} invalid"))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EvidenceStatus {
     Verified,
@@ -25,6 +53,17 @@ pub struct EvidenceCard {
     pub source: String,
     pub root: Option<String>,
     pub warning: Option<String>,
+}
+
+impl EvidenceCard {
+    pub fn validate(&self) -> Result<(), String> {
+        validate_label("EvidenceCard subject", &self.subject)?;
+        validate_label("EvidenceCard source", &self.source)?;
+        if let Some(root) = &self.root {
+            validate_label("EvidenceCard root", root)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -58,6 +97,22 @@ pub struct DwebPassportProfile {
     pub evidence: Vec<EvidenceCard>,
 }
 
+impl DwebPassportProfile {
+    pub fn validate_public(&self) -> Result<(), String> {
+        validate_passport_name(&self.name)?;
+        if self.exists && self.owner.is_none() {
+            return Err("DwebPassportProfile existing profile requires owner".into());
+        }
+        if self.evidence.len() > MAX_PASSPORT_EVIDENCE_ITEMS {
+            return Err("DwebPassportProfile evidence item limit exceeded".into());
+        }
+        for card in &self.evidence {
+            card.validate()?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PassportProofItem {
     pub subject: String,
@@ -78,6 +133,27 @@ pub struct PassportProofBundle {
     pub evidence_count: u32,
     pub bundle_root: [u8; 32],
     pub items: Vec<PassportProofItem>,
+}
+
+impl PassportProofBundle {
+    pub fn validate_against_profile(&self, profile: &DwebPassportProfile) -> Result<(), String> {
+        validate_passport_name(&self.name)?;
+        if self.name != profile.name || self.exists != profile.exists || self.owner != profile.owner
+        {
+            return Err("PassportProofBundle profile binding mismatch".into());
+        }
+        if self.items.len() > MAX_PASSPORT_EVIDENCE_ITEMS {
+            return Err("PassportProofBundle item limit exceeded".into());
+        }
+        if self.evidence_count as usize != self.items.len() {
+            return Err("PassportProofBundle evidence_count mismatch".into());
+        }
+        let expected = build_passport_proof_bundle(profile, self.generated_at_block);
+        if expected.bundle_root != self.bundle_root {
+            return Err("PassportProofBundle root mismatch".into());
+        }
+        Ok(())
+    }
 }
 
 fn update_str(hasher: &mut Sha256, value: &str) {
@@ -110,6 +186,7 @@ pub fn build_passport_proof_bundle(
     let items: Vec<PassportProofItem> = profile
         .evidence
         .iter()
+        .take(MAX_PASSPORT_EVIDENCE_ITEMS)
         .map(|card| PassportProofItem {
             subject: card.subject.clone(),
             status: card.status.clone(),
@@ -162,6 +239,16 @@ pub fn build_passport_proof_bundle(
         bundle_root,
         items,
     }
+}
+
+pub fn try_build_passport_proof_bundle(
+    profile: &DwebPassportProfile,
+    generated_at_block: u64,
+) -> Result<PassportProofBundle, String> {
+    profile.validate_public()?;
+    let bundle = build_passport_proof_bundle(profile, generated_at_block);
+    bundle.validate_against_profile(profile)?;
+    Ok(bundle)
 }
 
 fn hex32(bytes: &[u8; 32]) -> String {
@@ -377,5 +464,39 @@ mod tests {
         });
         let second = build_passport_proof_bundle(&profile, 77);
         assert_ne!(first.bundle_root, second.bundle_root);
+    }
+
+    #[test]
+    fn invalid_passport_name_is_rejected() {
+        for name in ["", "../bad.bud", "bad/bud", "bad\0bud"] {
+            assert!(validate_passport_name(name).is_err());
+        }
+    }
+
+    #[test]
+    fn proof_bundle_validate_binds_profile_root() {
+        let profile = build_passport_profile("missing.bud".into(), None, None, &[], &[], &[]);
+        let bundle = try_build_passport_proof_bundle(&profile, 77).unwrap();
+        assert!(bundle.validate_against_profile(&profile).is_ok());
+        let mut tampered = bundle.clone();
+        tampered.generated_at_block = 78;
+        assert!(tampered.validate_against_profile(&profile).is_err());
+    }
+
+    #[test]
+    fn profile_evidence_limit_is_enforced_for_try_bundle() {
+        let mut profile = build_passport_profile("missing.bud".into(), None, None, &[], &[], &[]);
+        for idx in 0..=MAX_PASSPORT_EVIDENCE_ITEMS {
+            profile.evidence.push(EvidenceCard {
+                subject: format!("extra-{idx}"),
+                status: EvidenceStatus::Pending,
+                source: "test".into(),
+                root: None,
+                warning: None,
+            });
+        }
+        assert!(try_build_passport_proof_bundle(&profile, 1)
+            .unwrap_err()
+            .contains("evidence"));
     }
 }
