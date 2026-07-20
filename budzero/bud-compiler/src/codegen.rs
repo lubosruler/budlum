@@ -2,6 +2,26 @@ use crate::ast::*;
 use crate::CompileError;
 use bud_isa::{Instruction, IsaProfile, Opcode};
 
+/// Per-variable codegen metadata. Alongside the assigned register we
+/// track the struct type a variable holds (when it holds a struct
+/// pointer). `FieldAccess` uses this to resolve the field offset within
+/// the base expression's *actual* struct layout instead of guessing by
+/// scanning every declared struct — which is wrong (and, because
+/// `struct_layouts` is a hash map, non-deterministic) as soon as two
+/// structs declare a field with the same name at different positions.
+///
+/// This mirrors the semantic analyzer, whose environment already maps
+/// each variable to a `Type` (including `Type::Struct(name)`); codegen
+/// is a separate pass and therefore keeps its own minimal type record.
+#[derive(Clone)]
+struct VarInfo {
+    reg: u8,
+    /// `Some(struct_name)` when this variable holds a pointer to that
+    /// struct; `None` for scalar values (u64 / bool / field) or when
+    /// the type cannot be resolved statically.
+    struct_type: Option<String>,
+}
+
 #[allow(dead_code)]
 pub struct Codegen {
     instructions: Vec<u64>,
@@ -100,7 +120,8 @@ impl Codegen {
         }
 
         self.next_reg = 1;
-        let mut scope = std::collections::HashMap::new();
+        let mut scope: std::collections::HashMap<String, VarInfo> =
+            std::collections::HashMap::new();
 
         let ret_addr_reg = self.alloc_reg();
         self.emit(Opcode::Pop, ret_addr_reg, 0, 0, 0);
@@ -115,7 +136,21 @@ impl Codegen {
         }
 
         for (param, reg) in func.params.iter().zip(param_regs.iter()) {
-            scope.insert(param.name.clone(), *reg);
+            // A parameter whose declared type names a struct holds a
+            // struct pointer — record that so `FieldAccess` on the
+            // parameter resolves against the correct layout.
+            let struct_type = if self.struct_layouts.contains_key(&param.ty) {
+                Some(param.ty.clone())
+            } else {
+                None
+            };
+            scope.insert(
+                param.name.clone(),
+                VarInfo {
+                    reg: *reg,
+                    struct_type,
+                },
+            );
         }
 
         self.emit(Opcode::Push, 0, ret_addr_reg, 0, 0);
@@ -141,7 +176,7 @@ impl Codegen {
     fn generate_stmt(
         &mut self,
         stmt: &Stmt,
-        scope: &mut std::collections::HashMap<String, u8>,
+        scope: &mut std::collections::HashMap<String, VarInfo>,
         storage: &std::collections::HashMap<String, i32>,
     ) {
         if self.error.is_some() {
@@ -152,8 +187,15 @@ impl Codegen {
 
         match stmt {
             Stmt::Let(name, expr) => {
+                // Resolve the bound struct type (if any) *before*
+                // generating the expression: the lookup is read-only on
+                // the AST/scope and must not see the variable being
+                // defined. For a `StructLiteral` this is the literal's
+                // own type; for an `Ident` it is the aliased variable's
+                // recorded type; otherwise it is `None`.
+                let struct_type = self.expr_struct_type(expr, scope);
                 let reg = self.generate_expr(expr, scope, storage);
-                scope.insert(name.clone(), reg);
+                scope.insert(name.clone(), VarInfo { reg, struct_type });
                 if reg >= saved_reg {
                     self.next_reg = reg + 1;
                 } else {
@@ -210,7 +252,7 @@ impl Codegen {
             Stmt::Assign(name, expr) => {
                 let reg = self.generate_expr(expr, scope, storage);
                 let target_reg = match scope.get(name) {
-                    Some(r) => *r,
+                    Some(vi) => vi.reg,
                     None => {
                         if self.error.is_none() {
                             self.error = Some(CompileError::CodegenError(format!(
@@ -374,7 +416,13 @@ impl Codegen {
                 self.next_reg = loop_reg + 1; // loop var is kept!
 
                 let mut inner_scope = scope.clone();
-                inner_scope.insert(var.clone(), loop_reg);
+                inner_scope.insert(
+                    var.clone(),
+                    VarInfo {
+                        reg: loop_reg,
+                        struct_type: None, // loop counter is a scalar
+                    },
+                );
 
                 let start_idx = self.instructions.len();
 
@@ -468,10 +516,29 @@ impl Codegen {
         self.instructions[idx] = inst.encode();
     }
 
+    /// Best-effort static resolution of the struct type an expression
+    /// evaluates to. Used by `FieldAccess` to pick the correct struct
+    /// layout. Returns `None` when the type cannot be determined (scalar
+    /// expressions, or a nested field access whose intermediate type is
+    /// not tracked), in which case the caller falls back to the legacy
+    /// layout scan. Mirrors how the semantic analyzer derives
+    /// `Type::Struct(name)` for these same expression forms.
+    fn expr_struct_type(
+        &self,
+        expr: &Expr,
+        scope: &std::collections::HashMap<String, VarInfo>,
+    ) -> Option<String> {
+        match expr {
+            Expr::StructLiteral(name, _) => Some(name.clone()),
+            Expr::Ident(name) => scope.get(name).and_then(|vi| vi.struct_type.clone()),
+            _ => None,
+        }
+    }
+
     fn generate_expr(
         &mut self,
         expr: &Expr,
-        scope: &std::collections::HashMap<String, u8>,
+        scope: &std::collections::HashMap<String, VarInfo>,
         storage: &std::collections::HashMap<String, i32>,
     ) -> u8 {
         if self.error.is_some() {
@@ -522,7 +589,7 @@ impl Codegen {
                 }
             }
             Expr::Ident(name) => match scope.get(name) {
-                Some(r) => *r,
+                Some(vi) => vi.reg,
                 None => {
                     if self.error.is_none() {
                         self.error = Some(CompileError::CodegenError(format!(
@@ -599,16 +666,54 @@ impl Codegen {
                 res_reg
             }
             Expr::FieldAccess(base, field) => {
+                // Resolve the base's struct type *before* generating it
+                // (the lookup is read-only on the AST/scope).
+                let struct_type = self.expr_struct_type(base, scope);
                 let base_reg = self.generate_expr(base, scope, storage);
                 let res_reg = self.alloc_reg();
 
-                let mut offset = 0;
-                for fields in self.struct_layouts.values() {
-                    if let Some(idx) = fields.iter().position(|f| f == field) {
-                        offset = idx * 8;
-                        break;
+                let offset = match struct_type
+                    .as_ref()
+                    .and_then(|name| self.struct_layouts.get(name))
+                {
+                    // Type-aware path: resolve the offset within the
+                    // base's *actual* struct layout. This stays correct
+                    // when several structs declare a field with the same
+                    // name at different positions — the old code scanned
+                    // every layout and took the first hit, which is both
+                    // wrong and (hash-map iteration order) non-deterministic.
+                    Some(fields) => match fields.iter().position(|f| f == field) {
+                        Some(idx) => idx * 8,
+                        None => {
+                            // The semantic analyzer rejects field access
+                            // on a struct that lacks the field, so this
+                            // is pure defense in depth.
+                            if self.error.is_none() {
+                                self.error = Some(CompileError::CodegenError(format!(
+                                    "Field '{}' not found in struct '{}'",
+                                    field,
+                                    struct_type.as_ref().unwrap()
+                                )));
+                            }
+                            0
+                        }
+                    },
+                    // Unknown base type (e.g. a nested `a.b.c` whose
+                    // intermediate field type is not tracked): keep the
+                    // legacy scan so behaviour is unchanged for the cases
+                    // sema has already validated.
+                    None => {
+                        let mut offset = 0;
+                        for fields in self.struct_layouts.values() {
+                            if let Some(idx) = fields.iter().position(|f| f == field) {
+                                offset = idx * 8;
+                                break;
+                            }
+                        }
+                        offset
                     }
-                }
+                };
+
                 self.emit(Opcode::Load, res_reg, base_reg, 0, offset as i32);
                 res_reg
             }

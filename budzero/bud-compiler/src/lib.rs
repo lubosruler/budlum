@@ -446,4 +446,91 @@ mod tests {
         let res = compile(source, IsaProfile::Production);
         assert!(res.is_err(), "non-integer, non-wildcard pattern must fail");
     }
+
+    // === FIELD ACCESS TYPE AWARENESS ===========================================
+
+    /// `FieldAccess` must resolve the offset against the base expression's
+    /// *actual* struct layout. `A` and `B` both declare a field named
+    /// `name`, but at different positions (offset 0 vs offset 8). The
+    /// legacy codegen scanned every struct layout and used the first hit,
+    /// so one of the two reads below returned the wrong word — and because
+    /// the layouts live in a hash map, *which* one was wrong depended on
+    /// iteration order. Type-aware resolution reads each field from its
+    /// own struct's layout, making the result correct and deterministic.
+    #[test]
+    fn test_field_access_resolves_correct_layout_on_name_collision() {
+        let source = r#"
+            contract FieldCollision {
+                struct A {
+                    name: u64,
+                    value: u64,
+                }
+                struct B {
+                    tag: u64,
+                    name: u64,
+                    value: u64,
+                }
+
+                pub fn main() {
+                    let a = A { name: 111, value: 222 };
+                    let b = B { tag: 333, name: 444, value: 555 };
+                    let an = a.name;
+                    let bn = b.name;
+                    emit Result(an);
+                    emit Result(bn);
+                }
+            }
+        "#;
+
+        let bytecode =
+            compile(source, IsaProfile::Production).expect("collision structs should compile");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("VM should run");
+
+        // a.name lives at offset 0 of A (111); b.name at offset 8 of B (444).
+        // A layout scan that picked the wrong struct would yield 222 or 333.
+        assert_eq!(vm.events, vec![111, 444]);
+    }
+
+    /// A function parameter typed as a struct carries its struct type into
+    /// codegen, so a field access on the parameter resolves against *that*
+    /// struct's layout — not a different struct that shares the field name.
+    /// `P.a` is at offset 0 while `Q.a` is at offset 8.
+    #[test]
+    fn test_field_access_on_struct_parameter_uses_param_type() {
+        let source = r#"
+            contract ParamField {
+                struct P {
+                    a: u64,
+                    b: u64,
+                }
+                struct Q {
+                    z: u64,
+                    a: u64,
+                    b: u64,
+                }
+
+                fn read_a(s: P) -> u64 {
+                    return s.a;
+                }
+
+                pub fn main() {
+                    let p = P { a: 7, b: 8 };
+                    let q = Q { z: 9, a: 10, b: 11 };
+                    let from_param = read_a(p);
+                    let qa = q.a;
+                    emit Result(from_param);
+                    emit Result(qa);
+                }
+            }
+        "#;
+
+        let bytecode =
+            compile(source, IsaProfile::Production).expect("param struct access should compile");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("VM should run");
+
+        // read_a reads P.a at offset 0 (7); q.a reads Q.a at offset 8 (10).
+        assert_eq!(vm.events, vec![7, 10]);
+    }
 }
