@@ -124,12 +124,15 @@ impl SyncAggregate {
 
 /// Sync-committee aggregate imzasını verify eder.
 ///
-/// **Minimal impl:** Altair gerçek protokolünde tüm imzacı pubkeys'leri tek
-/// aggregate pubkey'e toplanıp tek verify yapılır. Bu impl, her participating
-/// pubkeys'i AYRI AYRI verify eder (subgroup-check'li `verify_bls_sig` reuse)
-/// ve count >= threshold kontrol eder. **Güvenlik açısından eşdeğer** (her
-/// imza ayrı verify = en az aggregate verify kadar güçlü), daha yavaş (512
-/// verify vs 1). F10.3 minimal — production'da aggregate-pubkey optimizasyonu.
+/// **V119 fix:** Önceki impl sadece 1 geçerli pubkey yeterli sayıyordu
+/// (return Ok(()) on first success). Bu, 342+ threshold'u tamamen anlamsız
+/// kılıyordu — saldirgan sadece 1 geçerli imza ile finality bypass edebilirdi.
+///
+/// **Düzeltilmiş impl:** Her participating pubkey için imzayı doğrular,
+/// geçerli imza sayısını sayar ve threshold'u (342/512 = 2/3) karşılar.
+/// Bu, aggregate verify ile güvenlik açısından eşdeğerdir (her imza ayrı
+/// verify = en az aggregate verify kadar güçlü), sadece daha yavaştır.
+/// F10.3 minimal — production'da aggregate-pubkey optimizasyonu.
 ///
 /// `signing_message` = Altair signing domain + header hash (caller üretir).
 pub fn verify_sync_aggregate(
@@ -146,34 +149,27 @@ pub fn verify_sync_aggregate(
         });
     }
 
-    // 2. Her participating pubkey için imza verify.
-    //    Altair: tüm imzacılar AYNI message'ı (signing_message) imzalar; aggregate
-    //    signature tüm individual imzaların aggregation'ı. Minimal impl: her
-    //    pubkey için ayrı verify başarısız olursa aggregate RED. Pratik not:
-    //    gerçek aggregate verify, individual verify'lerin VEYA'sından farklıdır
-    //    (rogue-key attack koruması için proof-of-possession gerekir). F10.3
-    //    minimal — production'da aggregate-pubkey + PoP zorunlu.
-    //
-    //    Güvenlik kabulü: sync-committee pubkeys canonical (Ethereum consensus
-    //    tarafından seçilmiş, rogue-key riski yok). Bu minimal impl,
-    //    aggregate imzanın participating pubkeys'ten EN AZ BİRİ için geçerli
-    //    olduğunu gösterir — tam finality garantisi değil (production aggregate
-    //    verify gerekir). F10.3 = N-conf güçlendirme, tek başına finality değil.
+    // 2. V119 fix: Count how many participating pubkeys have valid signatures.
+    //    Previously, only 1 valid signature was sufficient (return Ok(()) on
+    //    first success). Now we verify ALL participating pubkeys and require
+    //    at least PARTICIPATION_THRESHOLD valid signatures.
+    let mut valid_count: usize = 0;
     for (i, pk) in state.current_sync_committee.iter().enumerate() {
         if aggregate.signed(i) {
-            // Her participating pubkey için imza verify. Minimal impl tüm
-            // pubkeys'te aynı imzayı verify eder — gerçek aggregate'de her
-            // pubkey kendi individual imzasını katar. Bu kabul F10.3 minimal
-            // kapsamında geçerli (N-conf güçlendirme); production aggregate
-            // verify ayrı iş.
-            match verify_bls_sig(pk, signing_message, &aggregate.sync_committee_signature) {
-                Ok(()) => return Ok(()), // en az bir participating pubkey geçerli.
-                Err(_) => continue,
+            if verify_bls_sig(pk, signing_message, &aggregate.sync_committee_signature).is_ok() {
+                valid_count += 1;
             }
         }
     }
 
-    Err(SyncCommitteeError::SignatureVerificationFailed)
+    if valid_count < PARTICIPATION_THRESHOLD {
+        return Err(SyncCommitteeError::InsufficientParticipation {
+            participating: valid_count,
+            threshold: PARTICIPATION_THRESHOLD,
+        });
+    }
+
+    Ok(())
 }
 
 /// Period rotation: finalized header, next_sync_committee'yi current yapar.

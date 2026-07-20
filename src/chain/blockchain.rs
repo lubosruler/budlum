@@ -1225,9 +1225,15 @@ impl Blockchain {
         final_amount = final_amount.saturating_sub(fee);
 
         // Phase 9 Security: Prevent u128 -> u64 truncation (AÇIK Fix)
+        // V124 fix: check BOTH final_amount AND fee for u64 overflow.
         if final_amount > u64::MAX as u128 {
             return Err(
                 "Bridge amount exceeds maximum representable balance (u64 overflow)".into(),
+            );
+        }
+        if fee > u64::MAX as u128 {
+            return Err(
+                "Bridge fee exceeds maximum representable balance (u64 overflow)".into(),
             );
         }
 
@@ -1907,10 +1913,17 @@ impl Blockchain {
                 let final_amount = transfer.amount.saturating_sub(fee);
 
                 // Phase 9 Security: Prevent u128 -> u64 truncation (AÇIK Fix)
+                // V124 fix: check BOTH final_amount AND fee for u64 overflow.
                 if final_amount > u64::MAX as u128 {
                     return Err(format!(
                         "Bridge amount {} exceeds maximum representable balance",
                         final_amount
+                    ));
+                }
+                if fee > u64::MAX as u128 {
+                    return Err(format!(
+                        "Bridge fee {} exceeds maximum representable balance",
+                        fee
                     ));
                 }
 
@@ -1950,10 +1963,17 @@ impl Blockchain {
                 let final_amount = transfer.amount.saturating_sub(fee);
 
                 // Phase 9 Security: Prevent u128 -> u64 truncation (AÇIK Fix)
+                // V124 fix: check BOTH final_amount AND fee for u64 overflow.
                 if final_amount > u64::MAX as u128 {
                     return Err(format!(
                         "Unlock amount {} exceeds maximum balance",
                         final_amount
+                    ));
+                }
+                if fee > u64::MAX as u128 {
+                    return Err(format!(
+                        "Unlock fee {} exceeds maximum balance",
+                        fee
                     ));
                 }
 
