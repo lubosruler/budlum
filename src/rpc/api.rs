@@ -457,6 +457,13 @@ pub trait BudlumApi {
         name: String,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
+    /// Budlum Atlas wallet context for bud.scan/budlum.xyz. Read-only.
+    #[method(name = "bud_atlasGetWalletContext")]
+    async fn atlas_get_wallet_context(
+        &self,
+        address: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
     // --- B.U.D. SocialFi extended ---
 
     /// Prepare an NFT burn transaction.

