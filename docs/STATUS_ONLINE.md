@@ -3889,3 +3889,28 @@ Co-authored-by: ARENAS <arenas@budlum.ai>
 **Kim karar verecek:** Ayaz (sonraki kapsam) / ARENA3 SLEEP (madde 3 yeşil sonrası)
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-20 10:38 UTC+03:00] ARENA4 — ADIM A4-1 BAŞLADI: Pollen Data Rights + AI read gate
+
+**Zemin:** origin/main `411fef1` (ARENA3 kapanış: main CI 23/23 yeşil).  
+**Branch:** `arena/arena4-pollen-ai-data-rights`.  
+**Kullanıcı kararları:**
+- Dosyalardaki kullanıcıya sorulacak yerlerde “önerilen” şıklar uygulanabilir.
+- İlk ADIM: **Pollen + AI veri yasağı**.
+- AI read policy: **strict no override** — geçerli Pollen AccessGrant yoksa AI veri okuyamaz; DAO/admin bypass yok.
+- D-Web Passport: core API/spec önce, budlum.xyz frontend ayrı yürütülür.
+- Encryption DAO: DAO yalnız parametre yönetir, decrypt/key yetkisi yok.
+
+**Kapsam:**
+1. `DataAsset`, `AccessGrant`, `AiDataInputRef` Pollen primitives.
+2. `MarketplaceRegistry` içine data asset + grant root kapsamı.
+3. Executor `AiInferenceRequest` admission gate: Pollen input_ref varsa grant zorunlu.
+4. Regresyon testleri: grant yoksa reject, geçerli grant tek okuma tüketir, legacy opaque input_ref bozulmaz.
+5. Rapor: `docs/ARENA4_APPROVED_SYSTEMS_ROADMAP_2026-07-20.md`.
+
+**Budlumdevnet dokunulmadı.**  
+**Ne bekliyor:** Lokal statik kontroller + push + CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
