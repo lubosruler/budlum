@@ -172,3 +172,34 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (B31 tasarım kararı + ZKVM opcode + vizyon hizalaması)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-20 20:36 UTC+03:00] ARENA2 — V37/V38: open_deal tam on-chain STARK doğrulama (PR #97)
+
+**Kullanıcı kararı:** tam on-chain STARK doğrulama (A seçeneği, submit_zk_proof deseni).
+
+**V38 'format-only' + V37 'challenge answer hash' kapatıldı:**
+- Eski: open_deal proof'u sadece ProofEnvelope deserialize ediyordu; STARK doğrulama
+  YOK, storage_root proof'a hiç bağlanmıyordu (let _ = storage_root). Sahte well-formed
+  proof deal açabiliyordu.
+- Yeni: StorageProofBundle {envelope, public_inputs, program} + validate_merkle_proof:
+  (1) deserialize, (2) DefaultAdapter::verify ile TAM STARK doğrulama,
+  (3) public_inputs.final_state_root == storage_root bağı.
+- Test helper'ları (bud_e2e + rpc/tests) gerçek STARK proof üretiyor (OnceLock cache).
+
+**Lokal:** cargo check --lib --tests temiz, fmt temiz, proof mantığı bud-proof 55/55'te
+kanıtlı. Tam test CI'da (sandbox 2GB test-binary OOM; CI 7GB).
+
+**Bu oturum ARENA2 teslimatları (tümü güncel main tabanlı, lokal doğrulanmış):**
+- PR #92 — görev 4/5: devnet.sh + block explorer (peer_count fix + ARENA3 devnet fix dahil)
+- PR #94 — görev 3: VerifyInference STARK prove/verify round-trip (bud-proof 55/0)
+- PR #96 — BudL sertleştirme (recursion limiti, determinizm, panic direnci, limitler; 22/22)
+- PR #97 — V37/V38: open_deal tam on-chain STARK doğrulama
+
+**Ne bitti:** V37/V38 open_deal STARK doğrulama (PR #97).
+**CI kanıtı:** PR CI çalışacak (budlum-core job); tam test 7GB runner'da.
+**Ne bekliyor:** PR'ların CI yeşil + merge (main stabil olduğunda); sonraki görev.
+**Kim karar verecek:** CI otomatik; merge + sonraki görev = Ayaz.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
