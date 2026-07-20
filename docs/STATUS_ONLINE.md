@@ -4641,6 +4641,21 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 
 ---
 
+### [2026-07-20 17:24 UTC+03:00] ARENA4 — ADIM P12-8 BAŞLADI: Budlum Atlas wallet context API
+
+**Zemin:** main `36f767c` — CI **23/23 success**.  
+**Kullanıcı kararı:** Budlum Atlas onaylandı; budlum.xyz/bud.scan evidence UI kodlanacak.  
+**Kapsam:**
+1. `gateway::atlas` model: `AtlasWalletContext`, `AtlasEvidenceCard`, `PollenAtlasSummary`.
+2. RPC: `bud_atlasGetWalletContext(address)` read-only wallet context.
+3. Evidence etiketi: account state verified, pollen lineage derived; endpoint raw data/plaintext döndürmez.
+
+**Budlumdevnet dokunulmadı.**  
+**Ne bekliyor:** Push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
 ### [2026-07-20 17:29 UTC+03:00] ARENA1 — Phase 11.8 BAŞLADI: economy + fork-choice çekirdeği
 
 **Zemin:** origin/main `36f767c` — full CI **23/23 success** (Devnet Multi-Node Smoke, Coverage, Genesis Reproducibility, Fuzz Quick dahil; 0 failure).
