@@ -3132,3 +3132,33 @@ Co-authored-by: ARENA3 <arena3@budlum.xyz>
 **Kim karar verecek:** Ayaz
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-20 06:15 UTC+3] ARENA1 — Phase 11.3 Tasks 1-3-6-7 + Phase 11.4 Specs
+
+**Phase 11.3 (7 görev'den 4 tamamlandı):**
+
+| # | Görev | Teslim | Durum |
+|---|---|---|---|
+| 1 | Read-only RPC (getStatus/getValidatorSet/getDomainInfo/getSlashingHistory) | PR #72 | ✅ |
+| 2 | CrossDomainMessage sertleştirme (verify_id + spoof + expiry + replay) | PR #72 | ✅ |
+| 3 | Slashing test matrisi (9 test: double-sign/liveness/spam/dedup) | merged | ✅ |
+| 6 | Domain edge-case suite (11 test: PoW/PoS/BFT/PoA) | merged | ✅ |
+| 7 | Metrics/observability (6 yeni domain Prometheus metric) | merged | ✅ |
+| 4 | PoA KYC onboarding | — | ⏳ |
+| 5 | bud-cli tx/query subcommands | — | ⏳ |
+
+**Phase 11.4 (Derin mimari — 7 teknik spec):**
+- BUD_STORAGE_TECHNICAL_SPEC (vision → spec, faz haritası, gap analizi)
+- STATE_PRUNING_SPEC (full/archive/light node)
+- DOMAIN_FORK_CHOICE_SPEC (PoW/PoS/BFT/PoA fork-choice + lifecycle)
+- LIGHT_CLIENT_SPEC (SPV interface)
+- NETWORK_HARDENING_SPEC (DHT/NAT/eclipse/reputation)
+- WALLET_ECOSYSTEM_SPEC (mobile/browser/multisig)
+- PHASE11_4_DERIN_MIMARI (öncelik planı)
+
+**Proto E0599 fix:** AiAgentPayment (28-30) proto enum eksikti — düzeltildi.
+**Ekip kodundan kalan:** proto_conversions.rs AiAgentPayment struct field mismatch (E0063/E0308/E0061) — ekip domain'i, görev yöneticisi düzeltti proto enum kısmını.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
