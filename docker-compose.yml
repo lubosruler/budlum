@@ -21,6 +21,9 @@ services:
     volumes:
       - node1_data:/home/budlum/data
       - node1_secrets:/home/budlum/secrets
+      # ARENA2 task-4: deterministik bootstrap identity → sabit peer ID
+      # (12D3KooWJHkz5UA4sEEwfb1tycKsKzvErBi1spCGTsDYwWSQ9uoo). node2-4 buna bootstrap olur.
+      - ./config/devnet/node1.identity.key:/home/budlum/identity/node1.key:ro
     environment:
       - RUST_LOG=info
     command:
@@ -34,9 +37,10 @@ services:
       - "--metrics-port=9090"
       - "--db-path=/home/budlum/data/devnet-node1"
       - "--snapshot-dir=/home/budlum/data/snapshots"
-      - "--p2p-identity-file=/home/budlum/secrets/node-id.key"
+      - "--p2p-identity-file=/home/budlum/identity/node1.key"
       - "--banned-peer-db=/home/budlum/data/banned-peers.json"
-      - "--bootstrap=/dns4/node1/tcp/4001/p2p/${NODE1_PEER_ID}"
+      # node1 seed/bootstrap node'dur; kendine bootstrap yapmaz. Peer ID'si
+      # deterministik identity'den sabittir (yukarıdaki mount).
     networks:
       - budlum-net
     restart: unless-stopped
@@ -60,7 +64,7 @@ services:
       - "--difficulty=0"
       - "--db-path=/home/budlum/data/devnet-node2"
       - "--p2p-identity-file=/home/budlum/secrets/node-id.key"
-      - "--bootstrap=/dns4/node1/tcp/4001"
+      - "--bootstrap=/dns4/node1/tcp/4001/p2p/12D3KooWJHkz5UA4sEEwfb1tycKsKzvErBi1spCGTsDYwWSQ9uoo"
     networks:
       - budlum-net
     depends_on:
@@ -85,7 +89,7 @@ services:
       - "--difficulty=0"
       - "--db-path=/home/budlum/data/devnet-node3"
       - "--p2p-identity-file=/home/budlum/secrets/node-id.key"
-      - "--bootstrap=/dns4/node1/tcp/4001"
+      - "--bootstrap=/dns4/node1/tcp/4001/p2p/12D3KooWJHkz5UA4sEEwfb1tycKsKzvErBi1spCGTsDYwWSQ9uoo"
     networks:
       - budlum-net
     depends_on:
@@ -110,7 +114,7 @@ services:
       - "--difficulty=0"
       - "--db-path=/home/budlum/data/devnet-node4"
       - "--p2p-identity-file=/home/budlum/secrets/node-id.key"
-      - "--bootstrap=/dns4/node1/tcp/4001"
+      - "--bootstrap=/dns4/node1/tcp/4001/p2p/12D3KooWJHkz5UA4sEEwfb1tycKsKzvErBi1spCGTsDYwWSQ9uoo"
     networks:
       - budlum-net
     depends_on:
