@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budlum Block Explorer</title>
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#131a26; --panel2:#0f1520; --line:#1f2a3a;
+    --txt:#e6edf6; --mut:#8aa0b8; --acc:#41d6a3; --acc2:#5aa9ff; --warn:#ffce5a; --err:#ff6b6b;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif}
+  a{color:var(--acc2);text-decoration:none} a:hover{text-decoration:underline}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#101724,#0b0f17)}
+  header h1{font-size:18px;margin:0;letter-spacing:.3px}
+  header h1 .dot{color:var(--acc)}
+  .grow{flex:1}
+  .conn{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input,button,select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit}
+  input{min-width:260px}
+  button{cursor:pointer} button:hover{border-color:var(--acc)}
+  .pill{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--mut)}
+  .pill.on{color:#04121a;background:var(--acc);border-color:var(--acc);font-weight:600}
+  .pill.err{color:#2a0606;background:var(--err);border-color:var(--err);font-weight:600}
+  main{padding:18px;max-width:1200px;margin:0 auto;display:grid;gap:16px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .card .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .card .v{font-size:22px;font-weight:650;margin-top:6px;font-family:var(--mono);word-break:break-all}
+  .card .v.small{font-size:15px}
+  .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  @media(max-width:880px){.grid2{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .panel h2{font-size:13px;margin:0;padding:12px 14px;border-bottom:1px solid var(--line);color:var(--mut);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  tr.click{cursor:pointer} tr.click:hover{background:#172133}
+  td.mono,th.mono{font-family:var(--mono)}
+  .muted{color:var(--mut)} .tag{display:inline-block;padding:2px 8px;border-radius:6px;background:#17233a;color:var(--acc2);font-size:11px;font-family:var(--mono)}
+  .hash{font-family:var(--mono);color:var(--acc2)}
+  .empty{padding:22px;text-align:center;color:var(--mut)}
+  .kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;padding:14px;font-size:13px}
+  .kv .k{color:var(--mut)} .kv .v{font-family:var(--mono);word-break:break-all}
+  .toolbar{display:flex;gap:8px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .errbox{background:#2a1010;border:1px solid #5a2020;color:#ffb4b4;padding:12px 14px;border-radius:10px;font-size:13px}
+  .hint{color:var(--mut);font-size:12px}
+  details{border-top:1px solid var(--line)} details summary{cursor:pointer;padding:10px 14px;color:var(--mut)}
+  pre{margin:0;padding:12px 14px;overflow:auto;font-family:var(--mono);font-size:12px;color:#cfe3d8}
+  .back{cursor:pointer;color:var(--acc2)}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot">◆</span> Budlum <span class="muted">Explorer</span></h1>
+  <div class="grow"></div>
+  <div class="conn">
+    <input id="rpc" value="http://127.0.0.1:8545" spellcheck="false">
+    <button id="connect">Bağlan</button>
+    <label class="hint"><input type="checkbox" id="autorefresh" checked style="min-width:auto"> otomatik (5sn)</label>
+    <span id="status" class="pill">bağlı değil</span>
+  </div>
+</header>
+
+<main>
+  <div id="errbox" class="errbox" style="display:none"></div>
+
+  <section class="cards">
+    <div class="card"><div class="k">Yükseklik</div><div class="v" id="c-height">–</div></div>
+    <div class="card"><div class="k">Chain ID</div><div class="v" id="c-chain">–</div></div>
+    <div class="card"><div class="k">Peer Sayısı</div><div class="v" id="c-peers">–</div></div>
+    <div class="card"><div class="k">Listening</div><div class="v small" id="c-listen">–</div></div>
+    <div class="card"><div class="k">Sağlık</div><div class="v small" id="c-health">–</div></div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel">
+      <h2><span id="blk-title">Son Bloklar</span> <span class="hint" id="blk-sub"></span></h2>
+      <div id="blocks"><div class="empty">Bağlanılıyor…</div></div>
+    </div>
+    <div style="display:grid;gap:16px">
+      <div class="panel">
+        <h2>Validator'lar</h2>
+        <div id="validators"><div class="empty">–</div></div>
+      </div>
+      <div class="panel">
+        <h2>Konsensüs Domain'leri</h2>
+        <div id="domains"><div class="empty">–</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Hesap Sorgula</h2>
+    <div class="toolbar">
+      <input id="acct" placeholder="adres (0x… veya hex)" style="flex:1;min-width:280px" spellcheck="false">
+      <button id="acct-btn">Sorgula</button>
+    </div>
+    <div id="acct-out"><div class="empty">Bir adres girin.</div></div>
+  </section>
+
+  <section class="panel">
+    <h2>Ham RPC <span class="hint">bud_* metodları</span></h2>
+    <div class="toolbar">
+      <input id="rpc-method" placeholder="bud_getStatus" style="min-width:220px" spellcheck="false">
+      <input id="rpc-params" placeholder='params JSON, örn. [0]' style="flex:1;min-width:160px" spellcheck="false">
+      <button id="rpc-btn">Çağır</button>
+    </div>
+    <pre id="rpc-out">// sonuç burada</pre>
+  </section>
+
+  <details>
+    <summary>Not: CORS / kullanım</summary>
+    <pre>Tarayıcı bu sayfayı bir node RPC'sine bağlar (varsayılan http://127.0.0.1:8545).
+
+Çalıştırma:
+  1) ./devnet.sh up                 # multi-node devnet
+  2) bu dosyayı tarayıcıda aç       # explorer/index.html
+
+CORS: node RPC'si tarayıcı origin'ine izin vermelidir. Hata alırsanız:
+  - node'u --rpc-public-listener ile CORS açık çalıştırın, veya
+  - bu sayfayı node ile aynı origin'den sunun, veya
+  - yerel bir CORS proxy üzerinden bağlanın.
+
+Salt-okunur paneldir: hiçbir imza/transaction göndermez.</pre>
+  </details>
+</main>
+
+<script>
+"use strict";
+const $ = (id)=>document.getElementById(id);
+let RPC = $("rpc").value.trim().replace(/\/$/,"");
+let timer = null;
+let currentHeight = null;
+
+// ── JSON-RPC ──────────────────────────────────────────────
+async function call(method, params=[]){
+  const res = await fetch(RPC, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({jsonrpc:"2.0", method, params, id: Date.now()})
+  });
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j = await res.json();
+  if(j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+  return j.result;
+}
+
+// ── yardımcılar ───────────────────────────────────────────
+const hex2dec = (h)=>{ if(h==null) return null; if(typeof h==="number") return h;
+  const s=String(h); return s.startsWith("0x")? parseInt(s,16) : (isNaN(+s)? s : +s); };
+const short = (s,n=8)=> s? (s.length>2*n+2? s.slice(0,n+2)+"…"+s.slice(-n) : s) : "–";
+const esc = (s)=> String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function setStatus(cls, txt){ const el=$("status"); el.className="pill "+cls; el.textContent=txt; }
+function showErr(msg){ const b=$("errbox"); if(msg){ b.style.display="block"; b.textContent="⚠ "+msg; } else b.style.display="none"; }
+
+// ── durum kartları ────────────────────────────────────────
+async function refreshStatus(){
+  try{
+    const [bn, cid, peers, listen] = await Promise.all([
+      call("bud_blockNumber").catch(()=>null),
+      call("bud_chainId").catch(()=>null),
+      call("bud_netPeerCount").catch(()=>null),
+      call("bud_netListening").catch(()=>null),
+    ]);
+    currentHeight = bn!=null? Number(hex2dec(bn)) : null;
+    $("c-height").textContent = currentHeight!=null? currentHeight : "–";
+    $("c-chain").textContent  = cid!=null? hex2dec(cid) : "–";
+    $("c-peers").textContent  = peers!=null? hex2dec(peers) : "–";
+    $("c-listen").textContent = listen!=null? String(listen) : "–";
+
+    // health (best-effort; metod yoksa nodeInfo dene)
+    let health = null;
+    try{ health = await call("bud_health"); }catch(e){ try{ health = await call("bud_nodeInfo"); }catch(e2){} }
+    $("c-health").textContent = health? "✓ erişilebilir" : "–";
+
+    setStatus("on","bağlı");
+    showErr(null);
+    return true;
+  }catch(e){
+    setStatus("err","bağlantı yok");
+    showErr("RPC'ye ulaşılamadı: "+e.message+" — node çalışıyor mu, CORS açık mı? ("+RPC+")");
+    return false;
+  }
+}
+
+// ── blok listesi ──────────────────────────────────────────
+async function refreshBlocks(){
+  if(currentHeight==null){ return; }
+  const N = 12;
+  const from = Math.max(0, currentHeight - N + 1);
+  const nums = []; for(let i=currentHeight;i>=from;i--) nums.push(i);
+  const blocks = await Promise.all(nums.map(n=> call("bud_getBlockByNumber",[n]).catch(()=>null)));
+  const rows = blocks.filter(b=>b && b.number!=null);
+  $("blk-sub").textContent = "("+from+"–"+currentHeight+")";
+  if(!rows.length){ $("blocks").innerHTML='<div class="empty">Blok yok.</div>'; return; }
+  let html = "<table><thead><tr><th>Blok</th><th>Hash</th><th>Üreten</th><th>Tx</th><th>Zaman</th></tr></thead><tbody>";
+  for(const b of rows){
+    const num = hex2dec(b.number);
+    const ts = hex2dec(b.timestamp);
+    const when = ts? new Date(Number(ts)>1e12? Number(ts): Number(ts)*1000).toLocaleString() : "–";
+    html += `<tr class="click" onclick="openBlock(${num})">
+      <td class="mono">${num}</td>
+      <td class="hash">${esc(short(b.hash))}</td>
+      <td class="mono muted">${esc(short(b.producer,6))}</td>
+      <td><span class="tag">${(b.transactions||[]).length}</span></td>
+      <td class="muted">${esc(when)}</td></tr>`;
+  }
+  html += "</tbody></table>";
+  $("blocks").innerHTML = html;
+}
+
+// ── blok detayı ───────────────────────────────────────────
+window.openBlock = async function(num){
+  $("blk-title").innerHTML = `<span class="back" onclick="closeBlock()">← Son Bloklar</span> &nbsp; Blok #${num}`;
+  $("blocks").innerHTML = '<div class="empty">Yükleniyor…</div>';
+  try{
+    const b = await call("bud_getBlockByNumber",[num]);
+    if(!b){ $("blocks").innerHTML='<div class="empty">Blok bulunamadı.</div>'; return; }
+    const ts = hex2dec(b.timestamp);
+    const when = ts? new Date(Number(ts)>1e12? Number(ts): Number(ts)*1000).toLocaleString() : "–";
+    let html = `<div class="kv">
+      <div class="k">Numara</div><div class="v">${hex2dec(b.number)}</div>
+      <div class="k">Hash</div><div class="v">${esc(b.hash)}</div>
+      <div class="k">Parent Hash</div><div class="v">${esc(b.parentHash)}</div>
+      <div class="k">Üreten</div><div class="v">${esc(b.producer||"–")}</div>
+      <div class="k">Zaman</div><div class="v">${esc(when)}</div>
+      <div class="k">State Root</div><div class="v">${esc(b.stateRoot||"–")}</div>
+      <div class="k">Tx Root</div><div class="v">${esc(b.txRoot||"–")}</div>
+      <div class="k">Tx Sayısı</div><div class="v">${(b.transactions||[]).length}</div>
+    </div>`;
+    const txs = b.transactions||[];
+    if(txs.length){
+      html += "<table><thead><tr><th>Hash</th><th>Tip</th><th>From</th><th>To</th><th>Amount</th><th>Fee</th><th>Nonce</th></tr></thead><tbody>";
+      for(const t of txs){
+        html += `<tr>
+          <td class="hash">${esc(short(t.hash))}</td>
+          <td><span class="tag">${esc(t.type||"–")}</span></td>
+          <td class="mono muted">${esc(short(t.from,6))}</td>
+          <td class="mono muted">${esc(short(t.to,6))}</td>
+          <td class="mono">${hex2dec(t.amount)}</td>
+          <td class="mono">${hex2dec(t.fee)}</td>
+          <td class="mono">${hex2dec(t.nonce)}</td></tr>`;
+      }
+      html += "</tbody></table>";
+    } else {
+      html += '<div class="empty">Bu blokta transaction yok.</div>';
+    }
+    $("blocks").innerHTML = html;
+  }catch(e){
+    $("blocks").innerHTML = '<div class="empty">Blok alınamadı: '+esc(e.message)+'</div>';
+  }
+};
+window.closeBlock = function(){
+  $("blk-title").innerHTML = "Son Bloklar";
+  refreshBlocks();
+};
+
+// ── validator + domain ────────────────────────────────────
+async function refreshSidePanels(){
+  // validators
+  try{
+    const v = await call("bud_getValidatorSet");
+    const list = Array.isArray(v)? v : (v && Array.isArray(v.validators)? v.validators : null);
+    if(list && list.length){
+      let html = "<table><thead><tr><th>Adres</th><th>Stake</th><th>Durum</th></tr></thead><tbody>";
+      for(const it of list.slice(0,30)){
+        const addr = it.address||it.account||it.addr||JSON.stringify(it).slice(0,20);
+        const stake = it.stake!=null? hex2dec(it.stake) : (it.stake||"–");
+        const st = it.status||it.active!=null?(it.status||(it.active?"active":"–")):"–";
+        html += `<tr><td class="mono muted">${esc(short(String(addr),6))}</td><td class="mono">${esc(String(stake))}</td><td>${esc(String(st))}</td></tr>`;
+      }
+      html += "</tbody></table>";
+      $("validators").innerHTML = html;
+    } else {
+      $("validators").innerHTML = '<div class="empty">Validator yok / metod farklı şekil döndü.</div>';
+    }
+  }catch(e){ $("validators").innerHTML = '<div class="empty">bud_getValidatorSet: '+esc(e.message)+'</div>'; }
+
+  // domains
+  try{
+    const d = await call("bud_getConsensusDomains");
+    const list = Array.isArray(d)? d : (d && Array.isArray(d.domains)? d.domains : null);
+    if(list && list.length){
+      let html = "<table><thead><tr><th>ID</th><th>Tip</th><th>Bilgi</th></tr></thead><tbody>";
+      for(const it of list.slice(0,30)){
+        const id = it.id!=null? it.id : (it.domain_id!=null? it.domain_id : "–");
+        const kind = it.kind||it.consensus||it.type||"–";
+        const info = it.info||it.params||"";
+        html += `<tr><td class="mono">${esc(String(id))}</td><td><span class="tag">${esc(String(kind))}</span></td><td class="muted">${esc(short(typeof info==="object"?JSON.stringify(info):String(info),24))}</td></tr>`;
+      }
+      html += "</tbody></table>";
+      $("domains").innerHTML = html;
+    } else {
+      $("domains").innerHTML = '<div class="empty">Domain yok.</div>';
+    }
+  }catch(e){ $("domains").innerHTML = '<div class="empty">bud_getConsensusDomains: '+esc(e.message)+'</div>'; }
+}
+
+// ── hesap sorgula ─────────────────────────────────────────
+async function queryAccount(){
+  let addr = $("acct").value.trim();
+  if(!addr){ $("acct-out").innerHTML='<div class="empty">Adres girin.</div>'; return; }
+  addr = addr.startsWith("0x")? addr.slice(2) : addr;
+  $("acct-out").innerHTML='<div class="empty">Sorgulanıyor…</div>';
+  try{
+    const [bal, nonce] = await Promise.all([
+      call("bud_getBalance",[addr]).catch(e=>({__err:e.message})),
+      call("bud_getNonce",[addr]).catch(e=>({__err:e.message})),
+    ]);
+    const balV = bal && bal.__err? "hata: "+bal.__err : hex2dec(bal);
+    const nonV = nonce && nonce.__err? "hata: "+nonce.__err : hex2dec(nonce);
+    $("acct-out").innerHTML = `<div class="kv">
+      <div class="k">Adres</div><div class="v">0x${esc(addr)}</div>
+      <div class="k">Bakiye</div><div class="v">${esc(String(balV))}</div>
+      <div class="k">Nonce</div><div class="v">${esc(String(nonV))}</div></div>`;
+  }catch(e){ $("acct-out").innerHTML='<div class="empty">Sorgu hatası: '+esc(e.message)+'</div>'; }
+}
+
+// ── ham RPC ───────────────────────────────────────────────
+async function rawRpc(){
+  const m = $("rpc-method").value.trim();
+  let p = [];
+  const ps = $("rpc-params").value.trim();
+  if(ps){ try{ p = JSON.parse(ps); }catch(e){ $("rpc-out").textContent = "params JSON geçersiz: "+e.message; return; } }
+  $("rpc-out").textContent = "çağrılıyor…";
+  try{
+    const r = await call(m, p);
+    $("rpc-out").textContent = JSON.stringify(r, null, 2);
+  }catch(e){ $("rpc-out").textContent = "HATA: "+e.message; }
+}
+
+// ── döngü ─────────────────────────────────────────────────
+async function tick(){
+  const ok = await refreshStatus();
+  if(ok){ await Promise.all([refreshBlocks(), refreshSidePanels()]); }
+}
+function startLoop(){
+  stopLoop();
+  if($("autorefresh").checked){ timer = setInterval(tick, 5000); }
+}
+function stopLoop(){ if(timer){ clearInterval(timer); timer=null; } }
+
+// ── olaylar ───────────────────────────────────────────────
+$("connect").onclick = ()=>{ RPC = $("rpc").value.trim().replace(/\/$/,""); tick(); startLoop(); };
+$("autorefresh").onchange = ()=>{ startLoop(); if(!$("autorefresh").checked) tick(); };
+$("acct-btn").onclick = queryAccount;
+$("acct").addEventListener("keydown", e=>{ if(e.key==="Enter") queryAccount(); });
+$("rpc-btn").onclick = rawRpc;
+$("rpc-method").addEventListener("keydown", e=>{ if(e.key==="Enter") rawRpc(); });
+
+// başlat
+tick(); startLoop();
+</script>
+</body>
+</html>
