@@ -290,4 +290,4 @@ pub use data_rights::{
 
 /// Phase 5 §5.5 AI Data Marketplace (satıcı-teklifi ekonomisi) — geçiş modülü.
 pub mod offers;
-pub use offers::{DataOffer, MarketplaceRegistry};
+pub use offers::{DataOffer, MarketplaceRegistry, PollenPurchaseReceipt};

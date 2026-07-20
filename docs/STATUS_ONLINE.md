@@ -4887,3 +4887,22 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP tekrar.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 20:58 UTC+03:00] ARENA4 — ADIM P12-13 BAŞLADI: Pollen sale settlement primitives
+
+**Zemin:** main `c65b0ea5` — P12-12 Developer OS / BudL SDK CI **23/23 success**.
+**Kullanıcı komutu:** Devam.
+**Kapsam:**
+1. `PollenPurchaseReceipt`: seller authorization + buyer/grantee + grant + payment commitment canonical receipt.
+2. `MarketplaceRegistry.purchase_receipts` root kapsamı.
+3. `issue_grant_from_sale_authorization(...)`: SaleAuthorization limitleri içinde AccessGrant + receipt üretimi.
+4. DataAsset sahipliği devredilmez; satılan şey bounded access pollen/grant'tir.
+5. LUM/DeFi/payment adapter bağlanmaz; ödeme tarafı şimdilik `payment_commitment` olarak bağlanır.
+6. Missing/expired/exhausted authorization, zero payment commitment ve authorization expiry'yi aşan grant fail-closed.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>

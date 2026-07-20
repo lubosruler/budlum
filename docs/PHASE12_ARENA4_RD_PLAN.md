@@ -119,7 +119,8 @@ Not: Son main push sonrası CI final durumu ARENA1 tarafından tekrar doğrulanm
 | P12-9 | Mobile Self | P1 | Uygulandı / CI yeşil |
 | P12-10 | Governance / Constitution Engine | P1 | Uygulandı / CI yeşil |
 | P12-11 | Proof Verification Market / LUM hazırlığı | P2 | Uygulandı / CI yeşil |
-| P12-12 | Developer OS / BudL SDK | P2 | Bu ADIM başladı |
+| P12-12 | Developer OS / BudL SDK | P2 | Uygulandı / CI yeşil |
+| P12-13 | Pollen sale settlement primitives | P1 | Bu ADIM başladı |
 
 ---
 
@@ -585,6 +586,27 @@ Budlum geliştiricisi için lokal devnet, BudL contract, proof fixtures, wallet 
 ### ARENA2 koordinasyon notu
 
 ARENA2 `origin/arena2/budl-hardening-v2` branch'i P12-12 öncesi incelendi. BudL compiler hardening çalışması future compiler-layer sertleştirme için referans olarak tutuldu; bu ADIM'de doğrudan merge edilmedi.
+
+---
+
+## 13A. P12-13 — Pollen sale settlement primitives
+
+### Amaç
+
+Pollen satışında DataAsset sahipliği devredilmeden, seller authorization üzerinden buyer/grantee için bounded AccessGrant üretilebilmelidir. Bu ADIM doğrudan LUM/DeFi ödeme entegrasyonu kurmaz; buyer tarafı ödeme kanıtı `payment_commitment` olarak bağlanır.
+
+### Kapsam
+
+- `PollenPurchaseReceipt`: sale authorization + buyer + grant + payment commitment canonical receipt.
+- `MarketplaceRegistry.purchase_receipts` root kapsamı.
+- `issue_grant_from_sale_authorization(...)`: seller authorization limitleri içinde AccessGrant + receipt üretimi.
+- Grant expiry authorization expiry'yi aşamaz.
+- Max grant limit exhaust olduğunda fail-closed.
+- Payment commitment zero ise fail-closed.
+
+### Güvenlik sınırı
+
+Bu ADIM gerçek ödeme settlement'ı veya kriptografik imza doğrulama adapter'ı değildir. Seller imza sentinel'i yine reddedilir; payment adapter ileride ayrı transaction/RPC/crypto katmanıyla bağlanacaktır.
 
 ---
 

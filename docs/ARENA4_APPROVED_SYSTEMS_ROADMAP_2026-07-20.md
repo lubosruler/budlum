@@ -41,7 +41,8 @@ Bu ayrım üç güvenlik ilkesini doğurur:
 | A4-8 | Mobile Self | mobile self-hosting profile, QoS metadata, B.U.D. node policy | Uygulandı / CI yeşil |
 | A4-9 | Governance/Constitution Engine | constitution parameter registry, DAO halt guardrails | Uygulandı / CI yeşil |
 | A4-10 | Proof Verification Market | proof task/receipt abstraction, no LUM adapter yet | Uygulandı / CI yeşil |
-| A4-11 | Developer OS / BudL SDK | devnet template, package layout, proof fixtures, SDK docs | Bu ADIM başladı |
+| A4-11 | Developer OS / BudL SDK | devnet template, package layout, proof fixtures, SDK docs | Uygulandı / CI yeşil |
+| A4-12 | Pollen sale settlement primitives | authorization-backed grant + purchase receipt, no DeFi adapter | Bu ADIM başladı |
 
 ---
 
