@@ -112,7 +112,7 @@ impl ChainAdapter for EvmChainAdapter {
         // proof_nodes + key format and should use `verify_evm_receipt` via
         // the EvmDepositProof path, but this gate prevents trivial forgery.
         if !proof.verify(*external_state_root) {
-            return Err(AdapterError::VerificationFailed(
+            return Err(AdapterError::ProofVerificationFailed(
                 "EVM receipt Merkle proof does not verify against declared receipts root".into(),
             ));
         }

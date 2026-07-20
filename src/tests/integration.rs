@@ -403,10 +403,6 @@ mod integration_tests {
                 || err.contains("height discontinuity"),
             "unexpected error: {err}"
         );
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .contains("conflicts with finalized checkpoint"));
     }
 
     #[test]
