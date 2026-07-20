@@ -457,6 +457,13 @@ pub trait BudlumApi {
         name: String,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
+    /// D-Web Passport proof bundle for budlum.xyz. Read-only and evidence-only.
+    #[method(name = "bud_passportGetProofBundle")]
+    async fn passport_get_proof_bundle(
+        &self,
+        name: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
     /// Budlum Atlas wallet context for bud.scan/budlum.xyz. Read-only.
     #[method(name = "bud_atlasGetWalletContext")]
     async fn atlas_get_wallet_context(

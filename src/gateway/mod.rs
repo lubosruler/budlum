@@ -6,7 +6,8 @@ pub use atlas::{
     PollenAtlasSummary,
 };
 pub use passport::{
-    build_passport_profile, build_passport_proof_bundle, DwebPassportProfile, EvidenceCard,
-    EvidenceStatus, PassportProofBundle, PassportProofItem,
+    build_passport_profile, build_passport_proof_bundle, try_build_passport_proof_bundle,
+    validate_passport_name, DwebPassportProfile, EvidenceCard, EvidenceStatus, PassportProofBundle,
+    PassportProofItem,
 };
 pub use service::BudGateway;

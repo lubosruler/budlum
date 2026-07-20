@@ -2534,6 +2534,9 @@ impl BudlumApiServer for RpcServer {
         &self,
         name: String,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        crate::gateway::validate_passport_name(&name).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid passport name: {e}"), None::<()>)
+        })?;
         let resolved = self.chain.bns_resolve_full(name.clone()).await;
         let manifest_id = resolved.as_ref().and_then(|r| {
             r.content_id
@@ -2566,6 +2569,58 @@ impl BudlumApiServer for RpcServer {
             ErrorObjectOwned::owned(
                 -32603,
                 format!("failed to serialize passport profile: {e}"),
+                None::<()>,
+            )
+        })
+    }
+
+    async fn passport_get_proof_bundle(
+        &self,
+        name: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        crate::gateway::validate_passport_name(&name).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid passport name: {e}"), None::<()>)
+        })?;
+        let resolved = self.chain.bns_resolve_full(name.clone()).await;
+        let manifest_id = resolved.as_ref().and_then(|r| {
+            r.content_id
+                .or(r.storage_root.map(crate::storage::ContentId))
+        });
+        let manifest = if let Some(id) = manifest_id {
+            let reg = self.storage.lock().map_err(|e| {
+                ErrorObjectOwned::owned(
+                    -32603,
+                    format!("storage registry lock poisoned: {e}"),
+                    None::<()>,
+                )
+            })?;
+            reg.get_manifest(&id).cloned()
+        } else {
+            None
+        };
+        let data_assets = self.chain.pollen_get_data_assets().await;
+        let access_grants = self.chain.pollen_get_access_grants().await;
+        let sale_authorizations = self.chain.pollen_get_sale_authorizations().await;
+        let profile = crate::gateway::build_passport_profile(
+            name,
+            resolved,
+            manifest,
+            &data_assets,
+            &access_grants,
+            &sale_authorizations,
+        );
+        let height = self.chain.get_height().await;
+        let bundle = crate::gateway::try_build_passport_proof_bundle(&profile, height).map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32603,
+                format!("failed to build passport proof bundle: {e}"),
+                None::<()>,
+            )
+        })?;
+        serde_json::to_value(bundle).map_err(|e| {
+            ErrorObjectOwned::owned(
+                -32603,
+                format!("failed to serialize passport proof bundle: {e}"),
                 None::<()>,
             )
         })

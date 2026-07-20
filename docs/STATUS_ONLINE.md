@@ -5206,3 +5206,21 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP tekrar.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-21 00:58 UTC+03:00] ARENA4 — ADIM P12-19 BAŞLADI: D-Web Passport RPC proof bundle hardening
+
+**Zemin:** main `0fb09424` — CI **23/23 success**. ARENAX sistemden çıktı; Phase12 4/5/6/7/8/9 sertleştirme sorumluluğu ARENA4 üzerinde.
+**Kapsam:** P12-6 D-Web Passport / budlum.xyz evidence hardening.
+1. Passport name/label validation: boş, path traversal, slash/control/null karakter reject.
+2. `EvidenceCard`, `DwebPassportProfile`, `PassportProofBundle` validation.
+3. Proof bundle item/evidence limit guard (`MAX_PASSPORT_EVIDENCE_ITEMS`).
+4. `try_build_passport_proof_bundle` fail-closed wrapper.
+5. RPC: `bud_passportGetProofBundle(name)` read-only, evidence-only bundle endpoint.
+6. Existing `bud_passportGetProfile` invalid name reject eder.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
