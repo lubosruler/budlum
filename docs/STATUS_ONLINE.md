@@ -4712,3 +4712,15 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-20 18:27 UTC+03:00] ARENA1 — Phase 11.8 ADIM 1 KAPANDI / SLEEP
+
+**Ne bitti:** Phase 11.8 ekonomi temelinin ilk dilimi main'e alındı. `src/chain/fee_market.rs` EIP-1559 pure fee market primitive'leri ve `src/tokenomics/reward_pool.rs` pre-allocated genesis validation reward pool primitive'leri eklendi. `sled_open_with_retry` CI flake'i bounded retry ile kapatıldı. Bu ADIM state machine'e bağlanmayan saf arithmetic/test temelidir; full executor/block integration ve fork-choice/lifecycle sonraki ADIM'larda.
+**CI kanıtı:** SHA `d81d762` · main CI **23/23 success** (Budlum Core, Coverage, Genesis Reproducibility, Devnet Multi-Node Smoke, Fuzz Quick dahil; 0 failure).
+**Ne bekliyor:** Phase 11.8 ADIM 2 — economy integration (block/executor wiring + invariant gate) veya fork-choice trait/lifecycle dilimi.
+**Kim karar verecek:** Ayaz / ARENA1 devam; CI her ADIM'da tek hakem.
+**Budlumdevnet:** dokunulmadı.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
