@@ -381,6 +381,7 @@ fn trace_matrix(
             0x1C => values[row_start + COL_IS_SWRITE] = Goldilocks::new(1),
             0x1D => values[row_start + COL_IS_SYSCALL] = Goldilocks::new(1),
             0x1E => values[row_start + COL_IS_VERIFY_MERKLE] = Goldilocks::new(1),
+            0x1F => values[row_start + COL_IS_VERIFY_INFERENCE] = Goldilocks::new(1),
             0x00 => values[row_start + COL_IS_HALT] = Goldilocks::new(1),
             _ => {}
         }
@@ -834,6 +835,9 @@ fn aux_trace_generator(
             let is_poseidon = row[COL_IS_POSEIDON];
             let is_syscall = row[COL_IS_SYSCALL];
             let is_verify_merkle = row[COL_IS_VERIFY_MERKLE];
+            // ARENA2 task-3: VerifyInference is a real single-row opcode and must
+            // contribute to the register bus like any other instruction.
+            let is_verify_inference = row[COL_IS_VERIFY_INFERENCE];
 
             // ARENA2 Phase 4: expansion rows keep is_verify_merkle=1 but must not
             // contribute to the register bus (operands are zeroed synthetics).
@@ -867,7 +871,8 @@ fn aux_trace_generator(
                 + is_swrite
                 + is_poseidon
                 + is_syscall
-                + is_verify_merkle * (Goldilocks::ONE - is_expand_aux);
+                + is_verify_merkle * (Goldilocks::ONE - is_expand_aux)
+                + is_verify_inference;
 
             let clk = row[COL_CLK];
             let pc = row[COL_PC];
@@ -1276,6 +1281,65 @@ mod tests {
         }
         assert!(verify_res.is_ok());
         envelope
+    }
+
+    /// ARENA2 task-3: VerifyInference (0x1F) prove->verify round trip.
+    /// Onceden InvalidProof (selektor + gaz + register-bus eksik + sahte expansion
+    /// satirlari). Buyuk bellek (8192, budlum-core ZkVmExecutor ile ayni) eski
+    /// expansion yollarini erisilebilir tutar -> tam basarisiz senaryoyu calistirir.
+    #[test]
+    fn proves_verify_inference_opcode_roundtrip() {
+        let program = vec![
+            inst(Opcode::Load, 1, 0, 0, 0xAB),
+            inst(Opcode::Load, 2, 0, 0, 0xCD),
+            inst(Opcode::Load, 3, 0, 0, 0xEF),
+            inst(Opcode::VerifyInference, 0, 1, 2, 3),
+            inst(Opcode::Halt, 0, 0, 0, 0),
+        ];
+        let mut vm = Vm::new(8192);
+        let receipt = vm.run_receipt(&program);
+        assert!(
+            receipt.success,
+            "VerifyInference must execute: {:?}",
+            receipt.error
+        );
+        // Single-row opcode: 3 Load + 1 VerifyInference + 1 Halt = 5 satir.
+        assert_eq!(
+            vm.trace.len(),
+            5,
+            "VerifyInference must be a single-row opcode"
+        );
+        let program_bytes: Vec<u8> = program
+            .iter()
+            .flat_map(|&i| i.to_le_bytes().to_vec())
+            .collect();
+        let mut hasher = Keccak::v256();
+        hasher.update(&program_bytes);
+        let mut program_hash = [0u8; 32];
+        hasher.finalize(&mut program_hash);
+        let pi = ExecutionPublicInputs {
+            chain_id: 1,
+            program_hash,
+            initial_state_root: [0u8; 32],
+            final_state_root: [0u8; 32],
+            sender: vm.context.sender,
+            nonce: vm.context.nonce,
+            block_height: vm.context.block_height,
+            gas_limit: vm.gas_limit,
+            gas_used: vm.gas_used,
+            exit_code: 0,
+            trace_len: vm.trace.len() as u64,
+            event_digest: [0u8; 32],
+        };
+        let envelope = Plonky3Adapter::prove(&vm.trace, &pi, &program).unwrap();
+        let verify_res = Plonky3Adapter::verify(&envelope, &pi, &program);
+        if let Err(ref e) = verify_res {
+            eprintln!("VerifyInference verification error: {:?}", e);
+        }
+        assert!(
+            verify_res.is_ok(),
+            "VerifyInference prove->verify must round-trip"
+        );
     }
 
     /// Run the program, tamper the trace, and assert that proving FAILS.

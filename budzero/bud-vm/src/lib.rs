@@ -626,7 +626,7 @@ impl Vm {
         // key (the AIR uses these to verify the path). The original
         // step's `merkle_key` is also set here (post-push, in-place
         // via index) so the AIR knows the path's key.
-        if matches!(inst.opcode, Opcode::VerifyMerkle | Opcode::VerifyInference) {
+        if matches!(inst.opcode, Opcode::VerifyMerkle) {
             let path_addr = inst.imm as usize;
             let path_end = path_addr.wrapping_add(8 * 65);
             if path_end <= self.memory.len() {
@@ -713,65 +713,12 @@ impl Vm {
             }
         }
 
-        // P5 ADIM11 Bulgu 32: VerifyInference expansion rows.
-        // If the just-pushed step is a VerifyInference, push 8 follow-up
-        // expansion rows. Each row carries the commitment values for the
-        // AIR to verify the commitment chain (model → input → output).
-        if matches!(inst.opcode, Opcode::VerifyInference) {
-            let proof_addr = src1_val as usize;
-            let proof_end = proof_addr.wrapping_add(8 * 4);
-            if proof_end <= self.memory.len() {
-                let read_u64 = |addr: usize| -> u64 {
-                    let mut bytes = [0u8; 8];
-                    bytes.copy_from_slice(&self.memory[addr..addr + 8]);
-                    u64::from_le_bytes(bytes)
-                };
-                let model_c = read_u64(proof_addr);
-                let input_c = read_u64(proof_addr + 8);
-                let output_c = read_u64(proof_addr + 16);
-
-                // Patch original step with model commitment
-                if let Some(last) = self.trace.last_mut() {
-                    last.inference_model_commitment = Some(model_c);
-                }
-
-                // Push 8 expansion rows for AIR commitment verification
-                for round in 0..8u8 {
-                    self.trace.push(Step {
-                        pc: cur_pc,
-                        next_pc: cur_pc + 1,
-                        instruction: Instruction {
-                            opcode: Opcode::VerifyInference,
-                            rd: 0,
-                            rs1: inst.rs1,
-                            rs2: inst.rs2,
-                            imm: round as i32,
-                        },
-                        src1_idx: inst.rs1,
-                        src2_idx: inst.rs2,
-                        dst_idx: 0,
-                        src1_val,
-                        src2_val,
-                        dst_val: 0,
-                        registers: self.registers,
-                        memory_addr: None,
-                        memory_val: None,
-                        is_memory_write: false,
-                        stack_pointer: self.stack.len(),
-                        merkle_key: None,
-                        merkle_current: None,
-                        merkle_sibling: None,
-                        merkle_round: None,
-                        merkle_is_expand: false,
-                        inference_model_commitment: Some(model_c),
-                        inference_input_commitment: Some(input_c),
-                        inference_output_commitment: Some(output_c),
-                        inference_proof_round: Some(round),
-                        inference_is_expand: true,
-                    });
-                }
-            }
-        }
+        // P5 ADIM11 Bulgu 32 / ARENA2 task-3: VerifyInference tek-satir opcode.
+        // Orijinal 8 inference expansion + (yukaridaki matches! ile tetiklenen) 64
+        // VerifyMerkle expansion satiri AIR tarafindan baglanmamisti ve pc-transition
+        // kisitini bozarak InvalidProof veriyordu. Opcode sonucu mainnet'te 0 (V110);
+        // bu yalnizca trace'i kanitlanabilir yapar. inference_* Step alanlari gelecekteki
+        // AI verification AIR icin (doldurulmadan) korundu.
 
         debug!(
             pc = cur_pc,

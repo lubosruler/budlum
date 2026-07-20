@@ -30,7 +30,8 @@ boş bırakılan yerleri açıklar.
 | 322 – 353 | 32 | Poseidon x^4 ara değerleri |
 | 354 – 361 | 8 | Public-input: final state root |
 | 362 – 369 | 8 | Public-input: initial state root |
-| 370 – 377 | 8 | **Bilinçli boşluk** — gelecek genişleme için ayrıldı |
+| 370 | 1 | VerifyInference opcode selektörü (`COL_IS_VERIFY_INFERENCE`, 0x1F) |
+| 371 – 377 | 7 | **Bilinçli boşluk** — gelecek genişleme için ayrıldı |
 | 378 | 1 | Public-input: trace_len sayacı |
 | 379 | 1 | Public-input: gas_limit |
 | 380 – 387 | 8 | Public-input: event digest accumulator |
@@ -55,10 +56,10 @@ boş bırakılan yerleri açıklar.
    `COL_MERKLE_POSEIDON_*` aynı round-constant/MDS matrisini kullanır.
    Tekilleştirme planı için `docs/BUDZKVM_POSEIDON_REFACTOR.md` (Paket C)
    takip edilecektir.
-4. **Bilinçli boşluk (370–377):** Şu an hiçbir kısıt tarafından
-   kullanılmıyor. Yeni public-input veya genişleme ihtiyacı olduğunda
-   önce bu aralık doldurulmalı; yetersiz kalırsa `TRACE_WIDTH`
-   artırılmalı.
+4. **Bilinçli boşluk (371–377):** Şu an hiçbir kısıt tarafından
+   kullanılmıyor (kolon 370 VerifyInference selektörü — ARENA2 task-3).
+   Yeni public-input veya genişleme ihtiyacı olduğunda önce bu aralık
+   doldurulmalı; yetersiz kalırsa `TRACE_WIDTH` artırılmalı.
 5. **TRACE_WIDTH sınırı:** Son atanmış sütun `COL_MERKLE_FINAL_FLAG = 413`.
    `TRACE_WIDTH = 414` olmak zorundadır.
 

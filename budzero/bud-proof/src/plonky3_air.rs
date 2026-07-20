@@ -98,6 +98,9 @@ pub const COL_POSEIDON_X4_BASE: usize = 322; // 322..353 — x^4 intermediates p
 // (cpu_active=1, is_halt=1).
 pub const COL_FINAL_ROOT_0: usize = 354; // 354..361 — final state root (8 × u32 limbs)
 pub const COL_INIT_ROOT_0: usize = 362; // 362..369 — initial state root (8 × u32 limbs)
+                                        // ARENA2 task-3: VerifyInference (0x1F) opcode selector (rezerve bosluk kolon 370).
+                                        // Onsuz VerifyInference satirinda is_cpu==0 -> InvalidProof.
+pub const COL_IS_VERIFY_INFERENCE: usize = 370; // 1 column — 1 on VerifyInference (0x1F) rows
 pub const COL_TRACE_LEN_CTR: usize = 378; // 1 column — running count of cpu_active=1 rows
 pub const COL_GAS_LIMIT: usize = 379; // 1 column — vm.gas_limit, first row
 pub const COL_EVENT_DIGEST_0: usize = 380; // 380..387 — event_digest accumulator (8 × u32 limbs, additive)
@@ -214,6 +217,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         let is_poseidon: AB::Expr = cur[COL_IS_POSEIDON].into();
         let is_syscall: AB::Expr = cur[COL_IS_SYSCALL].into();
         let is_verify_merkle: AB::Expr = cur[COL_IS_VERIFY_MERKLE].into();
+        let is_verify_inference: AB::Expr = cur[COL_IS_VERIFY_INFERENCE].into();
         let is_halt: AB::Expr = cur[COL_IS_HALT].into();
         let nxt_is_halt: AB::Expr = nxt[COL_IS_HALT].into();
         let nxt_clk: AB::Expr = nxt[COL_CLK].into();
@@ -252,7 +256,8 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             + is_swrite.clone()
             + is_poseidon.clone()
             + is_syscall.clone()
-            + is_verify_merkle.clone();
+            + is_verify_merkle.clone()
+            + is_verify_inference.clone();
 
         let is_cpu = is_real_op.clone() + is_halt.clone();
 
@@ -287,6 +292,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         builder.assert_bool(is_poseidon.clone());
         builder.assert_bool(is_syscall.clone());
         builder.assert_bool(is_verify_merkle.clone());
+        builder.assert_bool(is_verify_inference.clone());
         builder.assert_bool(is_halt.clone());
 
         // 2. Selector Exclusivity
@@ -420,6 +426,17 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
         // VerifyMerkle: result is boolean (0 or 1)
         builder
             .when(is_verify_merkle.clone())
+            .assert_bool(rd_val_new.clone());
+
+        // ARENA2 task-3: VerifyInference (0x1F) selector binding (mirrors VerifyMerkle).
+        // Opcode sonucu mainnet'te 0'a sabitli (V110); bu yalnizca trace'i
+        // kanitlanabilir yapar. Tam commitment-chain soundness AI verification AIR'a birakildi.
+        let opcode_verify_inference: AB::Expr = AB::Expr::from(AB::F::from_u64(0x1F));
+        builder.assert_zero(
+            is_verify_inference.clone() * (opcode_at_row.clone() - opcode_verify_inference),
+        );
+        builder
+            .when(is_verify_inference.clone())
             .assert_bool(rd_val_new.clone());
 
         // Phase 0.312 (security audit Z-B): Merkle expansion rows.
@@ -768,6 +785,8 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
             + is_poseidon.clone() * ten.clone()
             // Phase 0.36: expansion rows reuse opcode 0x1E but must not re-charge gas.
             + is_verify_merkle.clone() * (one.clone() - is_expand.clone()) * ten.clone()
+            // ARENA2 task-3: VerifyInference costs 10 (Vm::gas_cost); single-row opcode.
+            + is_verify_inference.clone() * ten.clone()
             + is_call.clone() * two.clone()
             + is_ret.clone() * two.clone()
             + is_push.clone() * two.clone()
@@ -780,6 +799,7 @@ impl<AB: PermutationAirBuilder> Air<AB> for BudAir {
                 - is_swrite.clone()
                 - is_poseidon.clone()
                 - is_verify_merkle.clone()
+                - is_verify_inference.clone()
                 - is_call.clone()
                 - is_ret.clone()
                 - is_push.clone()

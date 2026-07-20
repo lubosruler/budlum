@@ -365,21 +365,19 @@ mod tests {
             .flat_map(|instruction| instruction.encode().to_le_bytes())
             .collect();
 
-        // Non-mainnet mode: opcode must decode + execute in the VM.
-        // Full STARK prove/verify for VerifyInference AIR is still experimental
-        // (expansion rows); ZkVmExecutor::execute_bytecode would fail InvalidProof.
-        // Wiring gate = VM run_receipt success + non-zero steps.
-        let program_words = decode_program(&bytecode).expect("program decodes");
-        let mut vm = bud_vm::Vm::with_mainnet_mode(8192, DEFAULT_CONTRACT_GAS_LIMIT, false);
-        let receipt = vm.run_receipt(&program_words);
+        // Non-mainnet mode: VerifyInference calismali VE STARK proof prove/verify
+        // round-trip yapmali (ARENA2 task-3). Fix: COL_IS_VERIFY_INFERENCE selektor
+        // (AIR + prover + register bus) + gaz(10) + tek-satir opcode. Opcode sonucu
+        // mainnet'te 0 (V110); bu proof mekanizmasini dogrular, (stub) sonucu degil.
+        let receipt = ZkVmExecutor::execute_bytecode(&bytecode, DEFAULT_CONTRACT_GAS_LIMIT)
+            .expect("VerifyInference must execute + prove/verify in non-mainnet mode");
         assert!(
-            receipt.success,
-            "VerifyInference must execute in non-mainnet mode: {:?}",
-            receipt.error
+            receipt.steps > 0,
+            "VerifyInference program must produce steps"
         );
         assert!(
-            receipt.trace_len > 0,
-            "VerifyInference must produce trace steps"
+            receipt.proof_bytes > 0,
+            "VerifyInference program must produce a verifiable proof"
         );
     }
 

@@ -99,10 +99,16 @@ fn all_ranges() -> Vec<ColRange> {
             start: 362,
             end: 370,
         },
+        // VerifyInference (0x1F) opcode selector — former reserved gap kolon 370 (ARENA2 task-3).
+        ColRange {
+            name: "verify_inference_selector",
+            start: 370,
+            end: 371,
+        },
         // Intentional reserved gap (see BUDZKVM_TRACE_LAYOUT.md)
         ColRange {
             name: "reserved_gap",
-            start: 370,
+            start: 371,
             end: 378,
         },
         ColRange {
@@ -213,6 +219,9 @@ fn trace_layout_reserved_gap_is_documented() {
         .iter()
         .find(|r| r.name == "reserved_gap")
         .expect("reserved_gap range must be documented");
-    assert_eq!(gap.start, 370, "reserved_gap must start at 370");
+    assert_eq!(
+        gap.start, 371,
+        "reserved_gap must start at 371 (370 = VerifyInference selector)"
+    );
     assert_eq!(gap.end, 378, "reserved_gap must end at 378");
 }
