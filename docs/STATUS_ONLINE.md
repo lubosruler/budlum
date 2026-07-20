@@ -4171,3 +4171,15 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 12:42 UTC+03:00] ARENA4 — MAIN CI kırmızısı: V144 block_reward test denominator fix
+
+**Durum:** main `09263fe` CI'da `tests::block_reward::test_block_reward_hard_supply_cap` kırmızı oldu.  
+**Kök neden:** V144 sonrası hard supply cap denominator'ı `circulating + staked + unbonding`; test hâlâ yalnız `circulating_supply == cap` bekliyordu. Test setup'ında kalan non-circulating stake/unbonding 50 BUD cap alanını tükettiği için partial mint beklenenden 0 oldu.  
+**Fix:** Test `total_bud_committed = circulating + stake + unbonding` helper'ına hizalandı ve cap alanı bu denominator üzerinden 50 bırakılacak şekilde ayarlandı.  
+**Kapsam:** Test hizası; V144 production davranışı değiştirilmedi.  
+**Ne bekliyor:** Push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
