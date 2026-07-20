@@ -64,6 +64,11 @@ message ProtoTransaction {
         ProtoAiModelDeactivate ai_model_reactivate = 33;
         ProtoAiFeeReclaim ai_request_cancel = 34;
         ProtoAiDisputeSlash ai_dispute_slash = 35;
+        // V116 fix: dedicated proto types for AiAgentPayment variants.
+        // Previously these all mapped to AiFeeReclaim (type collision).
+        ProtoAiAgentPayment ai_agent_payment = 36;
+        ProtoAiAgentPaymentRelease ai_agent_payment_release = 37;
+        ProtoAiAgentPaymentReclaim ai_agent_payment_reclaim = 38;
     }
 }
 
@@ -412,4 +417,20 @@ message ProtoAiModelDeactivate {
 message ProtoAiDisputeSlash {
     bytes request_id = 1;
     bytes verifier = 2;
+}
+
+// V116 fix: dedicated proto types for AiAgentPayment variants.
+// Previously these all mapped to AiFeeReclaim (type collision),
+// making them impossible to decode on the receiving side.
+
+message ProtoAiAgentPayment {
+    bytes payment_id = 1;
+}
+
+message ProtoAiAgentPaymentRelease {
+    bytes payment_id = 1;
+}
+
+message ProtoAiAgentPaymentReclaim {
+    bytes payment_id = 1;
 }

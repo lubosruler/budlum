@@ -567,10 +567,12 @@ impl Vm {
                 (result, cur_pc + 1)
             }
             // P5 ADIM11 Bulgu 32: AI Inference verification opcode.
-            // Currently a stub that reads memory and returns success/failure.
-            // Full STARK verification logic will be implemented when the
-            // AI verification AIR is designed (mainnet activation gate ensures
-            // this is not active on mainnet until ready).
+            // V110 fix: VerifyInference opcode disabled on mainnet.
+            // Previously, any non-zero commitment was accepted (no real verification).
+            // This opcode is now a no-op that always returns 0 (verification failed)
+            // until a proper STARK verification AIR is implemented.
+            // Mainnet activation gate: this ensures no AI output can be "verified"
+            // without real cryptographic proof.
             Opcode::VerifyInference => {
                 let proof_addr = src1_val as usize;
                 let model_addr = src2_val as usize;
@@ -581,50 +583,12 @@ impl Vm {
                 let model_end = model_addr.wrapping_add(model_size);
 
                 let result = if proof_end <= self.memory.len() && model_end <= self.memory.len() {
-                    let read_u64 = |addr: usize| -> u64 {
-                        let mut bytes = [0u8; 8];
-                        bytes.copy_from_slice(&self.memory[addr..addr + 8]);
-                        u64::from_le_bytes(bytes)
-                    };
-
-                    let model_commitment = read_u64(proof_addr);
-                    let input_commitment = read_u64(proof_addr + 8);
-                    let output_commitment = read_u64(proof_addr + 16);
-                    let stored_proof_type = read_u64(proof_addr + 24);
-
-                    let registered_hash = read_u64(model_addr);
-                    let registered_model = read_u64(model_addr + 8);
-
-                    // Phase 1+2: proof type must match AND model commitment must match
-                    if stored_proof_type != proof_type as u64 || model_commitment != registered_hash
-                    {
-                        0u64
-                    }
-                    // Phase 3: simplified Poseidon-like commitment chain
-                    else {
-                        let commitment_hash = {
-                            let mut acc = model_commitment;
-                            for round in 0..8u8 {
-                                acc = acc
-                                    .wrapping_add(input_commitment)
-                                    .wrapping_mul(0x5851F42D4C957F2D)
-                                    .wrapping_add(output_commitment)
-                                    .wrapping_add(round as u64);
-                                const P: u64 = 18446744069414584321;
-                                if acc >= P {
-                                    acc -= P;
-                                }
-                            }
-                            acc
-                        };
-                        if commitment_hash != 0
-                            && (commitment_hash.wrapping_add(registered_model)) != 0
-                        {
-                            1u64
-                        } else {
-                            0u64
-                        }
-                    }
+                    // V110: Always return 0 (verification failed) until proper
+                    // STARK verification is implemented. The old implementation
+                    // accepted any non-zero commitment hash, which allowed
+                    // arbitrary AI outputs to pass "verification".
+                    // When STARK AIR is ready, replace this with real verification.
+                    0u64
                 } else {
                     0u64
                 };

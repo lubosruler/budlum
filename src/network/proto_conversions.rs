@@ -211,30 +211,29 @@ impl From<&Transaction> for pb::ProtoTransaction {
                     },
                 )),
             ),
-            // P5 ADIM11 Bulgu 31: Agent-to-Agent payment — encoded as raw bytes
-            // since no dedicated proto message exists yet. Uses AiFeeReclaim
-            // as a placeholder carrier (32-byte payload).
+            // V116 fix: AiAgentPayment now uses dedicated proto type instead of
+            // AiFeeReclaim (type collision — 4 tx types sharing same enum).
             TransactionType::AiAgentPayment(payment) => (
-                pb::ProtoTransactionType::AiFeeReclaim as i32,
-                Some(pb::proto_transaction::TypePayload::AiFeeReclaim(
-                    pb::ProtoAiFeeReclaim {
-                        request_id: payment.payment_id.to_vec(),
+                pb::ProtoTransactionType::AiAgentPayment as i32,
+                Some(pb::proto_transaction::TypePayload::AiAgentPayment(
+                    pb::ProtoAiAgentPayment {
+                        payment_id: payment.payment_id.to_vec(),
                     },
                 )),
             ),
             TransactionType::AiAgentPaymentRelease(payment_id) => (
-                pb::ProtoTransactionType::AiFeeReclaim as i32,
-                Some(pb::proto_transaction::TypePayload::AiFeeReclaim(
-                    pb::ProtoAiFeeReclaim {
-                        request_id: payment_id.to_vec(),
+                pb::ProtoTransactionType::AiAgentPaymentRelease as i32,
+                Some(pb::proto_transaction::TypePayload::AiAgentPaymentRelease(
+                    pb::ProtoAiAgentPaymentRelease {
+                        payment_id: payment_id.to_vec(),
                     },
                 )),
             ),
             TransactionType::AiAgentPaymentReclaim(payment_id) => (
-                pb::ProtoTransactionType::AiFeeReclaim as i32,
-                Some(pb::proto_transaction::TypePayload::AiFeeReclaim(
-                    pb::ProtoAiFeeReclaim {
-                        request_id: payment_id.to_vec(),
+                pb::ProtoTransactionType::AiAgentPaymentReclaim as i32,
+                Some(pb::proto_transaction::TypePayload::AiAgentPaymentReclaim(
+                    pb::ProtoAiAgentPaymentReclaim {
+                        payment_id: payment_id.to_vec(),
                     },
                 )),
             ),
@@ -874,8 +873,45 @@ impl TryFrom<pb::ProtoTransaction> for Transaction {
                     verifier: crate::core::address::Address::from(vid),
                 }
             }
-            // P5 ADIM11 Bulgu 31: AiAgentPayment — not yet in proto, skipped.
-            // Will be added in a future proto schema update.
+            // V116 fix: AiAgentPayment variants now have dedicated proto types.
+            pb::ProtoTransactionType::AiAgentPayment => {
+                let payload = match proto.type_payload {
+                    Some(pb::proto_transaction::TypePayload::AiAgentPayment(p)) => p,
+                    _ => return Err("Missing or mismatched AiAgentPayment payload".into()),
+                };
+                if payload.payment_id.len() != 32 {
+                    return Err("AiAgentPayment payment_id must be 32 bytes".into());
+                }
+                let mut pid = [0u8; 32];
+                pid.copy_from_slice(&payload.payment_id);
+                TransactionType::AiAgentPayment(crate::ai::types::AiAgentPayment {
+                    payment_id: crate::ai::types::AiRequestId(pid),
+                })
+            }
+            pb::ProtoTransactionType::AiAgentPaymentRelease => {
+                let payload = match proto.type_payload {
+                    Some(pb::proto_transaction::TypePayload::AiAgentPaymentRelease(p)) => p,
+                    _ => return Err("Missing or mismatched AiAgentPaymentRelease payload".into()),
+                };
+                if payload.payment_id.len() != 32 {
+                    return Err("AiAgentPaymentRelease payment_id must be 32 bytes".into());
+                }
+                let mut pid = [0u8; 32];
+                pid.copy_from_slice(&payload.payment_id);
+                TransactionType::AiAgentPaymentRelease(crate::ai::types::AiRequestId(pid))
+            }
+            pb::ProtoTransactionType::AiAgentPaymentReclaim => {
+                let payload = match proto.type_payload {
+                    Some(pb::proto_transaction::TypePayload::AiAgentPaymentReclaim(p)) => p,
+                    _ => return Err("Missing or mismatched AiAgentPaymentReclaim payload".into()),
+                };
+                if payload.payment_id.len() != 32 {
+                    return Err("AiAgentPaymentReclaim payment_id must be 32 bytes".into());
+                }
+                let mut pid = [0u8; 32];
+                pid.copy_from_slice(&payload.payment_id);
+                TransactionType::AiAgentPaymentReclaim(crate::ai::types::AiRequestId(pid))
+            }
             _ => return Err("Unsupported transaction type in proto".into()),
         };
 
