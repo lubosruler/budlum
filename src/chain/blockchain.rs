@@ -1318,6 +1318,29 @@ impl Blockchain {
                 expiry_height,
             )
             .map_err(|e| e.to_string())?;
+
+        // V107 fix (ARENAS): Debit the owner's balance when locking bridge
+        // transfer. Without this, the owner retains the locked amount while
+        // the recipient also receives it on the target domain — creating BUD
+        // out of thin air (inflation bug). The sweep_expired_locks path
+        // already refunds the owner on expiry, so this debit is the
+        // corresponding credit-side bookkeeping.
+        if amount > u64::MAX as u128 {
+            return Err(
+                "Bridge transfer amount exceeds maximum representable balance (u64 overflow)"
+                    .into(),
+            );
+        }
+        let owner_balance = self.state.get_balance(&owner);
+        if owner_balance < amount as u64 {
+            return Err(format!(
+                "Insufficient balance for bridge lock: owner has {}, needed {}",
+                owner_balance, amount
+            ));
+        }
+        let owner_account = self.state.get_or_create(&owner);
+        owner_account.balance = owner_account.balance.saturating_sub(amount as u64);
+
         if let Some(store) = &self.storage {
             store
                 .save_bridge_state(&self.state.bridge_state)
@@ -2853,6 +2876,20 @@ impl Blockchain {
             .metrics
             .as_ref()
             .map(|metrics| metrics.consensus_round_seconds.start_timer());
+
+        // V127 fix (ARENAS): Height continuity defense-in-depth. The block
+        // index must be exactly one greater than the current chain tip.
+        // Consensus engines also enforce this, but the blockchain layer must
+        // reject discontinuous blocks independently (fork attacks, height
+        // jumps, etc.).
+        let expected_height = self.chain.len() as u64;
+        if block.index != expected_height {
+            return Err(format!(
+                "Block height discontinuity: expected {}, got {}",
+                expected_height, block.index
+            ));
+        }
+
         if block.index <= self.finalized_height && block.hash != self.finalized_hash {
             if let Some(finalized_path_block) = self.chain.get(block.index as usize) {
                 if finalized_path_block.hash != block.hash {

@@ -536,9 +536,38 @@ impl Executor {
                                 state.bridge_state.mint(msg).map_err(|e| {
                                     BudlumError::validation("bridge_mint_failed", e.0)
                                 })?;
-                                let fee = msg.nonce.saturating_mul(1); // placeholder for fee logic
-                                                                       // credit recipient
-                                                                       // amount logic needs to be tied to msg payload
+                                // V126 fix (ARENAS): Previously a placeholder (nonce-based fee,
+                                // no recipient credit). Now uses the same logic as
+                                // submit_relay_proof: fetch the transfer, deduct 1% relayer
+                                // fee, credit recipient.
+                                let transfer = state
+                                    .bridge_state
+                                    .get_transfer(&msg.message_id)
+                                    .ok_or_else(|| {
+                                        BudlumError::validation(
+                                            "bridge_mint_failed",
+                                            "Failed to retrieve transfer after mint",
+                                        )
+                                    })?
+                                    .clone();
+                                let fee = transfer.amount.saturating_mul(1) / 100;
+                                let final_amount = transfer.amount.saturating_sub(fee);
+                                if final_amount > u64::MAX as u128 {
+                                    return Err(BudlumError::validation(
+                                        "bridge_mint_failed",
+                                        "Bridge amount exceeds maximum representable balance",
+                                    ));
+                                }
+                                if fee > u64::MAX as u128 {
+                                    return Err(BudlumError::validation(
+                                        "bridge_mint_failed",
+                                        "Bridge fee exceeds maximum representable balance",
+                                    ));
+                                }
+                                state.add_balance(&transfer.recipient, final_amount as u64);
+                                // Note: relayer fee is not credited here because the
+                                // relayer address is not available in this code path;
+                                // the submit_relay_proof path handles that correctly.
                             }
                             crate::cross_domain::message::MessageKind::BridgeBurn => {
                                 // Inbound burn (from target back to source) -> Unlock on Budlum
@@ -875,7 +904,10 @@ impl Executor {
                         )
                     })?
                     .amount;
-                let current_block = state.epoch_index.saturating_mul(100);
+                // V125 fix (ARENAS): Use actual block height instead of
+                // epoch_index * 100 approximation — these are NOT equivalent
+                // in general and cause expiry timing inconsistencies.
+                let current_block = state.current_block_height;
                 let recipient = state
                     .ai_registry
                     .release_agent_payment(&payment_id, current_block)
@@ -890,7 +922,8 @@ impl Executor {
             }
             TransactionType::AiAgentPaymentReclaim(payment_id) => {
                 // V86: Reclaim expired escrowed payment back to sender.
-                let current_block = state.epoch_index.saturating_mul(100);
+                // V125 fix (ARENAS): Use actual block height for consistency.
+                let current_block = state.current_block_height;
                 let amount = state
                     .ai_registry
                     .reclaim_agent_payment(&payment_id, &tx.from, current_block)

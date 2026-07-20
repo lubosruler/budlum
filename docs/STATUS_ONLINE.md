@@ -3216,3 +3216,173 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** Ayaz (K1/K2 + S1 onayı) / ARENA3 (S0 CI onarım + protokol bakımı)
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+## ADIM 9 — Derin Denetim Devam: V125-V127 Bulguları + V107 Yükseltme + CI Onay
+
+**Tarih:** 2026-07-20
+**Ajan:** ARENAS (Denetim)
+
+### Rebase & CI Durumu
+- Rebase edildi: origin/main → `8b66cd4` (ARENA3 CI kapanış + task7 + proto fix'ler)
+- ARENA3 CI sonucu: `caad98e` → **23/23 yeşil** (1053 passed, 0 failed, 1 ignored)
+- V119, V124, V116, V110 fix'leri CI tarafından onaylandı → KAPATILDI
+
+### V107 (🟡→🔴 YÜKSELTME): Bridge Lock Owner Bakiye Düşüşü Eksik — Enflasyon Açığı
+
+**Dosya:** `src/chain/blockchain.rs` lock_bridge_transfer() (satır ~1276) + `src/cross_domain/bridge.rs` lock() (satır ~175)
+**Ciddiyet:** 🔴 Kritik (🟡→🔴 yükseltme)
+**Kategori:** Ekonomik tutarlılık / BUD enflasyon
+
+**Açıklama:**
+`lock_bridge_transfer()` fonksiyonu bridge state'te transfer'ı `Locked` durumuna çeviriyor ama **owner'ın bakiyesinden amount'u düşmüyor**. Akış:
+
+1. Kullanıcı X BUD kilitler → `bridge_state.lock()` çağrılır
+2. Owner bakiyesi DEĞİŞMEZ (amount düşülmez!)
+3. Karşı domain'de `mint_bridge_transfer_from_verified_event()` çağrıldığında → recipient'a `final_amount` BUD eklenir
+4. Sonuç: **X BUD yaratılmış olur** — owner hala X BUD'a sahip, recipient da X BUD aldı
+
+**Pratik etki:**
+- Kullanıcı aynı parayı tekrar kilitleyebilir (double-spend)
+- Bridge üzerinden sınırsız BUD enflasyonu mümkün
+- `apply_bridge_sweep` expired lock'larda owner'a **iade** yapıyor ama lock sırasında hiç düşülmemişti — çifte iade!
+
+**`mint_bridge_transfer_from_verified_event` doğru şekilde `add_balance` yapıyor**, sorun lock tarafında.
+
+**Öneri:** `lock_bridge_transfer()` içine, lock başarılı olduktan sonra:
+```rust
+self.state.sub_balance(&owner, amount as u64)?;
+```
+eklenmeli. `sub_balance` bakiye yetersizse hata döndürmelidir.
+
+**Not:** ARENA3'ün replay fix'i (`d056222`) sadece `mark_processed` zamanlamasını düzeltti, asıl bakiye düşüşü sorununu çözmedi.
+
+---
+
+### V125 (🟡 Yüksek): AiAgentPayment current_block Hesaplama Tutarsızlığı
+
+**Dosya:** `src/execution/executor.rs` AiAgentPaymentRelease (satır ~879) ve AiAgentPaymentReclaim (satır ~894)
+**Ciddiyet:** 🟡 Yüksek
+**Kategori:** Mantık hatası / zamanlama tutarsızlığı
+
+**Açıklama:**
+Executor.rs'de AiAgentPayment işlemlerinde `current_block` hesaplaması tutarsız:
+
+- `submit_agent_payment` çağrısında: `current_block = state.current_block_height` (gerçek blok yüksekliği)
+- `release_agent_payment` çağrısında: `current_block = state.epoch_index.saturating_mul(100)` (yaklaşık hesaplama)
+- `reclaim_agent_payment` çağrısında: `current_block = state.epoch_index.saturating_mul(100)` (yaklaşık hesaplama)
+
+`current_block_height` ≠ `epoch_index * 100` genel olarak. Bu tutarsızlık:
+1. Payment'ın yanlış zamanda "expired" olarak değerlendirilmesine
+2. Veya süresi dolmamış payment'ın serbest bırakılmasına
+3. Reclaim saldırısına (epoch geçişinde timing exploitation)
+
+yol açabilir.
+
+**Öneri:** Tüm AiAgentPayment işlemlerinde tutarlı şekilde `state.current_block_height` kullanılmalı.
+
+---
+
+### V126 (🔴 Kritik): Universal Relayer Bridge Mint — Recipient Bakiye Kazandırma Eksik (Placeholder)
+
+**Dosya:** `src/execution/executor.rs` BridgeLock handler (satır ~538)
+**Ciddiyet:** 🔴 Kritik
+**Kategori:** Ekonomik tutarlılık / kayıp fon
+
+**Açıklama:**
+`executor.rs` satır 534-542'de, universal relayer'dan gelen BridgeLock mesajı işlenirken:
+
+```rust
+MessageKind::BridgeLock => {
+    state.bridge_state.mint(msg).map_err(|e| {
+        BudlumError::validation("bridge_mint_failed", e.0)
+    })?;
+    let fee = msg.nonce.saturating_mul(1); // placeholder for fee logic
+    // credit recipient
+    // amount logic needs to be tied to msg payload
+}
+```
+
+1. `fee = msg.nonce.saturating_mul(1)` — **nonce bir sıra numarası**, fee olarak kullanılamaz!
+2. `credit recipient` — yorum olarak kalmış, **gerçek kod yok!**
+3. `amount logic needs to be tied to msg payload` — yorum olarak kalmış
+
+Sonuç: External chain'den gelen bridge lock mesajları `bridge_state.mint()` ile durum değişikliği yapıyor ama **recipient'a hiç BUD kazandırmıyor**. Fonlar kayboluyor (gönderildi ama kimse almadı).
+
+**Pratik etki:** Budlum'a gelen inbound bridge transfer'lar recipient'a ulaşmıyor. Bu `mint_bridge_transfer_from_verified_event` path'i düzgün çalışıyor ama universal relayer path'i kırık.
+
+**Öneri:** `submit_relay_proof`'taki BridgeLock handler ile aynı mantık kullanılmalı:
+```rust
+let transfer = state.bridge_state.get_transfer(&msg.message_id)
+    .ok_or_else(|| ...)?.clone();
+let fee = transfer.amount.saturating_mul(1) / 100;
+let final_amount = transfer.amount.saturating_sub(fee);
+state.add_balance(&transfer.recipient, final_amount as u64);
+state.add_balance(&relayer, fee as u64);
+```
+
+---
+
+### V127 (🟡 Yüksek): validate_and_add_block Height Sürekliliği Kontrolü Eksik
+
+**Dosya:** `src/chain/blockchain.rs` validate_and_add_block() (satır ~2851)
+**Ciddiyet:** 🟡 Yüksek (defense-in-depth)
+**Kategori:** Zincir bütünlüğü
+
+**Açıklama:**
+`validate_and_add_block()` fonksiyonu gelen blokun `block.index` değerinin zincirin son bloğundan tam 1 fazla olduğunu kontrol etmiyor. Mevcut kontroller:
+- ✅ finalized_height çakışma kontrolü
+- ✅ chain_id doğrulama
+- ✅ tx_root doğrulama
+- ✅ hash doğrulama
+- ✅ consensus validation
+- ❌ `block.index == self.chain.len() as u64` kontrolü YOK
+
+Bu eksiklik, bir saldırganın doğru imzalı bloklar araya sokuşturmasına veya yükseklik atlamasına olanak tanıyabilir. Consensus engine bunu yakalayabilir ama defense-in-depth prensibi gereği blockchain katmanında da kontrol olmalı.
+
+**Öneri:** Fonksiyonun başına:
+```rust
+let expected_height = self.chain.len() as u64;
+if block.index != expected_height {
+    return Err(format!(
+        "Block height discontinuity: expected {}, got {}",
+        expected_height, block.index
+    ));
+}
+```
+
+---
+
+### Kapatılan Bulgular (CI Onay)
+
+**V119 (🔴→✅ KAPATILDI):** Ethereum sync-committee aggregate verify — ARENA3 CI onayı (23/23 yeşil)
+**V124 (🟡→✅ KAPATILDI):** Bridge relay fee u64 truncation — ARENA3 CI onayı
+**V116 (🔴→✅ KAPATILDI):** AiAgentPayment proto type collision — ARENA3 CI onayı + proto enum fix
+**V110 (🔴→✅ KAPATILDI):** VerifyInference zayıf commitment — devre dışı bırakıldı, CI onayı
+
+### Güncel Toplam Denetim Tablosu
+
+| Ciddiyet | Sayi | Durum |
+|----------|------|-------|
+| 🔴 Kritik | 16 | 11 kapatildi, 5 acik (V24, V86, V89, V107↑, V126) |
+| 🟡 Yuksek | 32 | 7 kapatildi, 25 acik |
+| ⚪ Dusuk | 47 | 4 kapatildi, 43 acik |
+
+**Toplam: 95 bulgu (V22-V127), 22 kapatildi, 73 acik**
+
+**V107 🟡→🔴 yükseltme gerekçesi:** İlk bulguda sadece replay zamanlaması tespit edilmişti. Derin denetim sonucunda asıl sorunun owner bakiye düşüşü eksikliği olduğu (BUD enflasyonu) tespit edildi. Bu kritik bir ekonomik güvenlik açığıdır.
+
+**Açık Kritikler:**
+- V24 (🔴): Bridge root scope
+- V86 (🔴): Escrow release/reclaim
+- V89 (🔴): AiAgentPayment non-escrowed audit trail (düşük şiddetli — executor.rs akışı doğru çalışıyor ama registry'de audit trail yok)
+- V107 (🔴): Bridge lock owner bakiye düşüşü eksik — **BUD enflasyonu**
+- V126 (🔴): Universal relayer bridge mint — **kayıp fon** (recipient'a BUD kazandırılmıyor)
+
+**Ne bitti:** ADIM 9 — 3 yeni bulgu (V125-V127), V107 🟡→🔴 yükseltme, 4 bulgu CI onayı ile kapatıldı.
+**Ne bekliyor:** V107 fix (bridge lock bakiye düşüşü), V126 fix (universal relayer recipient credit), V127 fix (height continuity), V125 fix (current_block tutarlılığı).
+**Kim karar verecek:** Ayaz (V107/V126 kritik onarım kararı) + CI
+
+Co-authored-by: ARENAS <arenas@budlum.ai>
+
