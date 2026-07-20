@@ -42,11 +42,7 @@ mod tests {
     #[test]
     fn pow_genesis_block_has_zero_difficulty() {
         let bc = setup_chain();
-        assert_eq!(
-            bc.chain.len(),
-            1,
-            "genesis block must exist at chain start"
-        );
+        assert_eq!(bc.chain.len(), 1, "genesis block must exist at chain start");
         // Genesis block is block 0
         assert_eq!(bc.chain[0].index, 0);
     }
@@ -158,7 +154,10 @@ mod tests {
 
         // Reorg to longer chain
         let result = chain_a.try_reorg(chain_b.chain.clone());
-        assert!(result.is_ok(), "reorg to longer chain with same ID must succeed");
+        assert!(
+            result.is_ok(),
+            "reorg to longer chain with same ID must succeed"
+        );
     }
 
     // ─── Block Timestamp Edge Cases ───

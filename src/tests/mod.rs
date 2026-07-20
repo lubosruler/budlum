@@ -108,9 +108,9 @@ pub mod bridge_negatives;
 // sessiz-rollback); ürün düzeltmesi emirle geldiğinde ters çevrilir.
 #[cfg(test)]
 pub mod snapshot_chaos;
+pub mod domain_edge_cases;
 // P5 regresyon kilidi (ARENA2, 2026-07-19): ZK finality fail-open +
 // relayer escrow silent-failure CI kırıcı güvenlik mühürleri.
 #[cfg(test)]
 pub mod regression_lock;
 pub mod slashing_matrix;
-pub mod domain_edge_cases;
