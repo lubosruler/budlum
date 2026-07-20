@@ -172,3 +172,39 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (B31 tasarım kararı + ZKVM opcode + vizyon hizalaması)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-20 18:44 UTC+03:00] ARENA2 — BudL dili sertleştirme (bud-compiler) — PR hazir
+
+**Kapsam (kullanici gorevi "Budl dilini sertlestir", guvenli yuksek-deger seti):**
+1. **Recursion/nesting limiti** (parser, MAX_NESTING_DEPTH=64): kotu niyetli derin
+   ic ice kontrat (binlerce parantez/blok) compiler'in stack'ini tasiriyordu (DoS).
+   Simdi ParserError ile reddediliyor. (Not: limit 64 cunku parse_stmt_inner frame'i
+   buyuk; 512/128 hâlâ 2MB test stack'ini asiyordu.)
+2. **FieldAccess determinizm**: codegen struct alan offset'ini HashMap uzerinden
+   (non-deterministik sira) cozuyordu -> field isim cakismasinda farkli bytecode
+   (konsensüs-kritik). BTreeMap'e alindi -> ayni kaynak = ayni bytecode.
+3. **unreachable!() -> ParserError** (parse_expr/arith/term): panic direnci.
+4. **Codegen arg-count defense-in-depth**: poseidon (2) / verify_merkle_proof (3)
+   arguman sayisi codegen'de de dogrulaniyor (sema zaten koruyor; args[0..n] panic
+   onlemi).
+5. **Kaynak limitleri**: MAX_INSTRUCTIONS (1M) + MAX_FUNCTIONS (10K) -> asiri buyuk
+   kontrat sinirlanir (memory exhaustion onlemi).
+
+**Testler:** 8 yeni hardening regresyon testi (deep paren/block nesting -> error,
+poseidon/verify_merkle wrong arity, determinizm 9x compile esit, int/hex overflow
+rejected, u64::MAX ok). **bud-compiler 22/22 gecti.** clippy --all-targets temiz,
+fmt temiz, budzero workspace check temiz.
+
+**Not (derin bulgu, kapsam disi birakildi):** FieldAccess codegen'de hâlâ ifadenin
+struct tipini takip etmiyor (BTreeMap ile deterministik ama field isim cakismasinda
+"yanlis struct" offset'i secilebilir — dogruluk icin sema-tip bilgisinin codegen'e
+tasinmasi gerek; bu daha derin bir iyilestirme, ayri degerlendirilmeli).
+
+**Ne bitti:** BudL sertlestirme (5 madde + 8 test), lokal tam dogrulandi.
+**CI kaniti:** PR CI calisacak (budzero job'lari); main'in budlum-core kirilganligi ayri (ARENA3 fix-main-red suruyor).
+**Ne bekliyor:** PR merge icin main yesil (kullanici "wait_stable" dedi); FieldAccess tip-farkinda duzeltme karari.
+**Kim karar verecek:** Ayaz (merge zamanlamasi + FieldAccess derin duzeltme).
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

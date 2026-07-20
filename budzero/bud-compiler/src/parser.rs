@@ -7,6 +7,22 @@ pub struct Parser<'a> {
     tokens: Vec<Token>,
     pos: usize,
     _source: &'a str,
+    /// Current expression/statement nesting depth (ARENA2 BudL hardening).
+    /// Bounds recursive descent so a maliciously deeply-nested contract
+    /// (e.g. thousands of parentheses or nested blocks) cannot overflow the
+    /// compiler's stack — it is rejected with a ParserError instead.
+    depth: usize,
+}
+
+impl<'a> Parser<'a> {
+    /// Maximum expression/statement nesting depth before the parser rejects
+    /// the input. Each nesting level costs several recursive frames
+    /// (parse_expr -> parse_arith -> parse_term -> parse_postfix ->
+    /// parse_primary for expressions; parse_stmt -> parse_stmt_inner, whose
+    /// frame is large, for statements). The limit is set well below the depth
+    /// that would overflow even a small (2 MB) thread stack, yet far above any
+    /// legitimate contract (real contracts nest single-digit levels).
+    pub const MAX_NESTING_DEPTH: usize = 64;
 }
 
 impl<'a> Parser<'a> {
@@ -35,7 +51,22 @@ impl<'a> Parser<'a> {
             tokens,
             pos: 0,
             _source: source,
+            depth: 0,
         })
+    }
+
+    /// Increment the nesting depth, rejecting input that nests deeper than
+    /// `MAX_NESTING_DEPTH` (stack-overflow DoS guard). Paired with a manual
+    /// `self.depth -= 1` after the recursive body returns.
+    fn enter_depth(&mut self) -> Result<(), CompileError> {
+        if self.depth >= Self::MAX_NESTING_DEPTH {
+            return Err(CompileError::ParserError(format!(
+                "nesting too deep (> {} levels); rejecting to avoid stack overflow",
+                Self::MAX_NESTING_DEPTH
+            )));
+        }
+        self.depth += 1;
+        Ok(())
     }
 
     fn peek(&self) -> &Token {
@@ -234,6 +265,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_stmt(&mut self) -> Result<Stmt, CompileError> {
+        self.enter_depth()?;
+        let result = self.parse_stmt_inner();
+        self.depth -= 1;
+        result
+    }
+
+    fn parse_stmt_inner(&mut self) -> Result<Stmt, CompileError> {
         match self.peek() {
             Token::Let => {
                 self.consume();
@@ -424,6 +462,13 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Result<Expr, CompileError> {
+        self.enter_depth()?;
+        let result = self.parse_expr_inner();
+        self.depth -= 1;
+        result
+    }
+
+    fn parse_expr_inner(&mut self) -> Result<Expr, CompileError> {
         let mut left = self.parse_arith()?;
 
         while matches!(
@@ -437,7 +482,11 @@ impl<'a> Parser<'a> {
                 Token::Gt => BinOp::Gt,
                 Token::Lte => BinOp::Lte,
                 Token::Gte => BinOp::Gte,
-                _ => unreachable!(),
+                _ => {
+                    return Err(CompileError::ParserError(
+                        "unexpected comparison operator".to_string(),
+                    ))
+                }
             };
             let right = self.parse_arith()?;
             left = Expr::Binary(Box::new(left), op, Box::new(right));
@@ -453,7 +502,11 @@ impl<'a> Parser<'a> {
             let op = match self.consume() {
                 Token::Plus => BinOp::Add,
                 Token::Minus => BinOp::Sub,
-                _ => unreachable!(),
+                _ => {
+                    return Err(CompileError::ParserError(
+                        "unexpected additive operator".to_string(),
+                    ))
+                }
             };
             let right = self.parse_term()?;
             left = Expr::Binary(Box::new(left), op, Box::new(right));
@@ -485,7 +538,11 @@ impl<'a> Parser<'a> {
             let op = match self.consume() {
                 Token::Star => BinOp::Mul,
                 Token::Slash => BinOp::Div,
-                _ => unreachable!(),
+                _ => {
+                    return Err(CompileError::ParserError(
+                        "unexpected multiplicative operator".to_string(),
+                    ))
+                }
             };
             let right = self.parse_postfix()?;
             left = Expr::Binary(Box::new(left), op, Box::new(right));

@@ -446,4 +446,130 @@ mod tests {
         let res = compile(source, IsaProfile::Production);
         assert!(res.is_err(), "non-integer, non-wildcard pattern must fail");
     }
+
+    // === ARENA2 BudL HARDENING REGRESSION TESTS (2026-07-20) ================
+
+    /// Deeply nested parentheses must be rejected with a ParserError, NOT
+    /// overflow the compiler's stack (DoS guard via MAX_NESTING_DEPTH).
+    #[test]
+    fn hardening_deep_paren_nesting_rejected_not_panic() {
+        let depth = 5_000; // far above MAX_NESTING_DEPTH (512)
+        let mut source = String::from("contract Deep { pub fn main() { let x = ");
+        for _ in 0..depth {
+            source.push('(');
+        }
+        source.push('1');
+        for _ in 0..depth {
+            source.push(')');
+        }
+        source.push_str("; } }");
+        let res = compile(&source, IsaProfile::Production);
+        assert!(res.is_err(), "deeply nested expr must be rejected");
+        assert!(
+            matches!(res.unwrap_err(), CompileError::ParserError(_)),
+            "expected ParserError for deep nesting"
+        );
+    }
+
+    /// Deeply nested blocks/statements must be rejected, not stack-overflow.
+    #[test]
+    fn hardening_deep_block_nesting_rejected_not_panic() {
+        let depth = 5_000;
+        let mut source = String::from("contract DeepBlock { pub fn main() {");
+        for _ in 0..depth {
+            source.push_str(" if (1) {");
+        }
+        source.push_str(" let x = 1;");
+        for _ in 0..depth {
+            source.push('}');
+        }
+        source.push_str(" } }");
+        let res = compile(&source, IsaProfile::Production);
+        assert!(res.is_err(), "deeply nested blocks must be rejected");
+        assert!(matches!(res.unwrap_err(), CompileError::ParserError(_)));
+    }
+
+    /// `poseidon` with the wrong argument count must fail cleanly (sema
+    /// validates arity; codegen also guards its indexing as defense-in-depth).
+    #[test]
+    fn hardening_poseidon_wrong_arity_rejected() {
+        for call in ["poseidon()", "poseidon(1)", "poseidon(1, 2, 3)"] {
+            let source = format!("contract P {{ pub fn main() {{ let x = {call}; }} }}");
+            let res = compile(&source, IsaProfile::Production);
+            assert!(res.is_err(), "{call} must be rejected");
+        }
+    }
+
+    /// `verify_merkle_proof` with the wrong argument count must fail cleanly.
+    #[test]
+    fn hardening_verify_merkle_wrong_arity_rejected() {
+        for call in [
+            "verify_merkle_proof(0, 0)",
+            "verify_merkle_proof(0, 0, 0, 0)",
+        ] {
+            let source = format!("contract V {{ pub fn main() {{ let x = {call}; }} }}");
+            let res = compile(&source, IsaProfile::Production);
+            assert!(res.is_err(), "{call} must be rejected");
+        }
+    }
+
+    /// Codegen must be deterministic: compiling the same source (with structs
+    /// that share a field name at different offsets) repeatedly must yield
+    /// byte-identical bytecode. Guards the FieldAccess offset resolution
+    /// (BTreeMap, not HashMap) — consensus-critical for a STARK-provable VM.
+    #[test]
+    fn hardening_codegen_deterministic_across_repeated_compiles() {
+        let source = r#"
+            contract Det {
+                struct A { x: u64, y: u64, }
+                struct B { y: u64, x: u64, }
+                pub fn main() {
+                    let a = A { x: 1, y: 2 };
+                    let v = a.x;
+                    emit Result(v);
+                }
+            }
+        "#;
+        let first = compile(source, IsaProfile::Production).expect("first compile");
+        for _ in 0..8 {
+            let again = compile(source, IsaProfile::Production).expect("repeat compile");
+            assert_eq!(
+                first, again,
+                "bytecode must be deterministic across compilations"
+            );
+        }
+    }
+
+    /// An integer literal exceeding u64::MAX must be rejected (LexerError),
+    /// not silently truncated or panic.
+    #[test]
+    fn hardening_int_literal_overflow_rejected() {
+        // 2^64 = 18446744073709551616 > u64::MAX
+        let source = "contract Ov { pub fn main() { let x = 18446744073709551616; } }";
+        let res = compile(source, IsaProfile::Production);
+        assert!(
+            res.is_err(),
+            "u64-overflowing decimal literal must be rejected"
+        );
+    }
+
+    /// A hex literal exceeding u64::MAX must be rejected (ParserError).
+    #[test]
+    fn hardening_hex_literal_overflow_rejected() {
+        // 0x1_0000_0000_0000_0000 = 2^64 > u64::MAX
+        let source = "contract HexOv { pub fn main() { let x = 0x10000000000000000; } }";
+        let res = compile(source, IsaProfile::Production);
+        assert!(res.is_err(), "u64-overflowing hex literal must be rejected");
+    }
+
+    /// Sanity: a literal at exactly u64::MAX still compiles and runs.
+    #[test]
+    fn hardening_u64_max_literal_ok() {
+        let source =
+            "contract MaxOk { pub fn main() { let x = 18446744073709551615; emit Result(x); } }";
+        let bytecode = compile(source, IsaProfile::Production).expect("u64::MAX literal compiles");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("runs");
+        assert_eq!(vm.events, vec![u64::MAX]);
+    }
 }

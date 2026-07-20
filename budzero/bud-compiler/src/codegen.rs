@@ -2,6 +2,13 @@ use crate::ast::*;
 use crate::CompileError;
 use bud_isa::{Instruction, IsaProfile, Opcode};
 
+/// ARENA2 BudL hardening: upper bound on emitted instructions, so a
+/// pathological contract cannot exhaust compiler/VM memory. 1M instructions
+/// (~8 MB encoded) is far beyond any realistic contract.
+const MAX_INSTRUCTIONS: usize = 1_000_000;
+/// Maximum number of functions per contract.
+const MAX_FUNCTIONS: usize = 10_000;
+
 #[allow(dead_code)]
 pub struct Codegen {
     instructions: Vec<u64>,
@@ -9,7 +16,7 @@ pub struct Codegen {
     profile: IsaProfile,
     error: Option<CompileError>,
     unpatched_calls: Vec<(usize, String)>,
-    struct_layouts: std::collections::HashMap<String, Vec<String>>,
+    struct_layouts: std::collections::BTreeMap<String, Vec<String>>,
 }
 
 impl Default for Codegen {
@@ -26,7 +33,10 @@ impl Codegen {
             profile: IsaProfile::Production,
             error: None,
             unpatched_calls: Vec::new(),
-            struct_layouts: std::collections::HashMap::new(),
+            // ARENA2 BudL hardening: BTreeMap (not HashMap) so FieldAccess
+            // offset resolution iterates structs in a deterministic order
+            // (consensus-critical: identical source -> identical bytecode).
+            struct_layouts: std::collections::BTreeMap::new(),
         }
     }
 
@@ -37,11 +47,22 @@ impl Codegen {
             profile,
             error: None,
             unpatched_calls: Vec::new(),
-            struct_layouts: std::collections::HashMap::new(),
+            // ARENA2 BudL hardening: deterministic iteration (see new()).
+            struct_layouts: std::collections::BTreeMap::new(),
         }
     }
 
     pub fn generate(&mut self, contract: &Contract) -> Result<Vec<u64>, CompileError> {
+        // ARENA2 BudL hardening: reject contracts with an excessive number of
+        // functions before doing any work.
+        if contract.functions.len() > MAX_FUNCTIONS {
+            return Err(CompileError::CodegenError(format!(
+                "too many functions ({} > {})",
+                contract.functions.len(),
+                MAX_FUNCTIONS
+            )));
+        }
+
         // Populate struct layouts
         for s in &contract.structs {
             let mut fields = Vec::new();
@@ -645,6 +666,18 @@ impl Codegen {
             }
             Expr::Call(name, args) => {
                 if name == "poseidon" {
+                    // ARENA2 BudL hardening: defense-in-depth arg count (sema
+                    // already validates this; guard against direct codegen use
+                    // which would otherwise index args[0]/args[1] and panic).
+                    if args.len() != 2 {
+                        if self.error.is_none() {
+                            self.error = Some(CompileError::CodegenError(format!(
+                                "poseidon expects exactly 2 arguments, got {}",
+                                args.len()
+                            )));
+                        }
+                        return 0;
+                    }
                     let saved1 = self.next_reg;
                     let r1 = self.generate_expr(&args[0], scope, storage);
                     let saved2 = self.next_reg;
@@ -674,6 +707,17 @@ impl Codegen {
                     self.emit(Opcode::Syscall, res, 0, 0, 2);
                     res
                 } else if name == "verify_merkle_proof" {
+                    // ARENA2 BudL hardening: defense-in-depth arg count (guards
+                    // args[0..3] indexing below against panic).
+                    if args.len() != 3 {
+                        if self.error.is_none() {
+                            self.error = Some(CompileError::CodegenError(format!(
+                                "verify_merkle_proof expects exactly 3 arguments, got {}",
+                                args.len()
+                            )));
+                        }
+                        return 0;
+                    }
                     let r_root = self.generate_expr(&args[0], scope, storage);
                     let r_leaf = self.generate_expr(&args[1], scope, storage);
 
@@ -753,6 +797,17 @@ impl Codegen {
     }
 
     fn emit(&mut self, opcode: Opcode, rd: u8, rs1: u8, rs2: u8, imm: i32) {
+        // ARENA2 BudL hardening: bound emitted bytecode size (resource limit).
+        if self.instructions.len() >= MAX_INSTRUCTIONS {
+            if self.error.is_none() {
+                self.error = Some(CompileError::CodegenError(format!(
+                    "bytecode too large (> {} instructions)",
+                    MAX_INSTRUCTIONS
+                )));
+            }
+            return;
+        }
+
         if opcode.is_experimental() {
             #[cfg(not(feature = "experimental"))]
             {
