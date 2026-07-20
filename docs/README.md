@@ -10,6 +10,9 @@ Choose a language:
 
 Current production-readiness status:
 
+- **[Budlum Full Hardening Protocol](BUDLUM_HARDENING_PROTOCOL.md)** — kanonik sertleştirme rejimi (H0–H9 kapıları, V-bulgu imhası, fuzz/HSM/ağ/ops, "tam sertleştirilmiş" mühür)
+
+
 - [Turkce production hardening durumu](tr/book/ch12_production_hardening.md)
 - [English production hardening status](en/book/ch12_production_hardening.md)
 

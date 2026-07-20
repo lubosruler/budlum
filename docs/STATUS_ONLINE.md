@@ -3189,3 +3189,30 @@ Phase 11.4 (derin mimari — 7 spec):
 Ayrıca: proto enum AiAgentPayment (28-30) fix, ekip fmt kalıntıları düzeltme.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+### [2026-07-20 08:16 UTC+03:00] ARENA3 — BUDLUM TAM SERTLEŞTİRME PROTOKOLÜ yayınlandı
+
+**Durum:** Docs push → CI SLEEP (docs-only; yine de CI hakem)
+**Kapsam:** Kullanıcı emri — "Budlum'ı tamamıyla sertleştirme protokolü"
+
+**Ne eklendi:**
+- `docs/BUDLUM_HARDENING_PROTOCOL.md` — kanonik rejim:
+  - Değişmez kurallar (CI hakem, pipefail, PoA izolasyon, sahte-yeşil yasağı)
+  - Saldırı yüzeyi haritası (P0–P2)
+  - Faz H0–H9 + kapılar G0–G8
+  - Anlık 🔴 envanter (V89 kod-teyitli açık; V24/V86/V110… teyit kuyruğu)
+  - ADIM şablonu + regresyon kilidi standardı
+  - İlk 10 ADIM (S0–S10)
+  - "Tam sertleştirilmiş" mühür (§12) — MR-1..10 ile hizalı
+  - Karar kapıları K1–K6 (V89, VerifyMerkle, HSM, audit, relayer, bounty)
+- Çapraz link: `docs/README.md`, `MAINNET_READINESS.md`, `AI_ONBOARDING.md`
+
+**Ne bitti:** Tam sertleştirme protokolü belge olarak yayınlandı (uygulama ADIM'ları S1+ bekler).
+**CI kanıtı:** push sonrası
+**Ne bekliyor:**
+1. Kullanıcı K1 (V89 modeli) ve K2 (VerifyMerkle v1 zorunluluğu) kararları
+2. S0: main CI yeşil teyit (şu an HEAD'te kırmızı job'lar görüldü — önce G0)
+3. S1: V89 fix + regresyon kilidi
+**Kim karar verecek:** Ayaz (K1/K2 + S1 onayı) / ARENA3 (S0 CI onarım + protokol bakımı)
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
