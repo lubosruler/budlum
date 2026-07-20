@@ -126,6 +126,7 @@ pub trait BudlumApi {
         expected_block_hash: Option<crate::domain::Hash32>,
         event: crate::cross_domain::DomainEvent,
         proof: crate::cross_domain::MerkleProof,
+        relayer: crate::core::address::Address,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     #[method(name = "bud_burnBridgeTransfer")]

@@ -13,9 +13,16 @@ use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::error::Error;
 use std::hash::{Hash, Hasher};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::{Duration, Instant};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
+
+/// V117 fix (ARENAS): Maximum seconds a sync cycle may remain in
+/// "syncing" state (sync_state == 1) before it is considered orphaned
+/// and automatically reset. Prevents nodes from reporting stale
+/// "syncing" status indefinitely when a peer disconnects mid-sync or
+/// when gossipsub publish fails without a corresponding reset.
+const SYNC_TIMEOUT_SECS: u64 = 60;
 
 /// Phase 0.04 SECURITY FIX (Güvenlik Denetimi Madde 2):
 /// SnapshotChunk mesajının `total` alanı için üst sınır. Saldırgan
@@ -68,6 +75,9 @@ pub struct NodeClient {
     pub peer_id: PeerId,
     pub peer_count: Arc<AtomicUsize>,
     sync_state: Arc<AtomicUsize>,
+    /// V117 fix (ARENAS): Timestamp (UNIX epoch secs) when sync_state was set to 1.
+    /// Used to detect orphaned sync states and auto-reset after SYNC_TIMEOUT_SECS.
+    sync_started_at: Arc<AtomicU64>,
 }
 impl NodeClient {
     pub async fn subscribe(&self, topic: String) {
@@ -226,6 +236,8 @@ pub struct Node {
     pub dns_seeds: Vec<String>,
     pub peer_count: Arc<AtomicUsize>,
     pub sync_state: Arc<AtomicUsize>,
+    /// V117 fix (ARENAS): Timestamp when sync_state was set to 1.
+    pub sync_started_at: Arc<AtomicU64>,
     #[allow(clippy::type_complexity)]
     pub in_progress_snapshots: HashMap<u64, (u64, Instant, Vec<Option<Vec<u8>>>)>,
     pub max_peers: usize,
@@ -265,10 +277,14 @@ impl Node {
             "Node ID: {} (mDNS: {}, Mobile: {})",
             peer_id, mdns_enabled, mobile_mode
         );
+        // V114 fix (ARENAS): Replace DefaultHasher (64-bit, collision-prone) with
+        // SHA-256 for gossipsub MessageId. The previous implementation used
+        // `DefaultHasher::finish()` which returns u64 — birthday attack gives
+        // collision probability at ~2^32 messages. SHA-256 eliminates this.
         let message_id_fn = |message: &gossipsub::Message| {
-            let mut s = DefaultHasher::new();
-            message.data.hash(&mut s);
-            gossipsub::MessageId::from(s.finish().to_string())
+            use sha2::{Digest, Sha256};
+            let hash = Sha256::digest(&message.data);
+            gossipsub::MessageId::from(hex::encode(hash))
         };
 
         // ADIM 5 §5.2: Lightweight Gossipsub for mobile
@@ -352,6 +368,7 @@ impl Node {
         let peer_manager = Arc::new(Mutex::new(PeerManager::new()));
         let peer_count = Arc::new(AtomicUsize::new(0));
         let sync_state = Arc::new(AtomicUsize::new(0));
+        let sync_started_at = Arc::new(AtomicU64::new(0));
         Ok(Node {
             swarm,
             peer_id,
@@ -363,6 +380,7 @@ impl Node {
             dns_seeds: Vec::new(),
             peer_count,
             sync_state,
+            sync_started_at,
             in_progress_snapshots: HashMap::new(),
             max_peers: if mobile_mode { 10 } else { MAX_PEERS },
             validator_address: None,
@@ -449,6 +467,7 @@ impl Node {
             peer_id: self.peer_id,
             peer_count: self.peer_count.clone(),
             sync_state: self.sync_state.clone(),
+            sync_started_at: self.sync_started_at.clone(),
         }
     }
     pub fn listen(&mut self, port: u16) -> Result<(), Box<dyn Error>> {
@@ -609,6 +628,30 @@ impl Node {
 
                     let mut pm = self.peer_manager.lock().unwrap_or_else(|e| { tracing::error!("PeerManager lock poisoned: {}", e); std::process::exit(1); });
                     pm.cleanup_expired_bans();
+
+                    // V117 fix (ARENAS): Auto-reset orphaned sync_state.
+                    // If sync_state has been 1 for longer than SYNC_TIMEOUT_SECS,
+                    // the sync cycle is considered stuck (e.g., peer disconnected
+                    // mid-sync) and we reset it to 0 so the node reports correct
+                    // status and can initiate a new sync.
+                    if self.sync_state.load(Ordering::SeqCst) == 1 {
+                        let started = self.sync_started_at.load(Ordering::SeqCst);
+                        if started > 0 {
+                            let now = SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .unwrap_or_default()
+                                .as_secs();
+                            if now.saturating_sub(started) > SYNC_TIMEOUT_SECS {
+                                warn!(
+                                    "Sync state stuck for {}s (timeout={}s), resetting to 0",
+                                    now.saturating_sub(started),
+                                    SYNC_TIMEOUT_SECS,
+                                );
+                                self.sync_state.store(0, Ordering::SeqCst);
+                                self.sync_started_at.store(0, Ordering::SeqCst);
+                            }
+                        }
+                    }
                 }
                 _ = discovery_interval.tick() => {
                     info!("Running periodic peer discovery...");
@@ -861,9 +904,14 @@ impl Node {
                                         limit: 2000,
                                     };
                                     self.sync_state.store(1, Ordering::SeqCst);
+                                    self.sync_started_at.store(
+                                        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                        Ordering::SeqCst,
+                                    );
                                     if let Err(e) = self.swarm.behaviour_mut().gossipsub.publish(topic, msg.to_bytes()) {
                                         warn!("Failed to request headers: {}", e);
                                         self.sync_state.store(0, Ordering::SeqCst);
+                                        self.sync_started_at.store(0, Ordering::SeqCst);
                                     }
                                 }
                             }
@@ -989,6 +1037,10 @@ impl Node {
                                                     let req = NetworkMessage::GetHeaders { locator, limit: 500 };
                                                     let topic = gossipsub::IdentTopic::new("blocks");
                                                     self.sync_state.store(1, Ordering::SeqCst);
+                                                    self.sync_started_at.store(
+                                                        SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                                        Ordering::SeqCst,
+                                                    );
                                                     let _ = self.swarm.behaviour_mut().gossipsub.publish(topic, req.to_bytes());
                                                 }
                                             }
@@ -998,6 +1050,10 @@ impl Node {
                                             let req = NetworkMessage::GetHeaders { locator, limit: 500 };
                                             let topic = gossipsub::IdentTopic::new("blocks");
                                             self.sync_state.store(1, Ordering::SeqCst);
+                                            self.sync_started_at.store(
+                                                SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                                Ordering::SeqCst,
+                                            );
                                             let _ = self.swarm.behaviour_mut().gossipsub.publish(topic, req.to_bytes());
                                         }
                                     }
@@ -1163,6 +1219,10 @@ impl Node {
                                             let req = NetworkMessage::GetHeaders { locator, limit: 500 };
                                             let topic = gossipsub::IdentTopic::new("blocks");
                                             self.sync_state.store(1, Ordering::SeqCst);
+                                            self.sync_started_at.store(
+                                                SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                                Ordering::SeqCst,
+                                            );
                                             let _ = self.swarm.behaviour_mut().gossipsub.publish(topic, req.to_bytes());
                                         }
                                     }
@@ -1397,9 +1457,14 @@ impl Node {
                                             let req = NetworkMessage::GetHeaders { locator, limit: 500 };
                                             let topic = gossipsub::IdentTopic::new("blocks");
                                             self.sync_state.store(1, Ordering::SeqCst);
+                                            self.sync_started_at.store(
+                                                SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                                Ordering::SeqCst,
+                                            );
                                             if let Err(e) = self.swarm.behaviour_mut().gossipsub.publish(topic, req.to_bytes()) {
                                                 warn!("Failed to request headers after handshake: {}", e);
                                                 self.sync_state.store(0, Ordering::SeqCst);
+                                                self.sync_started_at.store(0, Ordering::SeqCst);
                                             }
                                         }
 
@@ -1443,9 +1508,14 @@ impl Node {
                                             let req = NetworkMessage::GetHeaders { locator, limit: 500 };
                                             let topic = gossipsub::IdentTopic::new("blocks");
                                             self.sync_state.store(1, Ordering::SeqCst);
+                                            self.sync_started_at.store(
+                                                SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                                Ordering::SeqCst,
+                                            );
                                             if let Err(e) = self.swarm.behaviour_mut().gossipsub.publish(topic, req.to_bytes()) {
                                                 warn!("Failed to request headers after handshake ack: {}", e);
                                                 self.sync_state.store(0, Ordering::SeqCst);
+                                                self.sync_started_at.store(0, Ordering::SeqCst);
                                             }
                                         }
                                     }
@@ -1830,6 +1900,10 @@ impl Node {
                                                                 let to = last.index;
                                                                 let req = NetworkMessage::GetBlocksRange { from, to };
                                                                 self.sync_state.store(1, Ordering::SeqCst);
+                                                                self.sync_started_at.store(
+                                                                    SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs(),
+                                                                    Ordering::SeqCst,
+                                                                );
                                                                 let _ = self.swarm.behaviour_mut().sync.send_request(&peer, req.to_bytes());
                                                             }
                                                         }
@@ -1870,6 +1944,7 @@ impl Node {
                                                             }
                                                         }
                                                         self.sync_state.store(0, Ordering::SeqCst);
+                                                        self.sync_started_at.store(0, Ordering::SeqCst);
                                                         if let Ok(mut pm) = self.peer_manager.lock() {
                                                             pm.report_good_behavior(&peer);
                                                         }

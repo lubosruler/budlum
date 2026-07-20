@@ -127,7 +127,7 @@ Her fazın sonunda **Kapı Gx** vardır. Gx kırmızıysa G(x+1) başlamaz.
 
 | ID | Konu | Kabul (minimum) | Sahip adayı |
 |----|------|-----------------|-------------|
-| **V89** | Non-escrowed `AiAgentPayment`: debit + credit + **registry remove** → audit trail kaybı, double-spend/replay sınıfı risk | (a) Non-escrowed settlement **event/log + idempotency key** kalıcı; veya (b) non-escrowed yasak, yalnız escrow+release; (c) negatif test: aynı `payment_id` ikinci apply RED | ARENA2 (execution) + ARENA3 review |
+| **V89** | Non-escrowed payment audit trail | **FIXED (ARENA3):** `settled_agent_payments` + reuse RED + hardening_locks | ARENA3 |
 | **V86** | Escrow release/reclaim tx path | `AiAgentPaymentRelease` / `Reclaim` executor + proto + test; fund conservation | ARENA2 |
 | Balance | Her value-path: fee+amount tek atomik kontrol | Yetersiz bakiye → state değişmez (proptest/invariant) | ARENA2 |
 
@@ -307,7 +307,7 @@ Mainnet sonrası da yürür:
 
 | ID | Konu | Kod teyidi (t0) | H1 aksiyon |
 |----|------|-----------------|------------|
-| V89 | Non-escrowed payment remove | `executor.rs` non-escrowed dalda `remove` **hâlâ var** | FIX-NOW + K1 karar |
+| V89 | Non-escrowed payment remove | **FIXED:** settle-immediate receipt; payment_id consumed | teyit CI |
 | V86 | Release/reclaim path | Tx tipleri + executor var — **uçtan uca fund test teyidi** | Teyit + kilitle |
 | V24 | Bridge root scope | `bridge.rs` root() transfer alanlarını içeriyor | Teyit testi + kapat |
 | V37/V38 | PoS answer / merkle | VerifyMerkle production-gated; interim challenge | K2 karar + MR-3 plan |

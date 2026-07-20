@@ -731,7 +731,7 @@ impl AccountState {
             if proposal.status == crate::core::governance::ProposalStatus::Active
                 && current_epoch >= proposal.end_epoch
             {
-                proposal.finalize(total_stake, quorum_pct);
+                proposal.finalize(total_stake, quorum_pct, current_epoch);
                 if proposal.status == crate::core::governance::ProposalStatus::Passed {
                     to_execute.push(proposal.clone());
                 }
@@ -964,14 +964,26 @@ impl AccountState {
 
     /// Burn `amount` from `address`: reduce its balance and credit it NOWHERE,
     /// so total supply strictly decreases. Returns the amount actually burned
-    /// (capped at the available balance). This is the single canonical burn used
-    /// by both the timed reserve burn and the metabolic (tx-fee) burn.
+    /// (capped at the available balance). V132: If balance < amount, the
+    /// difference is silently clipped and a warning is logged. Callers that
+    /// require exact-burn semantics should check `get_balance()` first.
     pub fn burn_from(&mut self, address: &Address, amount: u64) -> u64 {
         if amount == 0 {
             return 0;
         }
         let account = self.get_or_create(address);
         let burned = amount.min(account.balance);
+        // V132 fix (ARENAS): Warn when burn is clipped — indicates a potential
+        // accounting error upstream (caller expected to burn more than available).
+        if burned < amount {
+            tracing::warn!(
+                "burn_from: requested {} but only {} available at {:?} (clipped by {})",
+                amount,
+                burned,
+                address,
+                amount - burned,
+            );
+        }
         account.balance -= burned;
         self.dirty_accounts.insert(*address);
         burned

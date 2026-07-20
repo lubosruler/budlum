@@ -83,7 +83,18 @@ impl Proposal {
         Ok(())
     }
 
-    pub fn finalize(&mut self, total_stake: u64, quorum_pct: u64) {
+    /// V130 fix (ARENAS): Finalize proposal — now requires current_epoch >= end_epoch.
+    /// Previously, finalize() could be called at any time, allowing early-finalize
+    /// attacks where a proposal with sufficient votes could be forced through
+    /// before the voting period ended.
+    pub fn finalize(&mut self, total_stake: u64, quorum_pct: u64, current_epoch: u64) {
+        if self.status != ProposalStatus::Active {
+            return;
+        }
+        // V130: Voting period must have elapsed before finalization
+        if current_epoch < self.end_epoch {
+            return;
+        }
         // V70: Use u128 to prevent overflow in the quorum calculation
         let total_votes = (self.votes_for as u128) + (self.votes_against as u128);
         let quorum_threshold = (total_stake as u128) * (quorum_pct as u128);

@@ -112,5 +112,7 @@ pub mod snapshot_chaos;
 // P5 regresyon kilidi (ARENA2, 2026-07-19): ZK finality fail-open +
 // relayer escrow silent-failure CI kırıcı güvenlik mühürleri.
 #[cfg(test)]
+pub mod hardening_locks;
+#[cfg(test)]
 pub mod regression_lock;
 pub mod slashing_matrix;

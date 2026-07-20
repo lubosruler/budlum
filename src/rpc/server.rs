@@ -987,6 +987,7 @@ impl BudlumApiServer for RpcServer {
         expected_block_hash: Option<crate::domain::Hash32>,
         event: crate::cross_domain::DomainEvent,
         proof: crate::cross_domain::MerkleProof,
+        relayer: crate::core::address::Address,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
         self.chain
             .mint_bridge_transfer_from_verified_event(
@@ -996,7 +997,7 @@ impl BudlumApiServer for RpcServer {
                 expected_block_hash,
                 event,
                 proof,
-                Address::zero(),
+                relayer,
             )
             .await
             .map_err(|e| {

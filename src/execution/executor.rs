@@ -213,10 +213,10 @@ impl Executor {
                         let mut model_id = [0u8; 32];
                         model_id[0..8].copy_from_slice(&receipt.events[1].to_le_bytes());
                         let max_fee = receipt.events[2];
-                        let deadline_block = state
-                            .epoch_index
-                            .saturating_mul(100)
-                            .saturating_add(receipt.events[3]);
+                        // V125 fix (ARENAS): Use current_block_height instead of
+                        // epoch_index * 100 approximation for consistency.
+                        let deadline_block =
+                            state.current_block_height.saturating_add(receipt.events[3]);
                         let mut req = crate::ai::types::AiInferenceRequest {
                             request_id: crate::ai::types::AiRequestId::default(),
                             requester: tx.from,
@@ -536,20 +536,84 @@ impl Executor {
                                 state.bridge_state.mint(msg).map_err(|e| {
                                     BudlumError::validation("bridge_mint_failed", e.0)
                                 })?;
-                                let fee = msg.nonce.saturating_mul(1); // placeholder for fee logic
-                                                                       // credit recipient
-                                                                       // amount logic needs to be tied to msg payload
+                                // V126 fix (ARENAS): Previously a placeholder (nonce-based fee,
+                                // no recipient credit). Now uses the same logic as
+                                // submit_relay_proof: fetch the transfer, deduct 1% relayer
+                                // fee, credit recipient.
+                                let transfer = state
+                                    .bridge_state
+                                    .get_transfer(&msg.message_id)
+                                    .ok_or_else(|| {
+                                        BudlumError::validation(
+                                            "bridge_mint_failed",
+                                            "Failed to retrieve transfer after mint",
+                                        )
+                                    })?
+                                    .clone();
+                                let fee = transfer.amount.saturating_mul(1) / 100;
+                                let final_amount = transfer.amount.saturating_sub(fee);
+                                if final_amount > u64::MAX as u128 {
+                                    return Err(BudlumError::validation(
+                                        "bridge_mint_failed",
+                                        "Bridge amount exceeds maximum representable balance",
+                                    ));
+                                }
+                                if fee > u64::MAX as u128 {
+                                    return Err(BudlumError::validation(
+                                        "bridge_mint_failed",
+                                        "Bridge fee exceeds maximum representable balance",
+                                    ));
+                                }
+                                state.add_balance(&transfer.recipient, final_amount as u64);
+                                // V134 fix (ARENAS): Credit relayer fee to tx.from (the
+                                // relayer who submitted the proof). Previously the fee was
+                                // silently dropped — BUD lost to the void. The submit_relay_proof
+                                // path correctly credits the relayer; this path should too.
+                                if fee > 0 {
+                                    state.add_balance(&tx.from, fee as u64);
+                                }
                             }
                             crate::cross_domain::message::MessageKind::BridgeBurn => {
                                 // Inbound burn (from target back to source) -> Unlock on Budlum
-                                // Correlation ID usually links it.
-                                if let Some(correlation_id) = msg.correlation_id {
-                                    state
-                                        .bridge_state
-                                        .unlock(correlation_id, msg.source_domain)
-                                        .map_err(|e| {
-                                            BudlumError::validation("bridge_unlock_failed", e.0)
-                                        })?;
+                                // V128 fix (ARENAS): correlation_id is MANDATORY — without it
+                                // we cannot identify which transfer to unlock. Also, owner
+                                // balance must be refunded after unlock (1% relayer fee
+                                // deducted, consistent with submit_relay_proof).
+                                let transfer_id = msg.correlation_id.ok_or_else(|| {
+                                    BudlumError::validation(
+                                        "bridge_unlock_failed",
+                                        "Bridge burn message missing correlation_id",
+                                    )
+                                })?;
+                                let transfer = state
+                                    .bridge_state
+                                    .get_transfer(&transfer_id)
+                                    .ok_or_else(|| {
+                                        BudlumError::validation(
+                                            "bridge_unlock_failed",
+                                            "Unknown bridge transfer for unlock",
+                                        )
+                                    })?
+                                    .clone();
+                                state
+                                    .bridge_state
+                                    .unlock(transfer_id, msg.source_domain)
+                                    .map_err(|e| {
+                                        BudlumError::validation("bridge_unlock_failed", e.0)
+                                    })?;
+                                // Refund owner (1% relayer fee deducted, same as submit_relay_proof)
+                                let fee = transfer.amount.saturating_mul(1) / 100;
+                                let final_amount = transfer.amount.saturating_sub(fee);
+                                if final_amount > u64::MAX as u128 {
+                                    return Err(BudlumError::validation(
+                                        "bridge_unlock_failed",
+                                        "Unlock amount exceeds maximum representable balance",
+                                    ));
+                                }
+                                state.add_balance(&transfer.owner, final_amount as u64);
+                                // V134 fix (ARENAS): Credit relayer fee to tx.from on unlock too.
+                                if fee > 0 {
+                                    state.add_balance(&tx.from, fee as u64);
                                 }
                             }
                             _ => {}
@@ -826,7 +890,13 @@ impl Executor {
                 }
                 // P5 ADIM9 Bulgu 26: Burn seized verifier stake (or send to treasury).
                 // For now, burned — prevents economic incentive to slash falsely.
-                let _ = seized_stake; // Burned
+                // V129 fix (ARENAS): Burn seized stake via burn_from() to maintain
+                // supply consistency. Previously `let _ = seized_stake;` silently
+                // dropped the value without reducing total supply — tokenomics
+                // budget equation (is_balanced) would be violated.
+                if seized_stake > 0 {
+                    state.burn_from(&slashed_verifier, seized_stake);
+                }
                 let sender = state.get_or_create(&tx.from);
                 sender.balance = sender.balance.saturating_sub(tx.fee);
                 sender.nonce = sender.nonce.saturating_add(1);
@@ -834,6 +904,13 @@ impl Executor {
             TransactionType::AiAgentPayment(payment) => {
                 // P5 ADIM11 Bulgu 31: Agent-to-Agent payment in Agentic Economy.
                 let current_block = state.current_block_height;
+                // V84: from_agent must match tx signer (no spoofed payer).
+                if payment.from_agent != tx.from {
+                    return Err(BudlumError::validation(
+                        "ai_payment_from_spoof",
+                        "Agent payment: from_agent must equal tx.from",
+                    ));
+                }
                 let total_cost = payment.amount.saturating_add(tx.fee);
                 // Check sender has sufficient balance
                 if state.get_balance(&tx.from) < total_cost {
@@ -851,12 +928,15 @@ impl Executor {
                 let sender = state.get_or_create(&tx.from);
                 sender.balance = sender.balance.saturating_sub(total_cost);
                 sender.nonce = sender.nonce.saturating_add(1);
-                // If not escrowed, credit recipient immediately
+                // If not escrowed, credit recipient immediately and ARCHIVE
+                // settlement receipt (V89) — never drop payment_id without trail.
                 if !payment.is_escrowed() {
                     let recipient = state.get_or_create(&payment.to_agent);
                     recipient.balance = recipient.balance.saturating_add(payment.amount);
-                    // Remove from registry (already settled)
-                    state.ai_registry.agent_payments.remove(&payment.payment_id);
+                    state
+                        .ai_registry
+                        .settle_agent_payment_immediate(&payment.payment_id, current_block)
+                        .map_err(|e| BudlumError::validation("ai_payment_settle_failed", e))?;
                 }
                 // If escrowed, balance stays deducted but recipient is not
                 // credited until release_agent_payment is called (by executor
@@ -875,7 +955,10 @@ impl Executor {
                         )
                     })?
                     .amount;
-                let current_block = state.epoch_index.saturating_mul(100);
+                // V125 fix (ARENAS): Use actual block height instead of
+                // epoch_index * 100 approximation — these are NOT equivalent
+                // in general and cause expiry timing inconsistencies.
+                let current_block = state.current_block_height;
                 let recipient = state
                     .ai_registry
                     .release_agent_payment(&payment_id, current_block)
@@ -890,7 +973,8 @@ impl Executor {
             }
             TransactionType::AiAgentPaymentReclaim(payment_id) => {
                 // V86: Reclaim expired escrowed payment back to sender.
-                let current_block = state.epoch_index.saturating_mul(100);
+                // V125 fix (ARENAS): Use actual block height for consistency.
+                let current_block = state.current_block_height;
                 let amount = state
                     .ai_registry
                     .reclaim_agent_payment(&payment_id, &tx.from, current_block)
