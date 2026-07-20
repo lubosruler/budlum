@@ -100,9 +100,9 @@ enum QueryAction {
 
 /// `http://host:port` URL'sini (host, port) çiftine ayrıştırır. Path yok sayılır.
 fn parse_rpc_url(url: &str) -> Result<(String, u16), String> {
-    let rest = url
-        .strip_prefix("http://")
-        .ok_or_else(|| format!("--rpc-url 'http://' şeması bekler (https desteklenmiyor): '{url}'"))?;
+    let rest = url.strip_prefix("http://").ok_or_else(|| {
+        format!("--rpc-url 'http://' şeması bekler (https desteklenmiyor): '{url}'")
+    })?;
     let host_port = rest.split('/').next().unwrap_or(rest);
     let (host, port) = match host_port.rsplit_once(':') {
         Some((h, p)) => (
@@ -119,11 +119,7 @@ fn parse_rpc_url(url: &str) -> Result<(String, u16), String> {
 }
 
 /// std TcpStream üzerinden minimal HTTP/1.1 POST + tam cevap gövdesi oku.
-fn http_post_json(
-    host: &str,
-    port: u16,
-    body: &str,
-) -> Result<String, String> {
+fn http_post_json(host: &str, port: u16, body: &str) -> Result<String, String> {
     let mut stream = TcpStream::connect((host, port))
         .map_err(|e| format!("bağlantı hatası ({host}:{port}): {e}"))?;
     stream
@@ -148,10 +144,7 @@ fn http_post_json(
     let text = String::from_utf8(raw).map_err(|e| format!("UTF-8 ayrıştırma: {e}"))?;
 
     // HTTP başlık/gövde ayrımı: ilk "\r\n\r\n" sonrası gövdedir.
-    let body = text
-        .split_once("\r\n\r\n")
-        .map(|(_, b)| b)
-        .unwrap_or(&text);
+    let body = text.split_once("\r\n\r\n").map(|(_, b)| b).unwrap_or(&text);
     Ok(body.to_string())
 }
 
@@ -245,11 +238,7 @@ fn run_tx_send(
     println!("tx hash (imzalı): {tx_hash}");
 
     // Gönder (bud_sendRawTransaction Transaction nesnesini doğrudan alır).
-    let r = rpc_call(
-        rpc_url,
-        "bud_sendRawTransaction",
-        serde_json::json!([tx]),
-    )?;
+    let r = rpc_call(rpc_url, "bud_sendRawTransaction", serde_json::json!([tx]))?;
     match r.as_str() {
         Some(returned) => println!("gönderildi \u{2713} — düğüm tx hash: {returned}"),
         None => println!("gönderildi \u{2713} — düğüm cevap: {r}"),
@@ -259,7 +248,11 @@ fn run_tx_send(
 
 fn run_query_balance(rpc_url: &str, address: &str) -> Result<(), String> {
     let addr = parse_address(address)?;
-    let r = rpc_call(rpc_url, "bud_getBalance", serde_json::json!([addr.to_hex()]))?;
+    let r = rpc_call(
+        rpc_url,
+        "bud_getBalance",
+        serde_json::json!([addr.to_hex()]),
+    )?;
     match r.as_str() {
         Some(balance) => println!("bakiye ({address}): {balance}"),
         None => println!("bakiye ({address}): {r}"),
@@ -268,11 +261,7 @@ fn run_query_balance(rpc_url: &str, address: &str) -> Result<(), String> {
 }
 
 fn run_query_block(rpc_url: &str, number: &str) -> Result<(), String> {
-    let r = rpc_call(
-        rpc_url,
-        "bud_getBlockByNumber",
-        serde_json::json!([number]),
-    )?;
+    let r = rpc_call(rpc_url, "bud_getBlockByNumber", serde_json::json!([number]))?;
     println!(
         "{}",
         serde_json::to_string_pretty(&r).unwrap_or_else(|_| r.to_string())
