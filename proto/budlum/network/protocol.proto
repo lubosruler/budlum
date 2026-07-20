@@ -31,6 +31,9 @@ enum ProtoTransactionType {
     AI_MODEL_REACTIVATE = 25;
     AI_REQUEST_CANCEL = 26;
     AI_DISPUTE_SLASH = 27;
+    AI_AGENT_PAYMENT = 28;
+    AI_AGENT_PAYMENT_RELEASE = 29;
+    AI_AGENT_PAYMENT_RECLAIM = 30;
 }
 
 message ProtoTransaction {
