@@ -102,15 +102,22 @@ impl ChainAdapter for EvmChainAdapter {
         external_state_root: &Hash32,
         expected_tx_hash: &str,
     ) -> Result<(), AdapterError> {
-        // MPT verify: receiptsRoot → receipt bytes. F10.1.
-        // MerkleProof.leaf = receipt bytes (relayer tarafından paketlenmiş).
-        let receipt_bytes = &proof.leaf;
-        // NOTE: F10.1 mpt::verify proof_nodes + key bekler; bu trait MerkleProof
-        // (event-tree deseni) kullanır. Gerçek on-chain verify `verify_evm_receipt`
-        // üzerinden (verify.rs) — EvmDepositProof paketi. Bu metod minimal
-        // adapter entry-point; orchestrator verify.rs'te.
-        let _ = receipt_bytes;
-        let _ = external_state_root;
+        // V30/V91 partial fix (ARENAS): Previously a complete no-op — all
+        // inputs were silently ignored and Ok(()) always returned. This
+        // allowed any forged receipt proof to be accepted.
+        //
+        // Minimal fix: verify the Merkle proof against the declared root.
+        // This at least ensures the proof is self-consistent (leaf, siblings,
+        // and root match). Full MPT receipt verification (F10.1) requires
+        // proof_nodes + key format and should use `verify_evm_receipt` via
+        // the EvmDepositProof path, but this gate prevents trivial forgery.
+        if !proof.verify(*external_state_root) {
+            return Err(AdapterError::VerificationFailed(
+                "EVM receipt Merkle proof does not verify against declared receipts root".into(),
+            ));
+        }
+        // TODO (design decision): Add receipt decode + tx_hash binding
+        // (receipt.transaction_hash == expected_tx_hash) for full V30 fix.
         let _ = expected_tx_hash;
         Ok(())
     }
