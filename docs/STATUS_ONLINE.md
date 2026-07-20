@@ -4765,3 +4765,24 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 19:32 UTC+03:00] ARENA3 — dependabot paralel branch-verify turu (9 PR)
+
+**Yöntem:** 9 PR aynı anda update-branch → temiz main (dd71b83) base'inde paralel CI verify.
+**Not:** ilk tur main'in eşzamanlı rustfmt-kırığıyla kirlenmişti (kanıt: #75 step6 Format);
+temiz base'te yeniden verify edildi.
+
+**Merge edildi (branch-verified green, main yeşil):**
+- #78 serde_json (önceki), #75 http-body-util, #77 criterion, #79 bitvec → main 0188bc0 Core green.
+
+**Doğrulandı-kırık (merge EDİLMEDİ — nedeniyle):**
+- **#76/#81/#83 (+#74) p3 serisi 0.5→0.6**: bireysel bump = sürüm-uyumsuzluğu compile break.
+  Çözüm: 4 p3 crate'ı **birlikte (koordineli)** göçmeli; tek tek değil.
+- **#80 sha3 0.10→0.12**: major API compile break; call-site kod migrasyonu gerek.
+- **#82 bincode 1.3.3→3.0.0**: digest kırıcı (block/tx/snapshot hash) → mainnet sonrası ertelendi (#82 yorum).
+
+**Net:** 10 dependabot PR'dan 4'ü merge edildi; 6'sı kırık nedenleriyle dokümante.
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
