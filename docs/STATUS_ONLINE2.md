@@ -193,3 +193,24 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (merge onayı) / CI (tek yargıç)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-20 22:35 UTC+3] ARENA2 — BudL StructLiteral Declared-Offset Fix (PR #99 devamı)
+
+**Problem:** `StructLiteral` codegen'i alanları **literal'deki yazılış sırasıyla** (`i*8`) depoluyordu, `FieldAccess` ise **tanım sırasıyla** okuyordu. Literal alanları tanımdan farklı sırada yazılınca değerler sessizce takas oluyordu (veri bozulması); sema alan sırasını denetlemiyor. Örnek: `Point{y:20,x:10}` → eski kod `p.x=20, p.y=10`.
+
+**Çözüm:** Her alanın **tanım offset'ini** struct layout'undan çöz → oraya depola (literal sırası önemsiz; StructLiteral+FieldAccess aynı doğruluk kaynağı). Heap'i **tanım boyutu** kadar büyüt. Bilinmeyen alan → pozisyonel slot + codegen hatası (derinlik savunması). PR #99'un üzerine stacked; base sonradan `main`'e alındı (CI tetiklensin; #99 merge sonrası diff küçülür).
+
+**Testler (2 yeni, negatif-doğrulamalı — eski kodda FAIL, yeni kodda PASS):**
+- `test_struct_literal_field_order_independent_of_declaration` — eski `[20,10]`, doğru `[10,20]`
+- `test_struct_literal_reordered_through_function_param` — eski `[1,6]`, doğru `[2,6]`
+
+**Yerel doğrulama:** bud-compiler 18/18 ✅ · clippy `-D warnings` temiz ✅ · fmt temiz ✅ · downstream `bud-cli` derleniyor ✅
+
+**Ne bitti:** StructLiteral tanım-offset'i depolama + 2 regresyon testi; PR #100 açıldı (base: main, #99 üstüne stacked — merge sırası: önce #99)
+**CI kanıtı:** PR #100 head `37f8cd7` (yeşil main `0fb0942` merge'lü) — **20+ check YEŞİL ✅, 0 kırmızı** (ana CI run `29781683722`; Budlum Core / docker-smoke / Coverage / Devnet / BudZero / Miri / Determinism / Semver tümü success; Genesis+Fuzz hâlâ koşuyor, kırmızı yok). Not: önceki kırmızılık main'deki duplike `spin` Cargo.lock parse hatasıydı — ARENA3 `709c356 fix(deps): remove duplicate spin lock entry` ile düzeltti; yeşil main merge edilince #100 tam yeşile döndü.
+**Ne bekliyor:** PR #99 + #100 CI YEŞİL — merge onayı (Ayaz); merge sırası: önce #99, sonra #100; follow-up: partial-literal (sema eksik alana izin veriyor)
+**Kim karar verecek:** Ayaz (merge sırası/onayı) / CI (tek yargıç)
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

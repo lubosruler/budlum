@@ -533,4 +533,75 @@ mod tests {
         // read_a reads P.a at offset 0 (7); q.a reads Q.a at offset 8 (10).
         assert_eq!(vm.events, vec![7, 10]);
     }
+
+    // === STRUCT LITERAL FIELD ORDER ============================================
+
+    /// A struct literal whose fields are written in a different order than
+    /// the struct declaration must still lay each value out at its
+    /// *declared* offset. The legacy codegen stored fields in the literal's
+    /// textual order while `FieldAccess` reads by declaration order, so a
+    /// reordered literal silently swapped the stored values.
+    #[test]
+    fn test_struct_literal_field_order_independent_of_declaration() {
+        let source = r#"
+            contract LiteralOrder {
+                struct Point {
+                    x: u64,
+                    y: u64,
+                }
+
+                pub fn main() {
+                    // Fields written in REVERSE declaration order.
+                    let p = Point { y: 20, x: 10 };
+                    emit Result(p.x);
+                    emit Result(p.y);
+                }
+            }
+        "#;
+
+        let bytecode =
+            compile(source, IsaProfile::Production).expect("reordered literal should compile");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("VM should run");
+
+        // p.x must be 10 and p.y must be 20 regardless of literal order.
+        // The legacy store-by-literal-order yields [20, 10] here.
+        assert_eq!(vm.events, vec![10, 20]);
+    }
+
+    /// Reordered literals stay correct when the struct is passed to a
+    /// function and its fields are read there. Three fields written in a
+    /// shuffled order must each land at their declared offset.
+    #[test]
+    fn test_struct_literal_reordered_through_function_param() {
+        let source = r#"
+            contract LiteralOrderParam {
+                struct Rec {
+                    a: u64,
+                    b: u64,
+                    c: u64,
+                }
+
+                fn sum(r: Rec) -> u64 {
+                    return r.a + r.b + r.c;
+                }
+
+                pub fn main() {
+                    // Shuffled: declared order is a, b, c.
+                    let r = Rec { c: 3, a: 1, b: 2 };
+                    let total = sum(r);
+                    emit Result(r.b);
+                    emit Result(total);
+                }
+            }
+        "#;
+
+        let bytecode =
+            compile(source, IsaProfile::Production).expect("shuffled literal should compile");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("VM should run");
+
+        // r.b must be 2 (declared offset 8); a + b + c = 1 + 2 + 3 = 6.
+        assert_eq!(vm.events, vec![2, 6]);
+    }
 }

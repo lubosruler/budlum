@@ -642,22 +642,59 @@ impl Codegen {
                 self.emit(Opcode::SRead, res_reg, 0, target_slot_reg, -1);
                 res_reg
             }
-            Expr::StructLiteral(_name, fields) => {
+            Expr::StructLiteral(name, fields) => {
                 let saved_next_reg = self.next_reg;
                 let ptr_reg = self.alloc_reg();
                 self.emit(Opcode::Add, ptr_reg, 31, 0, 0); // copy heap ptr to ptr_reg
 
-                let mut field_vals = Vec::new();
-                for (_, val) in fields {
-                    field_vals.push(self.generate_expr(val, scope, storage));
+                // Store each field at its *declared* offset (looked up
+                // from the struct layout) rather than at the position it
+                // happens to occupy in the literal. `FieldAccess` reads
+                // by declaration order, so the two must agree; storing by
+                // literal order silently swapped values whenever a literal
+                // listed its fields in a different order than the struct
+                // declaration. The layout is cloned so the immutable
+                // lookup does not overlap the mutable `generate_expr`
+                // calls below.
+                let layout: Option<Vec<String>> = self.struct_layouts.get(name).cloned();
+
+                let mut field_vals: Vec<(usize, u8)> = Vec::new();
+                for (fname, val) in fields {
+                    let val_reg = self.generate_expr(val, scope, storage);
+                    let offset = match layout
+                        .as_ref()
+                        .and_then(|fs| fs.iter().position(|f| f == fname))
+                    {
+                        Some(idx) => idx * 8,
+                        None => {
+                            // sema rejects literals naming a field the
+                            // struct does not declare; defense in depth.
+                            // Fall back to the next positional slot so
+                            // fields never overlap.
+                            if self.error.is_none() {
+                                self.error = Some(CompileError::CodegenError(format!(
+                                    "Field '{}' not found in struct '{}' literal",
+                                    fname, name
+                                )));
+                            }
+                            field_vals.len() * 8
+                        }
+                    };
+                    field_vals.push((offset, val_reg));
                 }
 
-                for (i, val_reg) in field_vals.into_iter().enumerate() {
-                    self.emit(Opcode::Store, 0, ptr_reg, val_reg, (i * 8) as i32);
+                for (offset, val_reg) in field_vals {
+                    self.emit(Opcode::Store, 0, ptr_reg, val_reg, offset as i32);
                 }
 
+                // Allocate the full *declared* struct size (not the
+                // literal's field count) so the block is correctly sized
+                // regardless of the order the literal lists its fields.
+                // Falls back to the literal count when the layout is
+                // unknown.
+                let size_words = layout.as_ref().map_or(fields.len(), |fs| fs.len());
                 let size_reg = self.alloc_reg();
-                self.emit(Opcode::Load, size_reg, 0, 0, (fields.len() * 8) as i32);
+                self.emit(Opcode::Load, size_reg, 0, 0, (size_words * 8) as i32);
                 self.emit(Opcode::Add, 31, 31, size_reg, 0); // bump heap pointer
 
                 self.next_reg = saved_next_reg;
