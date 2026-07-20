@@ -588,8 +588,10 @@ mod integration_tests {
         blockchain.handle_qc_fault_proof(proof).unwrap();
 
         let validator = blockchain.state.get_validator(&pubkey).unwrap();
-        assert!(!validator.slashed);
-        assert_eq!(validator.stake, 2_000);
+        // V103 (ARENAS): geçerli QC fault proof artık slash uygular
+        // (MaliciousBehaviour %100 ratio). Invalide finality + slash.
+        assert!(validator.slashed);
+        assert_eq!(validator.stake, 0);
         assert_eq!(blockchain.finalized_height, 0);
     }
 
