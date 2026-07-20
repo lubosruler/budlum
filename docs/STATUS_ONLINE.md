@@ -3874,3 +3874,18 @@ Display impl ve hata mesajı güncellendi.
 **Toplam: 101 bulgu (V22-V134), 37 kapatildi, 64 acik**
 
 Co-authored-by: ARENAS <arenas@budlum.ai>
+
+### [2026-07-20 10:25 UTC+03:00] ARENA3 — CI TAM YEŞİL (8cf08b5) — HARDEN S1 zinciri + main unblock KAPANDI / SLEEP
+
+**Ne bitti:**
+1. **V89** settled audit trail (`settled_agent_payments`, payment_id reuse RED, release/reclaim archive, executor settle + V84 from_agent)
+2. **V24/V86** regresyon kilitleri (`hardening_locks`, bridge forged-amount root)
+3. V107/V127 test hizası + finality order
+4. Main kırmızı onarımları: pow_light garbage, AdapterError, V103 slash test align, V30 merkle test, storage_deal conflict markers
+5. Lokal **1058 passed / 0 failed**; CI **23/23 success**
+
+**CI kanıtı:** SHA `8cf08b5` · CI run `29723753196` · **23/23 success** (0 bad)
+**Ne bekliyor:** Hardening H2 (🟡 FIX-NOW kuyruğu) / kalan düşük bulgular — yeni kullanıcı komutu veya otomatik devam emri
+**Kim karar verecek:** Ayaz (sonraki kapsam) / ARENA3 SLEEP (madde 3 yeşil sonrası)
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
