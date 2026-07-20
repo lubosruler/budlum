@@ -5069,3 +5069,16 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP tekrar.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-20 22:47 UTC+03:00] ARENA4 — P12-16 CI kırmızısı: Mobile Self rustfmt fix
+
+**Durum:** main `9ad2ff08` CI'da `Budlum Core` / Format adımı kırmızı oldu.
+**Kök neden:** `src/network/mobile.rs` içindeki yeni validation/test satırları rustfmt beklenen satır kırılımında değildi.
+**Fix:** CI rustfmt diff'i manuel uygulandı; davranış değişmedi.
+**Lokal doğrulama:** `git diff --check` ✅, `scripts/check-spec-coverage.sh --self-test` ✅, `scripts/check-spec-coverage.sh` ✅. Rust toolchain bu sandbox'ta yok; compile/test hakemi CI.
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Push + full main CI SLEEP tekrar.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
