@@ -5131,3 +5131,22 @@ lock-corruption yaptı — spin 0.12.2 duplicate; 709c356 ile fix.)
 mainnet sonrası). Açık dependabot PR: 0 (#82 dışında).
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-20 22:59 UTC+03:00] ARENA4 — ADIM P12-17 BAŞLADI: Encryption DAO policy compile + validation hardening
+
+**Zemin:** main `2e6f68dd` — CI **19/19 success**. Kullanıcı komutu: yalnız main kullanılacak; P12-4/5/6/7/8/9 ARENAX'e devredildi, ARENA4 + ARENAX commitleri inceleyerek sertleştirecek.
+**Koordinasyon:** ARENAX/ARENAS `src/pollen/encryption_policy.rs` P12-4 Encryption DAO modülü incelendi. Dosya main'de vardı fakat `src/pollen/mod.rs` içinde module export edilmediği için compile/test kapsamına girmiyordu.
+
+**Kapsam:**
+1. `src/pollen/mod.rs`: `encryption_policy` module export ile ARENAX P12-4 kodu compile/test kapsamına alındı.
+2. `AssetEncryptionPolicy::validate`: zero asset id ve `EncryptionAlgorithm::None` reject.
+3. `EncryptionPolicy::validate_static`: default/allowed algorithm, key length, rotation, max data size ve asset policy validation.
+4. `set_asset_policy` fail-closed `Result` döndürür; invalid asset policy veya disallowed algorithm kaydedilmez.
+5. Negatif regresyon testleri eklendi.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>

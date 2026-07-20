@@ -99,6 +99,22 @@ pub struct AssetEncryptionPolicy {
     pub access_logging_required: bool,
 }
 
+impl AssetEncryptionPolicy {
+    pub fn validate(&self) -> Result<(), EncryptionPolicyError> {
+        if self.asset_id == AssetId::zero() {
+            return Err(EncryptionPolicyError::InvalidAssetPolicy(
+                "asset_id cannot be zero".into(),
+            ));
+        }
+        if self.required_algorithm == EncryptionAlgorithm::None {
+            return Err(EncryptionPolicyError::InvalidAssetPolicy(
+                "asset policy cannot require EncryptionAlgorithm::None".into(),
+            ));
+        }
+        Ok(())
+    }
+}
+
 /// Şifreleme politikası güncelleme sonucu.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyUpdateResult {
@@ -141,6 +157,51 @@ impl EncryptionPolicy {
     /// Yeni varsayılan politika oluşturur.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn validate_static(&self) -> Result<(), EncryptionPolicyError> {
+        if self.default_algorithm == EncryptionAlgorithm::None {
+            return Err(EncryptionPolicyError::AlgorithmNotAllowed {
+                algorithm: self.default_algorithm,
+            });
+        }
+        if self.allowed_algorithms.is_empty() {
+            return Err(EncryptionPolicyError::InvalidAssetPolicy(
+                "allowed_algorithms cannot be empty".into(),
+            ));
+        }
+        if self.allowed_algorithms.contains(&EncryptionAlgorithm::None) {
+            return Err(EncryptionPolicyError::AlgorithmNotAllowed {
+                algorithm: EncryptionAlgorithm::None,
+            });
+        }
+        if !self.allowed_algorithms.contains(&self.default_algorithm) {
+            return Err(EncryptionPolicyError::AlgorithmNotAllowed {
+                algorithm: self.default_algorithm,
+            });
+        }
+        if self.min_key_length_bits < 128 {
+            return Err(EncryptionPolicyError::KeyTooShort {
+                bits: self.min_key_length_bits,
+            });
+        }
+        if self.key_rotation_epochs == 0 {
+            return Err(EncryptionPolicyError::InvalidRotationPeriod);
+        }
+        if self.max_encrypted_data_size == 0 {
+            return Err(EncryptionPolicyError::InvalidAssetPolicy(
+                "max_encrypted_data_size must be >= 1".into(),
+            ));
+        }
+        for policy in self.asset_policies.values() {
+            policy.validate()?;
+            if !self.is_algorithm_allowed(policy.required_algorithm) {
+                return Err(EncryptionPolicyError::AlgorithmNotAllowed {
+                    algorithm: policy.required_algorithm,
+                });
+            }
+        }
+        Ok(())
     }
 
     /// Bir algoritmanın izin verilenler listesinde olup olmadığını kontrol eder.
@@ -256,8 +317,18 @@ impl EncryptionPolicy {
     }
 
     /// Asset bazlı özel politika ekler.
-    pub fn set_asset_policy(&mut self, policy: AssetEncryptionPolicy) {
+    pub fn set_asset_policy(
+        &mut self,
+        policy: AssetEncryptionPolicy,
+    ) -> Result<(), EncryptionPolicyError> {
+        policy.validate()?;
+        if !self.is_algorithm_allowed(policy.required_algorithm) {
+            return Err(EncryptionPolicyError::AlgorithmNotAllowed {
+                algorithm: policy.required_algorithm,
+            });
+        }
         self.asset_policies.insert(policy.asset_id, policy);
+        Ok(())
     }
 
     /// Asset bazlı özel politikayı kaldırır.
@@ -319,6 +390,8 @@ pub enum EncryptionPolicyError {
     KeyTooShort { bits: u32 },
     /// Geçersiz rotasyon periyodu.
     InvalidRotationPeriod,
+    /// Geçersiz asset/global politika şekli.
+    InvalidAssetPolicy(String),
 }
 
 impl std::fmt::Display for EncryptionPolicyError {
@@ -339,6 +412,9 @@ impl std::fmt::Display for EncryptionPolicyError {
             }
             EncryptionPolicyError::InvalidRotationPeriod => {
                 write!(f, "Key rotation period must be > 0")
+            }
+            EncryptionPolicyError::InvalidAssetPolicy(msg) => {
+                write!(f, "Invalid asset encryption policy: {msg}")
             }
         }
     }
@@ -370,13 +446,15 @@ mod tests {
     fn asset_requirement_uses_custom_policy_when_set() {
         let mut policy = EncryptionPolicy::new();
         let asset_id = AssetId::from([5u8; 32]);
-        policy.set_asset_policy(AssetEncryptionPolicy {
-            asset_id,
-            required_algorithm: EncryptionAlgorithm::XChaCha20Poly1305,
-            custom_rotation_epochs: 720,
-            double_encryption: true,
-            access_logging_required: true,
-        });
+        policy
+            .set_asset_policy(AssetEncryptionPolicy {
+                asset_id,
+                required_algorithm: EncryptionAlgorithm::XChaCha20Poly1305,
+                custom_rotation_epochs: 720,
+                double_encryption: true,
+                access_logging_required: true,
+            })
+            .unwrap();
 
         let req = policy.asset_requirement(&asset_id);
         assert_eq!(req.algorithm, EncryptionAlgorithm::XChaCha20Poly1305);
@@ -438,13 +516,15 @@ mod tests {
     fn remove_asset_policy() {
         let mut policy = EncryptionPolicy::new();
         let asset_id = AssetId::from([5u8; 32]);
-        policy.set_asset_policy(AssetEncryptionPolicy {
-            asset_id,
-            required_algorithm: EncryptionAlgorithm::ChaCha20Poly1305,
-            custom_rotation_epochs: 0,
-            double_encryption: false,
-            access_logging_required: false,
-        });
+        policy
+            .set_asset_policy(AssetEncryptionPolicy {
+                asset_id,
+                required_algorithm: EncryptionAlgorithm::ChaCha20Poly1305,
+                custom_rotation_epochs: 0,
+                double_encryption: false,
+                access_logging_required: false,
+            })
+            .unwrap();
         assert!(policy.asset_policies.contains_key(&asset_id));
         assert!(policy.remove_asset_policy(&asset_id));
         assert!(!policy.asset_policies.contains_key(&asset_id));
@@ -485,4 +565,43 @@ mod tests {
         assert_eq!(EncryptionAlgorithm::Aes256Gcm.to_string(), "aes-256-gcm");
         assert_eq!(EncryptionAlgorithm::None.to_string(), "none");
     }
+
+    #[test]
+    fn set_asset_policy_rejects_zero_asset_and_none_algorithm() {
+        let mut policy = EncryptionPolicy::new();
+        assert!(matches!(
+            policy.set_asset_policy(AssetEncryptionPolicy {
+                asset_id: AssetId::zero(),
+                required_algorithm: EncryptionAlgorithm::ChaCha20Poly1305,
+                custom_rotation_epochs: 0,
+                double_encryption: false,
+                access_logging_required: false,
+            }),
+            Err(EncryptionPolicyError::InvalidAssetPolicy(_))
+        ));
+
+        assert!(matches!(
+            policy.set_asset_policy(AssetEncryptionPolicy {
+                asset_id: AssetId::from([9u8; 32]),
+                required_algorithm: EncryptionAlgorithm::None,
+                custom_rotation_epochs: 0,
+                double_encryption: false,
+                access_logging_required: false,
+            }),
+            Err(EncryptionPolicyError::InvalidAssetPolicy(_))
+        ));
+    }
+
+    #[test]
+    fn validate_static_rejects_none_in_allowed_algorithms() {
+        let mut policy = EncryptionPolicy::new();
+        policy.allowed_algorithms.push(EncryptionAlgorithm::None);
+        assert!(matches!(
+            policy.validate_static(),
+            Err(EncryptionPolicyError::AlgorithmNotAllowed {
+                algorithm: EncryptionAlgorithm::None
+            })
+        ));
+    }
+
 }
