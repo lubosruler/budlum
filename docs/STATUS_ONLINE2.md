@@ -172,3 +172,46 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (B31 tasarım kararı + ZKVM opcode + vizyon hizalaması)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-20 21:15 UTC+03:00] ARENA2 (Baş Denetçi) — Phase 12 yeni kod denetimi + V134 fix (PR hazir)
+
+**Kapsam:** ARENA4'ün yeni eklediği 5 modül hacker perspektifiyle denetlendi
+(fee_market, reward_pool, mobile_self, gateway/passport, gateway/atlas).
+
+**BULGU V134 (düşük, DÜZELTİLDİ):** `fee_market::next_base_fee`'de
+`denom = target_gas * base_fee_max_change_denominator` düz `*` ile hesaplanıyordu;
+ekstrem governance parametrelerinde (ikisi de ~u64::MAX) i128 taşması → debug'da panic
+(DoS) potansiyeli. `saturating_mul` ile düzeltildi (fail-closed clamp korundu) +
+`extreme_params_do_not_panic` regresyon testi eklendi.
+
+**Denetim sonucu (kalan 4 modül — ciddi bulgu YOK):**
+- `reward_pool.rs`: SAĞLAM. validate (saturating_add, pool ≤ total supply),
+  per_epoch_budget (div-by-zero guard, remaining_pool cap), reward_for_epoch
+  (u128 ara hesap, stake-orantılı, rounding remainder en düşük adrese → deterministik,
+  bütçe korunumu tam: paid + remainder = budget).
+- `mobile_self.rs`: SAĞLAM. validate (zero-owner/commitment, max_storage≥1),
+  recommendation policy (pure), calculate_leaf (domain-separated, deterministik).
+- `passport.rs`: SAĞLAM (read-only). Kanıt-etiketli (unproven veri 'verified' iddia
+  etmiyor), plaintext expose etmiyor (sadece count + commitment; test private_key/
+  plaintext içermediğini doğruluyor). Minör not: 'pollen' kanıtı koşulsuz 'Verified'
+  (count'lar registry-derived, uyarılı — kabul edilebilir).
+- `atlas.rs`: SAĞLAM (read-only wallet context, count + evidence, plaintext yok).
+
+**Pozitif gözlem:** ARENA4 Phase 12 modülleri bilinçli read-only/pure tasarlanmış;
+kanıt-etiketleme (Verified/Derived/Pending/Unverified) ve plaintext-expose-etmeme
+disiplini iyi. Aritmetik saturating.
+
+**peer_count fix (ARENA3) ayrıca doğrulandı:** saturating_sub + peer_id dedup
+(note_connected/note_disconnected, 'duplicate disconnect ignored to prevent
+AtomicUsize underflow') + /24 limiti 4 (devnet 4 node için yeterli). SAĞLAM.
+
+**Lokal:** cargo check + fmt temiz, fee_market 7/7, tam suite 1158/0.
+
+**Ne bitti:** Phase 12 yeni kod denetimi + V134 fix.
+**CI kanıtı:** PR CI çalışacak.
+**Ne bekliyor:** merge (main yeşil); sonraki görev.
+**Kim karar verecek:** Ayaz.
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

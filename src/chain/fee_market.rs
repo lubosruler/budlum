@@ -73,7 +73,12 @@ pub fn next_base_fee(parent_base_fee: u64, parent_gas_used: u64, params: FeeMark
 
     let parent = parent_base_fee as i128;
     let gas_delta = parent_gas_used as i128 - params.target_gas as i128;
-    let denom = params.target_gas as i128 * params.base_fee_max_change_denominator as i128;
+    // ARENA2 denetim (V134): saturating_mul — ekstrem governance parametrelerinde
+    // (target_gas ve denominator birlikte ~u64::MAX) düz `*` i128'i taşırıp panic
+    // verebilirdi. saturating_mul fail-closed davranışı korur (sonuç min_base_fee
+    // ve u64::MAX arasında clamp'li kalır).
+    let denom =
+        (params.target_gas as i128).saturating_mul(params.base_fee_max_change_denominator as i128);
     let adjustment = parent.saturating_mul(gas_delta) / denom.max(1);
     let next = parent
         .saturating_add(adjustment)
@@ -175,5 +180,23 @@ mod tests {
         let fee = effective_fee(FeeBid::legacy(10), 10).unwrap();
         assert_eq!(fee.base_fee_burned, 10);
         assert_eq!(fee.priority_fee_paid, 0);
+    }
+
+    /// ARENA2 denetim (V134): ekstrem parametreler panic vermemeli (fail-closed).
+    /// Eski düz `*` denom hesabı `target_gas * denominator` i128'i taşırıp debug'da
+    /// panic verebilirdi; saturating_mul ile sonuç clamp'li kalır.
+    #[test]
+    fn extreme_params_do_not_panic() {
+        let params = FeeMarketParams {
+            target_gas: u64::MAX,
+            elasticity_multiplier: u64::MAX,
+            base_fee_max_change_denominator: u64::MAX,
+            min_base_fee: 1,
+        };
+        // overflow yok; sonuç [min_base_fee, u64::MAX] aralığında kalır.
+        let next = next_base_fee(u64::MAX, u64::MAX, params);
+        assert!(next >= 1, "clamped to min_base_fee");
+        // boş blok ile de panic yok.
+        let _ = next_base_fee(0, 0, params);
     }
 }
