@@ -103,6 +103,9 @@ pub mod target_700;
 #[cfg(test)]
 pub mod bridge_negatives;
 pub mod domain_edge_cases;
+// Phase 11.3 Görev 4: PoA katılımcı onboarding yaşam-döngüsü + whitelist
+// zorunluluğu + KYC expiry test matrisi. İzolasyon mührü poa_isolation.rs'de.
+pub mod poa_onboarding_matrix;
 // P0 mainnet-gap 3/3 (ARENA3, 2026-07-19): snapshot-corruption +
 // crash-recovery kaos süiti. İki _gap pini bilinçli olarak bugünkü davranışı
 // mühürler (snapshot authenticity yok + v1/v2 çapraz-gölgeleme + boot

@@ -38,4 +38,7 @@ pub use permissionless::{
 pub use poa_membership::{
     KycCommitment, MembershipStatus, PoaMember, PoaMembershipError, PoaMembershipRegistry,
 };
+pub use poa_onboarding::{
+    OnboardingDecision, OnboardingEvent, PoAOnboarding, PoAWhitelist, DEFAULT_KYC_HORIZON,
+};
 pub use role::{roles, RoleId};
