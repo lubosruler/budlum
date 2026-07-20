@@ -1,4 +1,5 @@
 use crate::core::address::Address;
+use crate::core::constitution::{ConstitutionParameter, ConstitutionRegistry};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -25,6 +26,9 @@ pub enum ProposalType {
     /// Phase 12: DAO-managed encryption parameters for Pollen/B.U.D.
     /// This is parameter-only governance: no decrypt/key/read override exists.
     SetEncryptionPolicy(crate::pollen::EncryptionPolicy),
+    /// Phase 12: Constitution Engine parameter update. Hard guardrails are
+    /// validated fail-closed and cannot be weakened by governance.
+    SetConstitutionParameter(ConstitutionParameter),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -124,6 +128,8 @@ impl Proposal {
 pub struct GovernanceState {
     pub proposals: Vec<Proposal>,
     pub next_proposal_id: u64,
+    #[serde(default)]
+    pub constitution: ConstitutionRegistry,
 }
 
 impl GovernanceState {
@@ -134,8 +140,10 @@ impl GovernanceState {
         current_epoch: u64,
         duration: u64,
     ) -> Result<u64, String> {
-        if let ProposalType::SetEncryptionPolicy(policy) = &p_type {
-            policy.validate()?;
+        match &p_type {
+            ProposalType::SetEncryptionPolicy(policy) => policy.validate()?,
+            ProposalType::SetConstitutionParameter(parameter) => parameter.validate_update()?,
+            _ => {}
         }
 
         // V68: Validate proposal duration
@@ -158,6 +166,10 @@ impl GovernanceState {
         if active_count >= MAX_ACTIVE_PROPOSALS {
             return Err("Too many active proposals".into());
         }
+
+        current_epoch
+            .checked_add(duration)
+            .ok_or_else(|| "Proposal end_epoch overflow".to_string())?;
 
         let id = self.next_proposal_id;
         let proposal = Proposal::new(id, proposer, p_type, current_epoch, duration);
@@ -220,6 +232,9 @@ impl GovernanceState {
                 ProposalType::SetEncryptionPolicy(policy) => {
                     Some(GovernanceAction::SetEncryptionPolicy(policy.clone()))
                 }
+                ProposalType::SetConstitutionParameter(parameter) => {
+                    Some(GovernanceAction::SetConstitutionParameter(parameter.clone()))
+                }
                 _ => None, // Other proposal types: no auto-execution yet
             };
             if let Some(a) = action {
@@ -238,19 +253,18 @@ pub enum GovernanceAction {
     WhitelistVerifier(Address),
     DewhitelistVerifier(Address),
     SetEncryptionPolicy(crate::pollen::EncryptionPolicy),
+    SetConstitutionParameter(ConstitutionParameter),
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::address::Address;
+    use crate::core::constitution::{ConstitutionParameterKey, ConstitutionValue};
 
     #[test]
     fn governance_execute_passed_proposals_whitelist() {
-        let mut gov = GovernanceState {
-            proposals: Vec::new(),
-            next_proposal_id: 0,
-        };
+        let mut gov = GovernanceState::default();
         let verifier = Address::from([0xAA; 32]);
         let proposer = Address::from([0x01; 32]);
 
@@ -279,10 +293,7 @@ mod tests {
 
     #[test]
     fn governance_execute_passed_proposals_dewhitelist() {
-        let mut gov = GovernanceState {
-            proposals: Vec::new(),
-            next_proposal_id: 0,
-        };
+        let mut gov = GovernanceState::default();
         let verifier = Address::from([0xBB; 32]);
         let proposer = Address::from([0x01; 32]);
 
@@ -305,10 +316,7 @@ mod tests {
 
     #[test]
     fn governance_no_action_for_non_verifier_proposals() {
-        let mut gov = GovernanceState {
-            proposals: Vec::new(),
-            next_proposal_id: 0,
-        };
+        let mut gov = GovernanceState::default();
         let proposer = Address::from([0x01; 32]);
 
         gov.create_proposal(proposer, ProposalType::ChangeBaseFee(500), 0, 10)
@@ -366,5 +374,53 @@ mod tests {
         proposal.status = ProposalStatus::Passed;
         let actions = gov.execute_passed_proposals();
         assert_eq!(actions, vec![GovernanceAction::SetEncryptionPolicy(policy)]);
+    }
+
+    #[test]
+    fn governance_rejects_constitution_guardrail_disable() {
+        let mut gov = GovernanceState::default();
+        let proposer = Address::from([0x01; 32]);
+        let update = ConstitutionParameter::new(
+            ConstitutionParameterKey::NoGovernanceReadOverride,
+            ConstitutionValue::Bool(false),
+            10,
+            [1u8; 32],
+        );
+        let err = gov
+            .create_proposal(
+                proposer,
+                ProposalType::SetConstitutionParameter(update),
+                0,
+                10,
+            )
+            .unwrap_err();
+        assert!(err.contains("cannot be disabled"));
+    }
+
+    #[test]
+    fn governance_executes_bounded_constitution_parameter_action() {
+        let mut gov = GovernanceState::default();
+        let proposer = Address::from([0x01; 32]);
+        let update = ConstitutionParameter::new(
+            ConstitutionParameterKey::MaxEmergencyHaltEpochs,
+            ConstitutionValue::U64(720),
+            11,
+            [2u8; 32],
+        );
+        gov.create_proposal(
+            proposer,
+            ProposalType::SetConstitutionParameter(update.clone()),
+            0,
+            10,
+        )
+        .unwrap();
+        let proposal = gov.find_proposal_mut(0).unwrap();
+        proposal.add_vote(proposer, 100_000, true, 0).unwrap();
+        proposal.status = ProposalStatus::Passed;
+        let actions = gov.execute_passed_proposals();
+        assert_eq!(
+            actions,
+            vec![GovernanceAction::SetConstitutionParameter(update)]
+        );
     }
 }

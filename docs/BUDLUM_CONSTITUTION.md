@@ -70,3 +70,20 @@ Based on the strategic decisions made by the owner (Ayaz), the following rules a
 ---
 
 **These decisions are final and will be implemented across the codebase in upcoming steps.**
+
+---
+
+## 8. Phase 12 Constitution Engine Binding
+
+The first on-chain binding of this document is `core::constitution`.
+It is intentionally conservative:
+
+- AI data reads remain default-deny unless a valid Pollen/AccessGrant exists.
+- Governance cannot create read/decrypt override authority.
+- Permissionless core membership cannot be converted into admin or whitelist admission.
+- PoA / sovereign-domain rules must not leak into permissionless domains.
+- DAO/protocol state cannot custody user private keys.
+- Passport, Atlas and public evidence APIs must expose commitments/evidence, not plaintext.
+
+Mutable constitution parameters are bounded and require a non-zero rationale hash.
+Hard guardrails are immutable through ordinary governance proposals.

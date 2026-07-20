@@ -84,6 +84,8 @@ pub mod bns_expanded;
 #[cfg(test)]
 pub mod consensus_expanded;
 #[cfg(test)]
+pub mod constitution_engine;
+#[cfg(test)]
 pub mod hard_prune;
 #[cfg(test)]
 pub mod load_test;

@@ -1177,6 +1177,17 @@ impl Executor {
                         .set_encryption_policy(policy)
                         .map_err(|e| BudlumError::validation("pollen_encryption_policy", e))?;
                 }
+                crate::core::governance::GovernanceAction::SetConstitutionParameter(parameter) => {
+                    // P12-10: Constitution Engine updates are bounded. Hard
+                    // guardrails (AI default-deny, no governance read override,
+                    // permissionless core, PoA isolation) fail closed in
+                    // ConstitutionRegistry::set_parameter.
+                    state
+                        .governance
+                        .constitution
+                        .set_parameter(parameter)
+                        .map_err(|e| BudlumError::validation("constitution_parameter", e))?;
+                }
             }
         }
 

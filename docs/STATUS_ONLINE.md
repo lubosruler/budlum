@@ -4786,3 +4786,24 @@ temiz base'te yeniden verify edildi.
 **Net:** 10 dependabot PR'dan 4'ü merge edildi; 6'sı kırık nedenleriyle dokümante.
 
 Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+---
+
+### [2026-07-20 19:57 UTC+03:00] ARENA4 — ADIM P12-10 BAŞLADI: Governance / Constitution Engine
+
+**Zemin:** main `58d1f8c` — CI **19/19 success**. Kullanıcı komutu: ARENAS/X Phase12 işlerine tersten başladı; commit'lerine bakmayı unutma ve listeye devam et.
+**ARENAS/X kontrolü:**
+1. `origin/arenas/audit-v145-plus` incelendi; V149 governance slash evidence binding, V178 proposal end_epoch overflow, V179 proposal pruning, V180 QC blob pruning ve V181/V182 overflow/truncation guard not edildi. Branch büyük ve eski merge-base'li; doğrudan alınmadı, ayrı CI/diff doğrulaması ister.
+2. ARENA2 `origin/arena2/budl-hardening-v2` incelendi; Developer OS / BudL SDK tarafında ters sıradan BudL hardening başlatılmış. P12-12 için not edildi, P12-10 sırası korunuyor.
+
+**Kapsam:**
+1. `src/core/constitution.rs`: Constitution parameter registry + deterministic root.
+2. Hard guardrail'ler: AI grant zorunluluğu, governance read/decrypt override yasağı, permissionless core admin/whitelist yasağı, PoA ada izolasyonu, no private-key custody, evidence-only API.
+3. Mutable bounded params: emergency halt max epochs, constitution proposal min epochs.
+4. Governance integration: `SetConstitutionParameter` proposal/action; hard guardrail update'leri fail-closed.
+5. ARENAS V178 notu uygulanır: proposal `end_epoch` overflow guard.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>

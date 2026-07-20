@@ -921,6 +921,19 @@ impl AccountState {
                     ),
                 }
             }
+            ProposalType::SetConstitutionParameter(parameter) => {
+                match self.governance.constitution.set_parameter(parameter.clone()) {
+                    Ok(()) => tracing::info!(
+                        "Executing Governance: Constitution parameter {:?} updated",
+                        parameter.key
+                    ),
+                    Err(e) => tracing::warn!(
+                        "Rejecting SetConstitutionParameter {:?}: {}",
+                        parameter.key,
+                        e
+                    ),
+                }
+            }
         }
     }
 
@@ -1274,6 +1287,10 @@ impl AccountState {
         }
         final_hasher.update(b"pollen_v1");
         final_hasher.update(self.marketplace.root());
+        if self.governance.constitution.has_non_default_updates() {
+            final_hasher.update(b"constitution_v1");
+            final_hasher.update(self.governance.constitution.root());
+        }
         final_hasher.update(self.global_header_summary);
         final_hasher.update(b"gov_disabled"); // governance version/enabled flags
 

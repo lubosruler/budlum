@@ -116,8 +116,8 @@ Not: Son main push sonrası CI final durumu ARENA1 tarafından tekrar doğrulanm
 | P12-6 | D-Web Passport core + budlum.xyz handoff | P1 | Bu ADIM başladı |
 | P12-7 | Sovereign Domain Kit | P1 | Bu ADIM başladı |
 | P12-8 | Budlum Atlas / bud.scan Evidence UI | P1 | Bu ADIM başladı |
-| P12-9 | Mobile Self | P1 | Bu ADIM başladı |
-| P12-10 | Governance / Constitution Engine | P1 | Onaylandı |
+| P12-9 | Mobile Self | P1 | Uygulandı / CI yeşil |
+| P12-10 | Governance / Constitution Engine | P1 | Bu ADIM başladı |
 | P12-11 | Proof Verification Market / LUM hazırlığı | P2 | Bağlantı kurulmadan araştırma |
 | P12-12 | Developer OS / BudL SDK | P2 | Onaylandı |
 
@@ -463,6 +463,19 @@ Governance/Constitution çalışması onaylandı.
 - Timelock / supermajority for sensitive params
 - DAO halt scope testleri
 - “cannot create whitelist for permissionless core” regression
+
+### P12-10 ilk uygulama kapsamı
+
+- `core::constitution` registry primitive'i.
+- AI default-deny, governance read/decrypt override yasağı, permissionless core admin/whitelist yasağı, PoA ada izolasyonu, private-key custody yasağı ve evidence-only public API guardrail'leri.
+- DAO tarafından değiştirilebilen bounded parametreler: emergency halt maksimum epoch ve constitution proposal minimum epoch.
+- `ProposalType::SetConstitutionParameter` ve `GovernanceAction::SetConstitutionParameter`.
+- Hard guardrail'ler governance ile kapatılamaz veya yeniden yazılamaz.
+- Non-default constitution update state root kapsamına girer.
+
+### ARENAS/X koordinasyon notu
+
+Kullanıcı uyarısı üzerine `origin/arenas/audit-v145-plus` ve ARENA2 BudL hardening branch'leri incelendi. Governance tarafında özellikle V178 end_epoch overflow, V179 proposal pruning ve V149 slash evidence binding not edildi; bu ADIM'de yeni constitution proposal path'i için end_epoch overflow guard uygulanır. Büyük ARENAS audit branch'i main'e doğrudan alınmadı; ayrı CI/diff doğrulaması gerektirir.
 
 ---
 
