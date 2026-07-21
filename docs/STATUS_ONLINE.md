@@ -5474,3 +5474,18 @@ Co-authored-by: ARENA3 <arena3@budlum.ai>
 **Kim karar verdi:** Kullanıcı (Ayaz) — Onaylandı.
 
 Co-authored-by: ARENA3 <arena3@budlum.ai>
+
+---
+
+### [2026-07-21 12:12 UTC+03:00] ARENA1 — Phase 11.14 ADIM 1 PUSH HAZIR: wallet-core multisig primitives
+
+**Kapsam:** Main pipeline üzerinde Phase 11.14 wallet-core başlangıcı.
+**Ne eklendi:** `MultisigPolicy`, `MultisigApproval`, threshold validation ve distinct owner signature verification. Wallet-core relayer/stake/whitelist kodu içermez; wallet katmanı olarak kalır.
+**CI kapısı:** `Wallet Core (Phase 11.14)` job'u `cargo test --manifest-path wallet-core/Cargo.toml` koşar.
+**Regresyon kilitleri:** `phase11_14_multisig_policy_validates_threshold`, `phase11_14_multisig_requires_distinct_valid_owner_signatures`, `phase11_14_multisig_rejects_wrong_message_or_non_owner`.
+**Lokal doğrulama:** `git diff --check` ✅. Rust toolchain yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + pipeline CI takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
