@@ -15,8 +15,10 @@ use crate::ai::AiRegistry;
 use crate::core::address::Address;
 use crate::pollen::data_rights::{AccessGrant, AccessGrantStatus};
 
+pub mod executor;
 pub mod inference;
 pub mod social;
+pub mod storage;
 pub mod verify;
 
 // ============================================================

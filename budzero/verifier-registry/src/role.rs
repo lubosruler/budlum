@@ -37,6 +37,7 @@ impl std::fmt::Display for RoleId {
             roles::PROVER => write!(f, "prover"),
             roles::STORAGE_OPERATOR => write!(f, "storage_operator"),
             roles::AI_VERIFIER => write!(f, "ai_verifier"),
+            roles::LUBOT_OPERATOR => write!(f, "lubot_operator"),
             RoleId(id) => write!(f, "role#{id}"),
         }
     }
@@ -72,6 +73,9 @@ pub mod roles {
     /// Attester — submits finality / checkpoint attestations.
     /// Uses the same registry primitive as all other roles.
     pub const ATTESTER: RoleId = RoleId(7);
+
+    /// Lubot decentralized AI operator (compute-bond, PoS'tan bağımsız).
+    pub const LUBOT_OPERATOR: RoleId = RoleId(8);
 }
 
 #[cfg(test)]
@@ -94,6 +98,7 @@ mod tests {
         assert_eq!(format!("{}", roles::PROVER), "prover");
         assert_eq!(format!("{}", roles::STORAGE_OPERATOR), "storage_operator");
         assert_eq!(format!("{}", roles::AI_VERIFIER), "ai_verifier");
+        assert_eq!(format!("{}", roles::LUBOT_OPERATOR), "lubot_operator");
     }
 
     #[test]
