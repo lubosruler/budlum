@@ -46,6 +46,41 @@ mod tests {
         tx
     }
 
+    /// REGRESSION V119: sync-committee aggregate requires ≥2/3 (342)
+    /// participation; a low-participation aggregate must be rejected BEFORE any
+    /// signature check (closes the single-valid-pubkey finality bypass).
+    #[test]
+    fn v119_sync_committee_rejects_low_participation() {
+        use crate::cross_domain::evm::sync_committee::{
+            verify_sync_aggregate, SyncAggregate, SyncCommitteeError, SyncCommitteeState,
+            BLS_PUBKEY_LEN, BLS_SIGNATURE_LEN, PARTICIPATION_THRESHOLD, SYNC_COMMITTEE_SIZE,
+        };
+        let state = SyncCommitteeState {
+            current_period: 0,
+            current_sync_committee: [[0u8; BLS_PUBKEY_LEN]; SYNC_COMMITTEE_SIZE],
+            next_sync_committee: [[0u8; BLS_PUBKEY_LEN]; SYNC_COMMITTEE_SIZE],
+        };
+        // Zero-participation aggregate → must be rejected by the threshold gate
+        // (which runs before any per-pubkey BLS verification).
+        let agg = SyncAggregate {
+            sync_committee_bits: [0u8; SYNC_COMMITTEE_SIZE / 8],
+            sync_committee_signature: [0u8; BLS_SIGNATURE_LEN],
+        };
+        let err = verify_sync_aggregate(&state, &agg, b"signing-message")
+            .expect_err("low-participation aggregate must be rejected");
+        match err {
+            SyncCommitteeError::InsufficientParticipation {
+                participating,
+                threshold,
+            } => {
+                assert_eq!(participating, 0);
+                assert_eq!(threshold, PARTICIPATION_THRESHOLD);
+                assert_eq!(threshold, 342, "2/3 of 512 = 342");
+            }
+            _ => panic!("expected InsufficientParticipation"),
+        }
+    }
+
     /// REGRESSION V89: non-escrowed settle keeps audit receipt; payment_id not reusable.
     #[test]
     fn v89_non_escrowed_settlement_retains_receipt_and_blocks_reuse() {
