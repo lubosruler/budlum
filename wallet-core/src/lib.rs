@@ -137,7 +137,7 @@ pub fn mnemonic_to_entropy(mnemonic: &str) -> Result<Vec<u8>, WalletError> {
     for i in 0..(entropy_bits / 8) {
         let mut byte = 0u8;
         for j in 0..8 {
-            byte = (byte << 1) | bits[i * 8 + j];
+            byte = (byte << 1) | (bits[i * 8 + j] as u8);
         }
         entropy.push(byte);
     }
@@ -145,7 +145,7 @@ pub fn mnemonic_to_entropy(mnemonic: &str) -> Result<Vec<u8>, WalletError> {
     // Extract checksum
     let mut checksum = 0u8;
     for j in 0..checksum_bits {
-        checksum = (checksum << 1) | bits[entropy_bits + j];
+        checksum = (checksum << 1) | (bits[entropy_bits + j] as u8);
     }
 
     // Verify checksum
@@ -769,7 +769,8 @@ mod tests {
             if let Some(idx) = bip39_wordlist::word_to_index(last) {
                 let new_idx = (idx + 1) % bip39_wordlist::BIP39_WORDLIST.len();
                 if let Some(new_word) = bip39_wordlist::index_to_word(new_idx) {
-                    tampered[tampered.len() - 1] = new_word;
+                    let last_pos = tampered.len() - 1;
+                    tampered[last_pos] = new_word;
                 }
             }
         }
