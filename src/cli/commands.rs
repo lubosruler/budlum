@@ -836,6 +836,23 @@ impl NodeConfig {
         }
     }
 
+    pub fn pruning_policy(&self) -> Result<crate::storage::PruningPolicy, String> {
+        let mode = crate::storage::NodeMode::from_role(&self.role)
+            .ok_or_else(|| format!("unknown node role '{}'", self.role))?;
+        Ok(crate::storage::PruningPolicy {
+            mode,
+            pruning_enabled: self.features_pruning,
+            finalized_snapshot_retention: self.snapshot_dir.is_some(),
+            retention_blocks: if self.features_pruning {
+                100_000
+            } else {
+                u64::MAX
+            },
+            backups_enabled: self.backups_enabled == Some(true),
+            backup_dir_configured: self.backup_dir.is_some(),
+        })
+    }
+
     // Strict validation rules for production environments (especially Mainnet profile)
     fn validate_strict_rules(&self) {
         if self.backup_interval_secs == 0 {
@@ -846,20 +863,12 @@ impl NodeConfig {
             eprintln!("CRITICAL CONFIGURATION ERROR: backup_retention_count must be non-zero.");
             std::process::exit(1);
         }
-        let mode = match crate::storage::NodeMode::from_role(&self.role) {
-            Some(mode) => mode,
-            None => {
-                eprintln!("CRITICAL CONFIGURATION ERROR: unknown node role '{}'.", self.role);
+        let pruning_policy = match self.pruning_policy() {
+            Ok(policy) => policy,
+            Err(e) => {
+                eprintln!("CRITICAL CONFIGURATION ERROR: {e}.");
                 std::process::exit(1);
             }
-        };
-        let pruning_policy = crate::storage::PruningPolicy {
-            mode,
-            pruning_enabled: self.features_pruning,
-            finalized_snapshot_retention: self.snapshot_dir.is_some(),
-            retention_blocks: if self.features_pruning { 100_000 } else { u64::MAX },
-            backups_enabled: self.backups_enabled == Some(true),
-            backup_dir_configured: self.backup_dir.is_some(),
         };
         if let Err(e) = pruning_policy.validate() {
             eprintln!("CRITICAL CONFIGURATION ERROR: {e}.");
@@ -1023,6 +1032,31 @@ mod tests {
         let args = vec!["budlum", "--migrate-v2", "./test.db"];
         let cfg = NodeConfig::parse_from(args);
         assert_eq!(cfg.migrate_v2, Some("./test.db".to_string()));
+    }
+
+    #[test]
+    fn phase11_10_cli_pruning_policy_archive_rejects_pruning() {
+        let mut cfg = NodeConfig {
+            role: "archive".into(),
+            features_pruning: true,
+            backups_enabled: Some(true),
+            backup_dir: Some("./backups".into()),
+            ..Default::default()
+        };
+        let policy = cfg.pruning_policy().unwrap();
+        assert!(policy.validate().unwrap_err().contains("archive nodes"));
+
+        cfg.features_pruning = false;
+        assert!(cfg.pruning_policy().unwrap().validate().is_ok());
+    }
+
+    #[test]
+    fn phase11_10_cli_pruning_policy_unknown_role_rejected() {
+        let cfg = NodeConfig {
+            role: "unknown".into(),
+            ..Default::default()
+        };
+        assert!(cfg.pruning_policy().unwrap_err().contains("unknown node role"));
     }
 }
 
