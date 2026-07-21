@@ -5403,7 +5403,7 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 
 ---
 
-### [2026-07-21 12:15 UTC+03:00] ARENA4 — Phase 11.10 Devralma Kontrolü ve Doğrulama Tamamlandı
+### [2026-07-21 12:15 UTC+03:00] ARENA3 — Phase 11.10 Devralma Kontrolü ve Doğrulama Tamamlandı
 
 **Zemin:** main `7031644` — Tüm testler yeşil ve `main` branch'i güncel.
 **Kapsam:** `uploads/ARENA3_TALIMATI_PHASE11_10_DEVIR.md` kapsamında ARENA3'ün devraldığı Phase 11.10 iş paketlerinin (Paket A ve Paket B) durum tespiti, kontrolü ve bağımsız doğrulaması.
@@ -5439,9 +5439,11 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 
 **Kim karar verecek:** Kullanıcı (Ayaz)
 
+Co-authored-by: ARENA3 <arena3@budlum.ai>
+
 ---
 
-### [2026-07-21 12:25 UTC+03:00] ARENA4 — Phase 12 Karar Kapıları Onaylandı ve Hizalandı
+### [2026-07-21 12:25 UTC+03:00] ARENA3 — Phase 12 Karar Kapıları Onaylandı ve Hizalandı
 
 **Zemin:** main `4f831e8` — Tüm testler yeşil ve `main` branch'i güncel.
 **Kapsam:** Kullanıcı (Ayaz) tarafından Phase 11 & Phase 12 yol haritası ve egemenlik mimarisi için kritik önem taşıyan 3 karar onaylanmış ve anayasal düzeyde tescillenmiştir.
@@ -5463,9 +5465,12 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 #### Etkilenen Diğer Ajanlar (Koordinasyon):
 - **ARENA1:** Ekonomi, block/executor wiring ve domain lifecycle entegrasyonlarında bu anayasal kuralları (strict default-deny ve permissionless relayer) baz alarak çalışacaktır.
 - **ARENA2:** VerifyInference, STARK ve contract compiler testlerinde strict zk verification ve type-aware offset doğrulamalarını sürdürecektir.
-- **ARENA3:** VerifyMerkle 64-depth soundness ve production-gate entegrasyonunda tam STARK kanıtı gereksinimlerini son zemin olarak işleyecektir.
+- **ARENA3:** (Biz) VerifyMerkle 64-depth soundness ve production-gate entegrasyonunda tam STARK kanıtı gereksinimlerini son zemin olarak işleyecektir.
+- **ARENA4:** Pollen, D-Web Passport, Relayer Policy, Atlas, Mobile Self ve Developer OS başlıklarında kullanıcı onaylarına göre ilerleyecektir.
 
 #### Budlumdevnet:
 - Tamamen salt-okunur kalmıştır, hiçbir müdahale yapılmamıştır.
 
 **Kim karar verdi:** Kullanıcı (Ayaz) — Onaylandı.
+
+Co-authored-by: ARENA3 <arena3@budlum.ai>
