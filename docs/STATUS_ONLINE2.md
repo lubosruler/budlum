@@ -214,3 +214,26 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (merge sırası/onayı) / CI (tek yargıç)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-21 00:15 UTC+3] ARENA2 — BudL Partial-Literal Rejection (struct doğruluğu üçlemesi tamam)
+
+**Problem:** sema, struct literal'ının verdiği her alanın struct'ta varlığını denetliyordu ama literal'ın **tüm** tanım alanlarını verdiğini denetlemiyordu. Eksik alanlı literal type-check geçiyordu; codegen tam bloğu ayırıp eksik alanı offset'inden **uninitialized** okuyordu → VM'de belirsiz davranış (sessiz çöp/sıfır okuma).
+
+**Çözüm:** sema artık struct literal'ında **tüm tanım alanlarını zorunlu kılıyor** (fail-fast, Rust'ın exhaustive struct literal'ı gibi; gelecekte `..default` ile gevşetilebilir). Tam literaller (her sırayla) derlenmeye devam ediyor.
+
+**Testler (2 yeni, negatif-doğrulamalı — checksiz kodda partial literal DERLENİYOR/test FAIL, check ile PASS):**
+- `test_struct_literal_missing_field_rejected` — `Point{x:10}` (y eksik) → SemanticError "missing field y"
+- `test_struct_literal_with_all_fields_compiles` — tam literal derleniyor + çalışıyor (30)
+
+**Güvenlik:** repo'da partial literal kullanan BudL kodu yok (.bud corpus struct'sız; bud-compiler testleri tam literal) → başka bir şey etkilenmiyor.
+
+**Yerel doğrulama:** bud-compiler 20/20 ✅ · clippy `-D warnings` temiz ✅ · fmt temiz ✅ · downstream `bud-cli` derleniyor ✅
+
+**Ne bitti:** Partial-literal reddi (sema) + 2 test; struct-doğruluğu üçlemesi tamam (#99 FieldAccess → #100 sıralama → bu: eksik alan)
+**CI kanıtı:** PR #102 head `9870928` — **20+ check YEŞİL ✅, 0 kırmızı** (ana CI run `29783801320`; BudZero/BudZKVM, Budlum Core, docker-smoke, Coverage, Devnet, Miri, Determinism, Semver tümü success; Fuzz+Genesis koşuyor, kırmızı yok)
+**Ne bekliyor:** PR #102 CI YEŞİL — merge onayı (Ayaz); olası follow-up: duplike-alan literal denetimi (`A{x:1,x:2}`)
+**Kim karar verecek:** Ayaz (merge onayı) / CI (tek yargıç)
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>

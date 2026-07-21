@@ -294,6 +294,23 @@ impl SemanticAnalyzer {
                             )));
                         }
                     }
+                    // Reject partial literals: every declared field must
+                    // be initialized. A field left out would be read as
+                    // uninitialized memory at its (declared) offset —
+                    // undefined behavior in the VM — so we fail at compile
+                    // time instead. Fail-fast keeps ZK contracts total:
+                    // a struct value always carries a defined value for
+                    // every field (mirrors Rust's exhaustive struct
+                    // literals; a future `..default` could relax this
+                    // explicitly).
+                    for fname in sfields.keys() {
+                        if !fields.iter().any(|(provided, _)| provided == fname) {
+                            errors.push(CompileError::SemanticError(format!(
+                                "Struct {} literal is missing field {}",
+                                name, fname
+                            )));
+                        }
+                    }
                     Type::Struct(name.clone())
                 } else {
                     errors.push(CompileError::SemanticError(format!(

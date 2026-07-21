@@ -604,4 +604,65 @@ mod tests {
         // r.b must be 2 (declared offset 8); a + b + c = 1 + 2 + 3 = 6.
         assert_eq!(vm.events, vec![2, 6]);
     }
+
+    // === PARTIAL LITERAL REJECTION =============================================
+
+    /// A struct literal that omits a declared field is rejected at compile
+    /// time. Leaving a field uninitialized would read undefined memory at
+    /// its (declared) offset in the VM, so sema requires every field —
+    /// fail-fast, mirroring Rust's exhaustive struct literals.
+    #[test]
+    fn test_struct_literal_missing_field_rejected() {
+        let source = r#"
+            contract PartialLiteral {
+                struct Point {
+                    x: u64,
+                    y: u64,
+                }
+
+                pub fn main() {
+                    // `y` is missing.
+                    let p = Point { x: 10 };
+                    emit Result(p.x);
+                }
+            }
+        "#;
+
+        let res = compile(source, IsaProfile::Production);
+        assert!(res.is_err(), "partial struct literal must be rejected");
+        match res.unwrap_err() {
+            CompileError::SemanticError(msg) => {
+                assert!(
+                    msg.contains("missing field") && msg.contains('y'),
+                    "error should name the missing field, got: {msg}"
+                );
+            }
+            other => panic!("expected SemanticError, got: {other:?}"),
+        }
+    }
+
+    /// A struct literal providing every declared field still compiles and
+    /// runs — the exhaustiveness check rejects only *partial* literals.
+    #[test]
+    fn test_struct_literal_with_all_fields_compiles() {
+        let source = r#"
+            contract FullLiteral {
+                struct Point {
+                    x: u64,
+                    y: u64,
+                }
+
+                pub fn main() {
+                    let p = Point { x: 10, y: 20 };
+                    emit Result(p.x + p.y);
+                }
+            }
+        "#;
+
+        let bytecode =
+            compile(source, IsaProfile::Production).expect("complete literal must compile");
+        let mut vm = bud_vm::Vm::new(8192);
+        vm.run(&bytecode).expect("VM should run");
+        assert_eq!(vm.events, vec![30]);
+    }
 }
