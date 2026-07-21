@@ -846,15 +846,24 @@ impl NodeConfig {
             eprintln!("CRITICAL CONFIGURATION ERROR: backup_retention_count must be non-zero.");
             std::process::exit(1);
         }
-        if self.role == "archive" {
-            if self.features_pruning {
-                eprintln!("CRITICAL CONFIGURATION ERROR: archive nodes may not enable pruning.");
+        let mode = match crate::storage::NodeMode::from_role(&self.role) {
+            Some(mode) => mode,
+            None => {
+                eprintln!("CRITICAL CONFIGURATION ERROR: unknown node role '{}'.", self.role);
                 std::process::exit(1);
             }
-            if self.backups_enabled != Some(true) || self.backup_dir.is_none() {
-                eprintln!("CRITICAL CONFIGURATION ERROR: archive nodes require backups_enabled=true and backup_dir.");
-                std::process::exit(1);
-            }
+        };
+        let pruning_policy = crate::storage::PruningPolicy {
+            mode,
+            pruning_enabled: self.features_pruning,
+            finalized_snapshot_retention: self.snapshot_dir.is_some(),
+            retention_blocks: if self.features_pruning { 100_000 } else { u64::MAX },
+            backups_enabled: self.backups_enabled == Some(true),
+            backup_dir_configured: self.backup_dir.is_some(),
+        };
+        if let Err(e) = pruning_policy.validate() {
+            eprintln!("CRITICAL CONFIGURATION ERROR: {e}.");
+            std::process::exit(1);
         }
 
         if let Some(chain_id) = self.chain_id {
