@@ -5553,3 +5553,18 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 12:32 UTC+03:00] ARENA1 — Phase 11.14 ADIM 4 PUSH HAZIR: wallet recovery proposal primitive
+
+**Kapsam:** Wallet-core social recovery akışında proposal/digest/timelock katmanı eklendi.
+**Ne eklendi:** `RecoveryProposal`, eski/yeni owner public key ve address binding, `created_block`, `executable_after`, domain-separated `BUDLUM_WALLET_RECOVERY_PROPOSAL_V1` digest, guardian approval verification helper ve timelock executable guard.
+**Regresyon kilitleri:** `phase11_14_recovery_proposal_sets_timelock_and_addresses`, `phase11_14_recovery_proposal_digest_binds_target_and_timelock`, `phase11_14_recovery_proposal_requires_quorum_and_timelock`, `phase11_14_recovery_proposal_rejects_same_owner_or_overflow`.
+**Güvenlik sınırı:** Pure wallet primitive; chain state mutation, relayer/stake/whitelist kodu yok.
+**Lokal doğrulama:** `git diff --check` ✅ ve statik wallet-core taraması ✅. Rust toolchain sandbox'ta yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + `Wallet Core (Phase 11.14)` ve ana CI pipeline takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>

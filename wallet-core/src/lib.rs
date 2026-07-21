@@ -35,6 +35,8 @@ pub enum WalletError {
     InvalidMultisigPolicy(String),
     /// Geçersiz social recovery policy.
     InvalidRecoveryPolicy(String),
+    /// Geçersiz social recovery proposal.
+    InvalidRecoveryProposal(String),
 }
 
 impl std::fmt::Display for WalletError {
@@ -45,6 +47,9 @@ impl std::fmt::Display for WalletError {
             WalletError::InvalidSeed => write!(f, "invalid seed"),
             WalletError::InvalidMultisigPolicy(m) => write!(f, "invalid multisig policy: {m}"),
             WalletError::InvalidRecoveryPolicy(m) => write!(f, "invalid recovery policy: {m}"),
+            WalletError::InvalidRecoveryProposal(m) => {
+                write!(f, "invalid recovery proposal: {m}")
+            }
         }
     }
 }
@@ -82,6 +87,82 @@ pub struct SocialRecoveryPolicy {
 pub struct GuardianApproval {
     pub public_key: [u8; 32],
     pub signature: [u8; 64],
+}
+
+/// Immutable social recovery proposal bound to the old and new owner keys.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecoveryProposal {
+    pub current_owner: [u8; 32],
+    pub current_address: BudlumAddress,
+    pub new_owner: [u8; 32],
+    pub new_address: BudlumAddress,
+    pub created_block: u64,
+    pub executable_after: u64,
+}
+
+impl RecoveryProposal {
+    pub fn new(
+        current_owner: [u8; 32],
+        new_owner: [u8; 32],
+        policy: &SocialRecoveryPolicy,
+        created_block: u64,
+    ) -> Result<Self, WalletError> {
+        if current_owner == new_owner {
+            return Err(WalletError::InvalidRecoveryProposal(
+                "new owner must differ from current owner".into(),
+            ));
+        }
+        let executable_after = created_block
+            .checked_add(policy.timelock_blocks)
+            .ok_or_else(|| WalletError::InvalidRecoveryProposal("timelock overflow".into()))?;
+        Ok(Self {
+            current_address: Wallet::address_from_public_key(&current_owner),
+            new_address: Wallet::address_from_public_key(&new_owner),
+            current_owner,
+            new_owner,
+            created_block,
+            executable_after,
+        })
+    }
+
+    /// Domain-separated digest guardians must sign for this proposal.
+    #[must_use]
+    pub fn digest(&self) -> [u8; 32] {
+        let mut hasher = Sha3_256::new();
+        hasher.update(b"BUDLUM_WALLET_RECOVERY_PROPOSAL_V1");
+        hasher.update(&self.current_owner);
+        hasher.update(&self.current_address);
+        hasher.update(&self.new_owner);
+        hasher.update(&self.new_address);
+        hasher.update(&self.created_block.to_be_bytes());
+        hasher.update(&self.executable_after.to_be_bytes());
+        hasher.finalize().into()
+    }
+
+    #[must_use]
+    pub fn is_timelock_satisfied(&self, current_block: u64) -> bool {
+        current_block >= self.executable_after
+    }
+
+    #[must_use]
+    pub fn verify_guardian_approvals(
+        &self,
+        policy: &SocialRecoveryPolicy,
+        approvals: &[GuardianApproval],
+    ) -> bool {
+        policy.verify_recovery_threshold(&self.digest(), approvals)
+    }
+
+    #[must_use]
+    pub fn is_executable(
+        &self,
+        policy: &SocialRecoveryPolicy,
+        approvals: &[GuardianApproval],
+        current_block: u64,
+    ) -> bool {
+        self.is_timelock_satisfied(current_block)
+            && self.verify_guardian_approvals(policy, approvals)
+    }
 }
 
 impl SocialRecoveryPolicy {
@@ -293,14 +374,20 @@ impl Wallet {
         self.signing_key.verifying_key().to_bytes()
     }
 
+    /// Budlum Address hesapla (Ed25519 pubkey → SHA3-256 → 32 byte).
+    #[must_use]
+    pub fn address_from_public_key(public_key: &[u8; 32]) -> BudlumAddress {
+        let mut hasher = Sha3_256::new();
+        hasher.update(b"BUDLUM_ADDRESS_V1");
+        hasher.update(public_key);
+        hasher.finalize().into()
+    }
+
     /// Budlum Address (Ed25519 pubkey → SHA3-256 → 32 byte).
     #[must_use]
     pub fn address(&self) -> BudlumAddress {
         let pubkey = self.public_key();
-        let mut hasher = Sha3_256::new();
-        hasher.update(b"BUDLUM_ADDRESS_V1");
-        hasher.update(&pubkey);
-        hasher.finalize().into()
+        Self::address_from_public_key(&pubkey)
     }
 
     /// Budlum Address hex string olarak.
@@ -595,5 +682,113 @@ mod tests {
             },
         ];
         assert!(!policy.verify_recovery_threshold(digest, &approvals));
+    }
+
+    #[test]
+    fn phase11_14_recovery_proposal_sets_timelock_and_addresses() {
+        let owner = Wallet::from_entropy(&[7u8; 16]).unwrap();
+        let new_owner = Wallet::from_entropy(&[8u8; 16]).unwrap();
+        let guardian = Wallet::from_entropy(&[1u8; 16]).unwrap();
+        let policy = SocialRecoveryPolicy::new(vec![guardian.public_key()], 1, 100).unwrap();
+        let proposal =
+            RecoveryProposal::new(owner.public_key(), new_owner.public_key(), &policy, 1_000)
+                .unwrap();
+
+        assert_eq!(proposal.current_address, owner.address());
+        assert_eq!(proposal.new_address, new_owner.address());
+        assert_eq!(proposal.created_block, 1_000);
+        assert_eq!(proposal.executable_after, 1_100);
+        assert!(!proposal.is_timelock_satisfied(1_099));
+        assert!(proposal.is_timelock_satisfied(1_100));
+    }
+
+    #[test]
+    fn phase11_14_recovery_proposal_digest_binds_target_and_timelock() {
+        let owner = Wallet::from_entropy(&[7u8; 16]).unwrap();
+        let new_owner = Wallet::from_entropy(&[8u8; 16]).unwrap();
+        let other_new_owner = Wallet::from_entropy(&[9u8; 16]).unwrap();
+        let guardian = Wallet::from_entropy(&[1u8; 16]).unwrap();
+        let policy = SocialRecoveryPolicy::new(vec![guardian.public_key()], 1, 100).unwrap();
+        let proposal =
+            RecoveryProposal::new(owner.public_key(), new_owner.public_key(), &policy, 1_000)
+                .unwrap();
+        let changed_target = RecoveryProposal::new(
+            owner.public_key(),
+            other_new_owner.public_key(),
+            &policy,
+            1_000,
+        )
+        .unwrap();
+        let mut changed_timelock = proposal.clone();
+        changed_timelock.executable_after += 1;
+
+        assert_ne!(proposal.digest(), changed_target.digest());
+        assert_ne!(proposal.digest(), changed_timelock.digest());
+    }
+
+    #[test]
+    fn phase11_14_recovery_proposal_requires_quorum_and_timelock() {
+        let owner = Wallet::from_entropy(&[7u8; 16]).unwrap();
+        let new_owner = Wallet::from_entropy(&[8u8; 16]).unwrap();
+        let g1 = Wallet::from_entropy(&[1u8; 16]).unwrap();
+        let g2 = Wallet::from_entropy(&[2u8; 16]).unwrap();
+        let g3 = Wallet::from_entropy(&[3u8; 16]).unwrap();
+        let policy = SocialRecoveryPolicy::new(
+            vec![g1.public_key(), g2.public_key(), g3.public_key()],
+            2,
+            100,
+        )
+        .unwrap();
+        let proposal =
+            RecoveryProposal::new(owner.public_key(), new_owner.public_key(), &policy, 1_000)
+                .unwrap();
+        let digest = proposal.digest();
+        let one = [GuardianApproval {
+            public_key: g1.public_key(),
+            signature: g1.sign(&digest),
+        }];
+        let quorum = [
+            GuardianApproval {
+                public_key: g1.public_key(),
+                signature: g1.sign(&digest),
+            },
+            GuardianApproval {
+                public_key: g2.public_key(),
+                signature: g2.sign(&digest),
+            },
+        ];
+        let wrong_digest = [
+            GuardianApproval {
+                public_key: g1.public_key(),
+                signature: g1.sign(b"wrong recovery digest"),
+            },
+            GuardianApproval {
+                public_key: g2.public_key(),
+                signature: g2.sign(&digest),
+            },
+        ];
+
+        assert!(!proposal.verify_guardian_approvals(&policy, &one));
+        assert!(!proposal.verify_guardian_approvals(&policy, &wrong_digest));
+        assert!(proposal.verify_guardian_approvals(&policy, &quorum));
+        assert!(!proposal.is_executable(&policy, &quorum, 1_099));
+        assert!(proposal.is_executable(&policy, &quorum, 1_100));
+    }
+
+    #[test]
+    fn phase11_14_recovery_proposal_rejects_same_owner_or_overflow() {
+        let owner = Wallet::from_entropy(&[7u8; 16]).unwrap();
+        let new_owner = Wallet::from_entropy(&[8u8; 16]).unwrap();
+        let guardian = Wallet::from_entropy(&[1u8; 16]).unwrap();
+        let policy = SocialRecoveryPolicy::new(vec![guardian.public_key()], 1, 100).unwrap();
+        assert!(RecoveryProposal::new(owner.public_key(), owner.public_key(), &policy, 1_000)
+            .is_err());
+        assert!(RecoveryProposal::new(
+            owner.public_key(),
+            new_owner.public_key(),
+            &policy,
+            u64::MAX,
+        )
+        .is_err());
     }
 }
