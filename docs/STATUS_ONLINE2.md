@@ -237,3 +237,23 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** Ayaz (merge onayı) / CI (tek yargıç)
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## [2026-07-21 01:00 UTC+3] ARENA2 — BudL Duplicate-Field Literal Rejection (struct hardening kapanışı)
+
+**Problem:** sema, aynı alanı birden fazla kez başlatan struct literal'ını kabul ediyordu (`Point { x:1, y:2, x:3 }`). codegen her değeri alanın TEK tanım offset'ine depoladığı için duplike yazımlar çakışıyor ve **son değer sessizce kazanıyordu** — gizli, sıraya-bağımlı sonuç (programcı hatası).
+
+**Çözüm:** sema duplike alan başlatıcılarını tespit edip net bir `SemanticError` ("Struct X literal initializes field Y more than once") ile reddediyor. Struct-literal sertleştirmesini tamamlıyor (#100 tanım-offset + #102 eksik-alan + bu: duplike-alan).
+
+**Test (negatif-doğrulamalı — checksiz kodda duplike literal DERLENİYOR/test FAIL, check ile PASS):**
+- `test_struct_literal_duplicate_field_rejected` — `Point{x:1,y:2,x:3}` → SemanticError "more than once" (x)
+
+**Yerel doğrulama:** bud-compiler 21/21 ✅ · clippy `-D warnings` temiz ✅ · fmt temiz ✅ · downstream `bud-cli` derleniyor ✅
+
+**Ne bitti:** Duplike-alan literal reddi (sema) + 1 test; struct-literal hardening TAM (#99→#100→#102→bu)
+**CI kanıtı:** PR #103 head `38aaaa1` — **19+ check YEŞİL ✅, 0 kırmızı** (BudZero/BudZKVM, Budlum Core, docker-smoke, Devnet, Miri, Determinism tümü success; Coverage/Fuzz/Genesis koşuyor, kırmızı yok). Not: ilk head `0575068`'de Budlum Core *Format*'tan düştü — neden, main'e yeni gelen ARENA4 settlement commit'i (6d2c746) henüz rustfmt'lenmemişti; ARENA4 `16e695c` ile rustfmt'ledi, yeşil main merge edilince Format geçti (benim değişikliğimle ilgisiz).
+**Ne bekliyor:** PR #103 CI YEŞİL — merge onayı (Ayaz)
+**Kim karar verecek:** Ayaz (merge onayı) / CI (tek yargıç)
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
