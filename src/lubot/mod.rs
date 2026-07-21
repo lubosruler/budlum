@@ -15,6 +15,8 @@ use crate::ai::AiRegistry;
 use crate::core::address::Address;
 use crate::pollen::data_rights::{AccessGrant, AccessGrantStatus};
 
+pub mod inference;
+
 // ============================================================
 // Operator (validator hardening: ayrı compute-bond rolü)
 // ============================================================
