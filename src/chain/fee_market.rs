@@ -275,6 +275,19 @@ mod tests {
     }
 
     #[test]
+    fn phase11_8_fee_distribution_large_fee_exercises_treasury() {
+        // Large priority_fee so treasury cut is non-zero (integer floor)
+        let bid = FeeBid {
+            max_fee: 1_000_000,
+            priority_fee: 1_000_000,
+        };
+        let dist = distribute_fee(bid, 10, 1, 10_000).unwrap();
+        assert_eq!(dist.base_fee_burned, 10);
+        assert_eq!(dist.treasury_fee, 10_000); // 1% of 1_000_000
+        assert_eq!(dist.priority_fee_to_proposer, 990_000);
+    }
+
+    #[test]
     fn phase11_8_fee_distribution_full_treasury_rate() {
         let bid = FeeBid {
             max_fee: 15,

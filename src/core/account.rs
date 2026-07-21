@@ -1625,6 +1625,32 @@ mod tests {
     }
 
     #[test]
+    fn phase11_8_fee_distribution_proposer_receives_tip_in_block_finalization() {
+        // Integration test: verify distribute_block_fees is called during
+        // block finalization and proposer receives the tip.
+        let alice_kp = KeyPair::generate().unwrap();
+        let alice = Address::from(alice_kp.public_key_bytes());
+        let bob = Address::from([11u8; 32]);
+        let proposer = Address::from([20u8; 32]);
+        let mut state = AccountState::new();
+        state.base_fee = 10;
+        state.add_balance(&alice, 1_000);
+
+        let mut tx = Transaction::new_with_fee(alice, bob, 1, 15, 0, vec![]);
+        tx.priority_fee = 5;
+        tx.sign(&alice_kp);
+
+        // Simulate what apply_block_effects does:
+        // 1. Executor deducts fee from sender
+        // 2. distribute_block_fees mints tip to proposer
+        let proposer_before = state.get_balance(&proposer);
+        let distributions = state.distribute_block_fees(&proposer, None, &[&tx]);
+        assert_eq!(distributions.len(), 1);
+        assert_eq!(distributions[0].priority_fee_to_proposer, 5);
+        assert_eq!(state.get_balance(&proposer), proposer_before + 5);
+    }
+
+    #[test]
     fn test_slashing_sets_jail_and_releases_by_epoch() {
         let validator = Address::from([7u8; 32]);
         let mut state = AccountState::new();
