@@ -374,6 +374,9 @@ pub enum ChainCommand {
     PollenGetSaleAuthorizations {
         response: oneshot::Sender<Vec<crate::pollen::SaleAuthorization>>,
     },
+    PollenGetPurchaseReceipts {
+        response: oneshot::Sender<Vec<crate::pollen::PollenPurchaseReceipt>>,
+    },
     HubGetApps {
         response: oneshot::Sender<Vec<crate::hub::types::AppRecord>>,
     },
@@ -1788,6 +1791,15 @@ impl ChainHandle {
         rx.await.unwrap_or_default()
     }
 
+    pub async fn pollen_get_purchase_receipts(&self) -> Vec<crate::pollen::PollenPurchaseReceipt> {
+        let (tx, rx) = oneshot::channel();
+        let _ = self
+            .tx
+            .send(ChainCommand::PollenGetPurchaseReceipts { response: tx })
+            .await;
+        rx.await.unwrap_or_default()
+    }
+
     pub async fn hub_get_apps(&self) -> Vec<crate::hub::types::AppRecord> {
         let (tx, rx) = oneshot::channel();
         let _ = self
@@ -2745,6 +2757,17 @@ impl ChainActor {
                         .cloned()
                         .collect();
                     let _ = response.send(authorizations);
+                }
+                ChainCommand::PollenGetPurchaseReceipts { response } => {
+                    let receipts: Vec<_> = self
+                        .blockchain
+                        .state
+                        .marketplace
+                        .purchase_receipts
+                        .values()
+                        .cloned()
+                        .collect();
+                    let _ = response.send(receipts);
                 }
                 ChainCommand::HubGetApps { response } => {
                     let apps: Vec<_> = self.blockchain.state.hub.apps.values().cloned().collect();

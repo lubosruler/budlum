@@ -2348,6 +2348,11 @@ impl BudlumApiServer for RpcServer {
         Ok(serde_json::json!(authorizations))
     }
 
+    async fn pollen_get_purchase_receipts(&self) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let receipts = self.chain.pollen_get_purchase_receipts().await;
+        Ok(serde_json::json!(receipts))
+    }
+
     async fn pollen_build_ai_input_ref(
         &self,
         asset_id: String,
@@ -2420,6 +2425,106 @@ impl BudlumApiServer for RpcServer {
             "signingHash": format!("0x{}", hex::encode(authorization.signing_hash())),
             "unsignedAuthorization": authorization,
             "note": "seller_signature is sentinel until the owner signs this authorization; sentinel signatures are rejected on-chain",
+        }))
+    }
+
+    async fn pollen_prepare_purchase(
+        &self,
+        authorization_id: String,
+        buyer: String,
+        grantee: String,
+        grant_duration_blocks: u64,
+        max_reads: u32,
+        payment_commitment: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        let authorization_id = parse_pollen_asset_id(&authorization_id)?;
+        let payment_commitment = parse_hex32_field(&payment_commitment, "paymentCommitment")?;
+        if payment_commitment == [0u8; 32] {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "payment_commitment cannot be zero",
+                None::<()>,
+            ));
+        }
+        if grant_duration_blocks == 0 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "grant_duration_blocks must be greater than zero",
+                None::<()>,
+            ));
+        }
+        if max_reads == 0 {
+            return Err(ErrorObjectOwned::owned(
+                -32602,
+                "max_reads must be greater than zero",
+                None::<()>,
+            ));
+        }
+
+        let clean_buyer = buyer.strip_prefix("0x").unwrap_or(&buyer);
+        let buyer_addr = Address::from_hex(clean_buyer).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid buyer address: {e}"), None::<()>)
+        })?;
+        let clean_grantee = grantee.strip_prefix("0x").unwrap_or(&grantee);
+        let grantee_addr = Address::from_hex(clean_grantee).map_err(|e| {
+            ErrorObjectOwned::owned(-32602, format!("Invalid grantee address: {e}"), None::<()>)
+        })?;
+
+        let authorizations = self.chain.pollen_get_sale_authorizations().await;
+        let authorization = authorizations
+            .into_iter()
+            .find(|auth| auth.authorization_id == authorization_id)
+            .ok_or_else(|| {
+                ErrorObjectOwned::owned(-32602, "SaleAuthorization not found", None::<()>)
+            })?;
+        let data_assets = self.chain.pollen_get_data_assets().await;
+        let asset = data_assets
+            .into_iter()
+            .find(|asset| asset.asset_id == authorization.asset_id)
+            .ok_or_else(|| {
+                ErrorObjectOwned::owned(-32602, "SaleAuthorization asset not found", None::<()>)
+            })?;
+
+        let current_block = self.chain.get_height().await;
+        let mut registry = crate::pollen::MarketplaceRegistry::new();
+        registry
+            .register_data_asset(asset)
+            .map_err(|e| ErrorObjectOwned::owned(-32602, e, None::<()>))?;
+        registry
+            .create_sale_authorization(authorization)
+            .map_err(|e| ErrorObjectOwned::owned(-32602, e, None::<()>))?;
+        let (grant_id, receipt) = registry
+            .issue_grant_from_sale_authorization(
+                authorization_id,
+                buyer_addr,
+                grantee_addr,
+                current_block,
+                grant_duration_blocks,
+                max_reads,
+                payment_commitment,
+            )
+            .map_err(|e| ErrorObjectOwned::owned(-32602, e, None::<()>))?;
+        let grant = registry
+            .access_grants
+            .get(&grant_id)
+            .cloned()
+            .ok_or_else(|| {
+                ErrorObjectOwned::owned(-32603, "prepared grant missing", None::<()>)
+            })?;
+
+        Ok(serde_json::json!({
+            "authorizationId": authorization_id.to_hex(),
+            "buyer": buyer_addr.to_hex(),
+            "grantee": grantee_addr.to_hex(),
+            "grantId": grant_id.to_hex(),
+            "receiptId": receipt.receipt_id.to_hex(),
+            "paymentCommitment": format!("0x{}", hex::encode(payment_commitment)),
+            "currentBlock": current_block,
+            "grantDurationBlocks": grant_duration_blocks,
+            "maxReads": max_reads,
+            "expectedAccessGrant": grant,
+            "purchaseReceipt": receipt,
+            "note": "prepare-only; no state mutation or LUM/DeFi adapter is executed by this RPC",
         }))
     }
 

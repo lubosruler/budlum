@@ -525,6 +525,10 @@ pub trait BudlumApi {
     #[method(name = "bud_pollenGetSaleAuthorizations")]
     async fn pollen_get_sale_authorizations(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
 
+    /// List Pollen purchase receipts visible in chain state.
+    #[method(name = "bud_pollenGetPurchaseReceipts")]
+    async fn pollen_get_purchase_receipts(&self) -> Result<serde_json::Value, ErrorObjectOwned>;
+
     /// Build canonical AiInferenceRequest.input_ref for Pollen-gated data reads.
     #[method(name = "bud_pollenBuildAiInputRef")]
     async fn pollen_build_ai_input_ref(
@@ -543,6 +547,18 @@ pub trait BudlumApi {
         expires_at_block: u64,
         max_grants: u32,
         terms_hash: String,
+    ) -> Result<serde_json::Value, ErrorObjectOwned>;
+
+    /// Prepare an authorization-backed Pollen purchase without mutating state.
+    #[method(name = "bud_pollenPreparePurchase")]
+    async fn pollen_prepare_purchase(
+        &self,
+        authorization_id: String,
+        buyer: String,
+        grantee: String,
+        grant_duration_blocks: u64,
+        max_reads: u32,
+        payment_commitment: String,
     ) -> Result<serde_json::Value, ErrorObjectOwned>;
 
     // --- B.U.D. Hub ---

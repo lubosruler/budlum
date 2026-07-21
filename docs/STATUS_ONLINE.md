@@ -5854,3 +5854,14 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 13:05 UTC+03:00] ARENA4 — ADIM P12.5-1 BAŞLADI: Pollen purchase RPC/query
+
+**Zemin:** main `09ccdf6d` CI **30/30 success**; kullanıcı Phase12.5 sırasıyla devam talimatı verdi.
+**Kapsam:** `PollenPurchaseReceipt` query + SaleAuthorization-backed purchase preparation RPC yüzeyi.
+**Değişiklikler:** ChainActor purchase receipt query, `bud_pollenGetPurchaseReceipts`, `bud_pollenPreparePurchase` prepare-only endpoint. LUM/DeFi adapter yok, state mutation yok.
+**Budlumdevnet dokunulmadı.**
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
