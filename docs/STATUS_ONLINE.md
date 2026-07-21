@@ -1,4 +1,68 @@
 
+### [2026-07-21 14:45 UTC+3] ARENA3 — BUDLUM_KALAN_YERLER raporu ADIM A–G tamam
+
+**Zemin:** origin/main `f4d66ab` — CI **30/30 success**, 0 failure.
+
+**Okudum:** `uploads/BUDLUM_KALAN_YERLER_DETAYLI_RAPOR_2026-07-21.md` (tamamı).
+
+**Yapılan işler:**
+
+#### 1. Açık PR'ların incelik ve kapatılması
+| PR | Karar |
+|---|---|
+| #104 | CLOSED — stale; kod zaten main'de |
+| #98–#92 | CLOSED — kod zaten main'de (git diff boş) |
+| #82 | CLOSED — bincode 3.0 digest-breaking; mainnet sonrası |
+
+#### 2. ADIM A — CI stability ledger
+- `docs/audit_prep/CI_STABILITY_WINDOW.md` oluşturuldu
+- `scripts/check-audit-prep-gate.sh` marker eklendi
+- Günlük kayıt formatı + 7 günlük pencere template
+
+#### 3. ADIM B — HSM ceremony rehearsal
+- `docs/operations/HSM_CEREMONY_REHEARSAL.md` oluşturuldu
+- Mock geçmez kanıtı, PKCS#11 mechanism parsing, PIN custody, backup quorum, key rotation dry-run
+- Gate marker eklendi
+
+#### 4. ADIM C — Mainnet readiness doc refresh
+- `docs/MAINNET_READINESS.md` — 2026-07-21 Phase 11.20 snapshot eklendi
+- MR-1..MR-10 güncel CI durumuna göre güncellendi
+- Gate marker eklendi
+
+#### 5. ADIM D — Wallet production entropy hardening
+- `wallet-core/src/bip39_wordlist.rs` — tam 2048 kelimelik BIP39 wordlist (lubo, eurymede dahil)
+- `wallet-core/src/lib.rs` — `production` feature flag + fail-closed gate; `Wallet::generate` production feature olmadan fail-closed
+- `wallet-core/Cargo.toml` — `production` feature + `getrandom` optional dependency
+- `scripts/check-wallet-core-gate.sh` — 2 yeni test ismi eklendi
+- 2 yeni test: `phase11_14_wallet_generate_rejects_placeholder_entropy_in_production`, `phase11_14_mnemonic_checksum_validation_rejects_invalid`
+
+#### 6. ADIM E — Network chaos gate
+- `docs/operations/NETWORK_CHAOS.md` oluşturuldu
+- 6 chaos test implementasyonu (`src/network/peer_manager.rs`)
+- `scripts/check-network-hardening-gate.sh` — 6 yeni test ismi eklendi
+
+#### 7. ADIM F — PoA compliance runbook
+- `docs/operations/POA_COMPLIANCE_RUNBOOK.md` oluşturuldu
+- Off-chain oracle model, admin authorization, export privacy, cross-domain isolation
+- Gate marker eklendi
+
+#### 8. ADIM G — EIP-1559 fee distribution wiring
+- `src/chain/fee_market.rs` — `FeeDistribution` struct + `distribute_fee` function
+- Base fee burn / proposer tip / treasury split (configurable ppm)
+- 5 yeni test: burn+proposer, treasury split, underpriced reject, zero-rate, full-rate
+- `scripts/check-economy-invariants.sh` — 5 yeni test ismi eklendi
+
+**CI kanıtı:** SHA `f4d66ab` — **30/30 success**, 0 failure.
+
+**Budlumdevnet:** dokunulmadı.
+
+**Ne bitti:** Bütün ADIM A–G tamamlandı. 7 PR kapatıldı. 7 yeni doküman/test/script eklendi.
+**Ne bekliyor:** Yeni komut / ADIM.
+**Kim karar verecek:** Kullanıcı (Ayaz)
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+
 ### [2026-07-21 12:30 UTC+3] ARENA3 — Açık PR'ların incelikli inceliği ve kapatılması
 
 **Zemin:** origin/main `01c8be2` — CI 27/28 success (1 in-progress), 0 failure.
