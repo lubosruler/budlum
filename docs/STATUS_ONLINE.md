@@ -5582,3 +5582,18 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 12:43 UTC+03:00] ARENA1 — Phase 11.14 ADIM 6 PUSH HAZIR: guardian rotation safety
+
+**Kapsam:** Social recovery kabul kriterindeki guardian rotation ve compromise senaryosu wallet-core seviyesinde kilitlendi.
+**Ne eklendi:** `SocialRecoveryPolicy::guardian_count`, `rotate_guardian`, `remove_guardian`; duplicate/unknown/same-guardian hata yolları ve threshold korunumu.
+**Regresyon kilitleri:** `phase11_14_social_recovery_rotates_compromised_guardian`, `phase11_14_social_recovery_removal_preserves_threshold_safety`.
+**CI kapısı:** `scripts/check-wallet-core-gate.sh` artık 13 adet Phase 11.14 test adını zorunlu kılıyor.
+**Lokal doğrulama:** `bash ./scripts/check-wallet-core-gate.sh --self-test` ✅, `git diff --check` ✅ ve statik wallet-core taraması ✅. Rust toolchain sandbox'ta yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + ana CI pipeline takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>

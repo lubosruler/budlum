@@ -213,6 +213,56 @@ impl SocialRecoveryPolicy {
         }
         seen.len() >= self.threshold
     }
+
+    #[must_use]
+    pub fn guardian_count(&self) -> usize {
+        self.guardians.len()
+    }
+
+    pub fn rotate_guardian(
+        &self,
+        old_guardian: [u8; 32],
+        new_guardian: [u8; 32],
+    ) -> Result<Self, WalletError> {
+        if old_guardian == new_guardian {
+            return Err(WalletError::InvalidRecoveryPolicy(
+                "new guardian must differ from old guardian".into(),
+            ));
+        }
+        if !self.guardians.contains(&old_guardian) {
+            return Err(WalletError::InvalidRecoveryPolicy(
+                "old guardian is not in policy".into(),
+            ));
+        }
+        if self.guardians.contains(&new_guardian) {
+            return Err(WalletError::InvalidRecoveryPolicy(
+                "new guardian already exists in policy".into(),
+            ));
+        }
+        let mut guardians = self.guardians.clone();
+        for guardian in &mut guardians {
+            if *guardian == old_guardian {
+                *guardian = new_guardian;
+                break;
+            }
+        }
+        Self::new(guardians, self.threshold, self.timelock_blocks)
+    }
+
+    pub fn remove_guardian(&self, guardian: [u8; 32]) -> Result<Self, WalletError> {
+        if !self.guardians.contains(&guardian) {
+            return Err(WalletError::InvalidRecoveryPolicy(
+                "guardian is not in policy".into(),
+            ));
+        }
+        let guardians = self
+            .guardians
+            .iter()
+            .copied()
+            .filter(|existing| *existing != guardian)
+            .collect::<Vec<_>>();
+        Self::new(guardians, self.threshold, self.timelock_blocks)
+    }
 }
 
 /// Budlum wallet: BIP39 mnemonic → SLIP-0010 Ed25519 → Address + Signing.
@@ -682,6 +732,77 @@ mod tests {
             },
         ];
         assert!(!policy.verify_recovery_threshold(digest, &approvals));
+    }
+
+    #[test]
+    fn phase11_14_social_recovery_rotates_compromised_guardian() {
+        let g1 = Wallet::from_entropy(&[1u8; 16]).unwrap();
+        let g2 = Wallet::from_entropy(&[2u8; 16]).unwrap();
+        let g3 = Wallet::from_entropy(&[3u8; 16]).unwrap();
+        let replacement = Wallet::from_entropy(&[4u8; 16]).unwrap();
+        let owner = Wallet::from_entropy(&[7u8; 16]).unwrap();
+        let new_owner = Wallet::from_entropy(&[8u8; 16]).unwrap();
+        let policy = SocialRecoveryPolicy::new(
+            vec![g1.public_key(), g2.public_key(), g3.public_key()],
+            2,
+            100,
+        )
+        .unwrap();
+        let rotated = policy
+            .rotate_guardian(g1.public_key(), replacement.public_key())
+            .unwrap();
+        assert_eq!(rotated.guardian_count(), 3);
+        assert!(!rotated.guardians.contains(&g1.public_key()));
+        assert!(rotated.guardians.contains(&replacement.public_key()));
+
+        let proposal =
+            RecoveryProposal::new(owner.public_key(), new_owner.public_key(), &rotated, 1_000)
+                .unwrap();
+        let digest = proposal.digest();
+        let compromised_quorum = [
+            GuardianApproval {
+                public_key: g1.public_key(),
+                signature: g1.sign(&digest),
+            },
+            GuardianApproval {
+                public_key: g2.public_key(),
+                signature: g2.sign(&digest),
+            },
+        ];
+        let rotated_quorum = [
+            GuardianApproval {
+                public_key: replacement.public_key(),
+                signature: replacement.sign(&digest),
+            },
+            GuardianApproval {
+                public_key: g2.public_key(),
+                signature: g2.sign(&digest),
+            },
+        ];
+        assert!(!proposal.verify_guardian_approvals(&rotated, &compromised_quorum));
+        assert!(proposal.verify_guardian_approvals(&rotated, &rotated_quorum));
+    }
+
+    #[test]
+    fn phase11_14_social_recovery_removal_preserves_threshold_safety() {
+        let g1 = Wallet::from_entropy(&[1u8; 16]).unwrap();
+        let g2 = Wallet::from_entropy(&[2u8; 16]).unwrap();
+        let g3 = Wallet::from_entropy(&[3u8; 16]).unwrap();
+        let unknown = Wallet::from_entropy(&[9u8; 16]).unwrap();
+        let policy = SocialRecoveryPolicy::new(
+            vec![g1.public_key(), g2.public_key(), g3.public_key()],
+            2,
+            100,
+        )
+        .unwrap();
+        let reduced = policy.remove_guardian(g3.public_key()).unwrap();
+        assert_eq!(reduced.guardian_count(), 2);
+        assert_eq!(reduced.threshold, 2);
+        assert!(reduced.remove_guardian(g2.public_key()).is_err());
+        assert!(reduced.remove_guardian(unknown.public_key()).is_err());
+        assert!(reduced
+            .rotate_guardian(g1.public_key(), g2.public_key())
+            .is_err());
     }
 
     #[test]
