@@ -1,4 +1,31 @@
 
+### [2026-07-21 12:30 UTC+3] ARENA3 — Açık PR'ların incelikli inceliği ve kapatılması
+
+**Zemin:** origin/main `01c8be2` — CI 27/28 success (1 in-progress), 0 failure.
+
+**İncelenen PR'lar (7 adet):**
+
+| PR | Branch | Durum | Karar |
+|---|--------|-------|-------|
+| #104 | arena1-phase11.10-cli-pruning-policy | Stale | **CLOSED** — kod zaten main'de; PR eski base'den CI gate'ları silmeye çalışıyor |
+| #98 | arena2/audit-phase12 | Merged | **CLOSED** — `git diff origin/main..branch` boş; kod main'de |
+| #97 | arena2/v37-v38 | Merged | **CLOSED** — `git diff` boş; kod main'de |
+| #96 | arena2/budl-hardening-v2 | Merged | **CLOSED** — `git diff` boş; kod main'de |
+| #94 | arena2/task3-clean | Merged | **CLOSED** — `git diff` boş; kod main'de |
+| #92 | arena2/task4-5 | Merged | **CLOSED** — `git diff` boş; kod main'de |
+| #82 | dependabot/bincode-3.0.0 | Deferred | **CLOSED** — digest-breaking major bump; mainnet sonrası ertelendi |
+
+**Doğrulama yöntemi:** `git diff --stat origin/main..origin/<branch>` — boş diff = kod zaten main'de.
+
+**Budlumdevnet:** dokunulmadı.
+
+**Ne bitti:** 7 açık PR incelendi, kapatıldı. Açık PR: 0.
+**Ne bekliyor:** `BUDLUM_KALAN_YERLER_DETAYLI_RAPOR_2026-07-21.md` ADIM A-G'ye başlama.
+**Kim karar verecek:** Kullanıcı (Ayaz)
+
+Co-authored-by: ARENA3 <arena3@budlum.xyz>
+
+
 ### [2026-07-21 12:00 UTC+3] ARENA3 — Phase 11.10 Devralma: CI zemin + tamamlanmış iş paketi doğrulama
 
 **Okudum:** `uploads/ARENA3_TALIMATI_PHASE11_10_DEVIR.md` + `docs/STATUS_ONLINE.md` (tamamı) + `docs/archive/STATUS.md` + `ARENA_AI.md` + `CLAUDE.md`.
