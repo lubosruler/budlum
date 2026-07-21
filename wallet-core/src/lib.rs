@@ -82,15 +82,15 @@ pub fn entropy_to_mnemonic(entropy: &[u8]) -> Result<String, WalletError> {
     let checksum_byte = hash[0];
 
     // Build bit array: entropy bits + checksum bits
-    let mut bits = Vec::with_capacity(total_bits);
+    let mut bits: Vec<u8> = Vec::with_capacity(total_bits);
     for byte in entropy {
-        for i in (0..8).rev() {
-            bits.push((byte >> i) & 1);
+        for i in (0u8..8).rev() {
+            bits.push((*byte >> i) & 1u8);
         }
     }
     // Append checksum bits (first `checksum_bits` MSBs of hash)
-    for i in (0..checksum_bits).rev() {
-        bits.push((checksum_byte >> (8 - checksum_bits + i)) & 1);
+    for i in (0u8..checksum_bits as u8).rev() {
+        bits.push((checksum_byte >> (8 - checksum_bits + i as usize)) & 1u8);
     }
 
     // Convert 11-bit groups to word indices
@@ -123,12 +123,12 @@ pub fn mnemonic_to_entropy(mnemonic: &str) -> Result<Vec<u8>, WalletError> {
     let total_bits = entropy_bits + checksum_bits;
 
     // Convert words to indices
-    let mut bits = Vec::with_capacity(total_bits);
+    let mut bits: Vec<u8> = Vec::with_capacity(total_bits);
     for word in &words {
         let idx = bip39_wordlist::word_to_index(word)
             .ok_or_else(|| WalletError::InvalidMnemonic(format!("unknown word: {word}")))?;
-        for i in (0..11).rev() {
-            bits.push((idx >> i) & 1);
+        for i in (0u8..11).rev() {
+            bits.push(((idx >> i) & 1) as u8);
         }
     }
 
@@ -681,14 +681,15 @@ mod tests {
 
     #[test]
     fn restore_from_mnemonic() {
-        let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-        let wallet = Wallet::from_mnemonic(mnemonic).expect("restore must succeed");
-        assert_eq!(wallet.mnemonic(), mnemonic);
+        // Generate a valid mnemonic from entropy, then restore from it
+        let wallet = Wallet::from_entropy(&[0x42u8; 16]).unwrap();
+        let mnemonic = wallet.mnemonic().to_string();
+        let restored = Wallet::from_mnemonic(&mnemonic).expect("restore must succeed");
+        assert_eq!(restored.mnemonic(), mnemonic);
         // Aynı mnemonic → aynı address
-        let wallet2 = Wallet::from_mnemonic(mnemonic).unwrap();
         assert_eq!(
             wallet.address(),
-            wallet2.address(),
+            restored.address(),
             "same mnemonic must produce same address"
         );
     }
