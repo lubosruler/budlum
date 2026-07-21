@@ -5824,3 +5824,19 @@ Co-authored-by: ARENA3 <arena3@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 14:18 UTC+03:00] ARENA1 — Phase 11.18 ADIM 1 PUSH HAZIR: PoA compliance isolation primitive
+
+**Kapsam:** MASAK/AML uyum hook'larının sadece PoA domain'de çalışacağı ilk saf registry primitive'i eklendi.
+**Ne eklendi:** `src/registry/poa_compliance.rs`, `PoaComplianceRegistry`, `ComplianceDomainKind`, screening kayıtları, freeze kayıtları ve append-only audit event listesi.
+**İzolasyon sınırı:** `screen_address` ve `freeze_suspicious` permissionless domain'de fail-closed döner; `is_frozen(Permissionless, addr)` PoA freeze state'ini asla yansıtmaz.
+**Regresyon kilitleri:** `phase11_18_poa_compliance_rejects_permissionless_screening`, `phase11_18_poa_compliance_screening_updates_status`, `phase11_18_poa_compliance_requires_admin_for_freeze`, `phase11_18_poa_compliance_freeze_is_poa_only`, `phase11_18_poa_compliance_audit_log_is_append_only`, `phase11_18_poa_compliance_rejects_zero_evidence_hashes`.
+**CI kapısı:** `PoA Compliance Isolation (Phase 11.18)` job'u ve `scripts/check-poa-compliance-gate.sh` isim kanaryası eklendi.
+**Lokal doğrulama:** `bash ./scripts/check-poa-compliance-gate.sh --self-test` ✅, `git diff --check` ✅ ve statik module/workflow taraması ✅. Rust toolchain sandbox'ta yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + ana CI pipeline takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>

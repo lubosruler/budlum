@@ -23,6 +23,7 @@ pub mod invalid_vote;
 pub mod liveness;
 pub mod params;
 pub mod permissionless;
+pub mod poa_compliance;
 pub mod poa_membership;
 pub mod poa_onboarding;
 pub mod role;
@@ -35,6 +36,10 @@ pub use params::RegistryParams;
 pub use permissionless::{
     MemberStatus, PermissionlessRegistry, Registration, RegistryError, SlashOutcome,
     SlashingCondition, MIN_REGISTRATION_STAKE, UNBONDING_EPOCHS,
+};
+pub use poa_compliance::{
+    ComplianceAction, ComplianceAuditEvent, ComplianceDomainKind, FreezeRecord,
+    PoaComplianceError, PoaComplianceRegistry, ScreeningRecord, ScreeningStatus,
 };
 pub use poa_membership::{
     KycCommitment, MembershipStatus, PoaMember, PoaMembershipError, PoaMembershipRegistry,

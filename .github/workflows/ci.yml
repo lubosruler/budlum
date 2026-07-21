@@ -323,6 +323,30 @@ jobs:
           bash ./scripts/check-network-hardening-gate.sh /tmp/network-hardening-gate.txt
 
 
+
+  poa-compliance-gate:
+    # Phase 11.18: MASAK/AML hooks are isolated to PoA domains only.
+    name: PoA Compliance Isolation (Phase 11.18)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: PoA compliance gate self-test
+        run: bash ./scripts/check-poa-compliance-gate.sh --self-test
+      - name: Phase 11.18 PoA compliance tests
+        run: |
+          set -euo pipefail
+          cargo test --lib phase11_18_poa_compliance 2>&1 | tee /tmp/poa-compliance-gate.txt
+          bash ./scripts/check-poa-compliance-gate.sh /tmp/poa-compliance-gate.txt
+
   governance-invariants:
     # Phase 11.16: minimal on-chain governance parameter whitelist + activation timelock.
     name: Governance Invariants (Phase 11.16)
