@@ -296,6 +296,30 @@ jobs:
           cargo test --lib phase11_10_node 2>&1 | tee /tmp/node-classification-gate.txt
           bash ./scripts/check-node-classification-gate.sh /tmp/node-classification-gate.txt
 
+  network-hardening-gate:
+    # Phase 11.12: network hardening named tests.
+    # Name canary prevents a vacuous green if H5/H11.12 tests are renamed/deleted.
+    name: Network Hardening (Phase 11.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: Network hardening gate canary
+        run: bash ./scripts/check-network-hardening-gate.sh --self-test
+      - name: Phase 11.12 network hardening tests
+        run: |
+          set -euo pipefail
+          cargo test --lib phase11_12 2>&1 | tee /tmp/network-hardening-gate.txt
+          bash ./scripts/check-network-hardening-gate.sh /tmp/network-hardening-gate.txt
+
   # ============================ Phase 10 / Bolum 4 (BNS gate) ============================
   bns-gate:
     # Phase 10 Bolum 4 modul-ayrimi: BNS'in kendi CI gate'i (B.U.D. kapi deseni).
