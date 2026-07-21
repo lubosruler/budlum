@@ -50,6 +50,8 @@ check_root() {
   check_contains "$root/docs/audit_prep/EXTERNAL_AUDIT_DRY_RUN.md" "Auditor persona checklist"
   check_contains "$root/docs/audit_prep/BRANCH_PROTECTION_REVIEW.md" "Branch Protection Review"
   check_contains "$root/docs/audit_prep/BRANCH_PROTECTION_REVIEW.md" "Required checks list"
+  check_contains "$root/docs/ARENA4_AUDIT_HARDENING_SUMMARY.md" "ARENA4 Ar-Ge"
+  check_contains "$root/docs/ARENA4_AUDIT_HARDENING_SUMMARY.md" "Sertleştirme Kontrolleri"
   check_contains "$root/docs/MAINNET_READINESS.md" "Phase 11.20 Snapshot"
   check_contains "$root/docs/MAINNET_READINESS.md" "28/28 success"
   echo "Audit prep gate OK"
@@ -95,6 +97,7 @@ DOC
   printf '# PoA Compliance Runbook\noff-chain oracle\n' > "$tmp/docs/operations/POA_COMPLIANCE_RUNBOOK.md"
   printf '# External Audit Dry-Run\nAuditor persona checklist\n' > "$tmp/docs/audit_prep/EXTERNAL_AUDIT_DRY_RUN.md"
   printf '# Branch Protection Review\nRequired checks list\n' > "$tmp/docs/audit_prep/BRANCH_PROTECTION_REVIEW.md"
+  printf '# ARENA4 Ar-Ge\nSertleştirme Kontrolleri\n' > "$tmp/docs/ARENA4_AUDIT_HARDENING_SUMMARY.md"
   printf '# Mainnet Readiness\nPhase 11.20 Snapshot\n28/28 success\n' > "$tmp/docs/MAINNET_READINESS.md"
   check_root "$tmp" >/dev/null
   rm "$tmp/docs/VALIDATOR_KEY_MANAGEMENT.md"

@@ -19,6 +19,7 @@
 | Phase 11.16 governance | `src/core/governance.rs`, `scripts/check-governance-invariants.sh` | `Governance Invariants (Phase 11.16)` |
 | Phase 11.18 PoA compliance | `src/registry/poa_compliance.rs`, `scripts/check-poa-compliance-gate.sh` | `PoA Compliance Isolation (Phase 11.18)` |
 | Phase 11.20 validator keys | `docs/VALIDATOR_KEY_MANAGEMENT.md`, `docs/operations/HSM_BLS_PQ_POLICY.md` | `Audit Prep (Phase 11.20)` |\n| Phase 11.20 HSM ceremony | `docs/operations/HSM_CEREMONY_REHEARSAL.md` | `Audit Prep (Phase 11.20)` |\n| Phase 11.18 PoA compliance | `docs/operations/POA_COMPLIANCE_RUNBOOK.md` | `PoA Compliance Isolation (Phase 11.18)` |\n| Phase 11.20 external audit | `docs/audit_prep/EXTERNAL_AUDIT_DRY_RUN.md` | `Audit Prep (Phase 11.20)` |\n| Phase 11.20 branch protection | `docs/audit_prep/BRANCH_PROTECTION_REVIEW.md` | `Audit Prep (Phase 11.20)` |
+| Phase 12 audit summary | `docs/ARENA4_AUDIT_HARDENING_SUMMARY.md` | `Audit Prep (Phase 11.20)` |
 | Phase 11.20 lockdown | `docs/MAINNET_LOCKDOWN_CHECKLIST.md` | `Audit Prep (Phase 11.20)` |
 | Phase 11.20 readiness review | `docs/audit_prep/MAINNET_READINESS_REVIEW.md` | `Audit Prep (Phase 11.20)` |\n| Phase 11.20 CI stability | `docs/audit_prep/CI_STABILITY_WINDOW.md` | `Audit Prep (Phase 11.20)` |
 | ADIM-1 CI hardening verification | `docs/audit_prep/CI_HARDENING_AUDIT_2026-07-21.md` | `Semver Check`, `Determinism`, `Miri UB Check` |
