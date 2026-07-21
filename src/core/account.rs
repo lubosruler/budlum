@@ -129,6 +129,9 @@ pub struct AccountState {
     pub current_block_height: u64,
     pub governance: GovernanceState,
     pub base_fee: u64,
+    /// EIP-1559 fee distributions: base_fee_burned, proposer tip, treasury split.
+    /// Populated by `distribute_block_fees` during block finalization.
+    pub fee_distributions: Vec<crate::chain::fee_market::FeeDistribution>,
     dirty_accounts: HashSet<Address>,
     keys_dirty: bool,
     cached_leaves: Vec<[u8; 32]>,
@@ -178,6 +181,7 @@ impl AccountState {
             hub: crate::hub::HubRegistry::new(),
             external_roots: BTreeMap::new(),
             base_fee: MIN_TX_FEE,
+            fee_distributions: Vec::new(),
             dirty_accounts: HashSet::new(),
             keys_dirty: true,
             cached_leaves: Vec::new(),
@@ -217,6 +221,7 @@ impl AccountState {
             hub: crate::hub::HubRegistry::new(),
             external_roots: BTreeMap::new(),
             base_fee: MIN_TX_FEE,
+            fee_distributions: Vec::new(),
             dirty_accounts: HashSet::new(),
             keys_dirty: true,
             cached_leaves: Vec::new(),
@@ -271,6 +276,7 @@ impl AccountState {
             hub: crate::hub::HubRegistry::new(),
             external_roots: BTreeMap::new(),
             base_fee: MIN_TX_FEE,
+            fee_distributions: Vec::new(),
             dirty_accounts: HashSet::new(),
             keys_dirty: true,
             cached_leaves: Vec::new(),
@@ -343,6 +349,7 @@ impl AccountState {
             hub: snapshot.hub.clone().unwrap_or_default(),
             external_roots: snapshot.external_roots.clone().unwrap_or_default(),
             base_fee: snapshot.base_fee,
+            fee_distributions: Vec::new(),
             dirty_accounts: HashSet::new(),
             keys_dirty: true,
             cached_leaves: Vec::new(),
@@ -561,6 +568,52 @@ impl AccountState {
         )
     }
 
+    /// Distribute block fees: burn base fee, pay proposer tip, send treasury cut.
+    ///
+    /// Called during block finalization. Uses EIP-1559 `distribute_fee` to
+    /// compute the split, then applies it to the state:
+    /// - base_fee_burned: burned from the fee payer (reduces supply)
+    /// - priority_fee_to_proposer: credited to the block proposer
+    /// - treasury_fee: credited to the treasury (if configured)
+    pub fn distribute_block_fees(
+        &mut self,
+        proposer: &Address,
+        treasury: Option<&Address>,
+        txs: &[&Transaction],
+    ) -> Vec<crate::chain::fee_market::FeeDistribution> {
+        let mut distributions = Vec::with_capacity(txs.len());
+        let treasury_rate = crate::chain::fee_market::DEFAULT_TREASURY_RATE_PPM;
+
+        for tx in txs {
+            let bid = tx.fee_bid();
+            // gas_used defaults to 1 for simple tx (fee is flat, not gas-based)
+            let gas_used = 1u64;
+
+            if let Ok(dist) = crate::chain::fee_market::distribute_fee(
+                bid,
+                self.base_fee,
+                gas_used,
+                treasury_rate,
+            ) {
+                // Burn base fee from sender
+                self.burn_from(&tx.from, dist.base_fee_burned);
+
+                // Credit proposer tip
+                self.add_balance(proposer, dist.priority_fee_to_proposer);
+
+                // Credit treasury
+                if let Some(treasury) = treasury {
+                    self.add_balance(treasury, dist.treasury_fee);
+                }
+
+                distributions.push(dist);
+            }
+        }
+
+        self.fee_distributions = distributions.clone();
+        distributions
+    }
+
     pub fn validate_transaction_with_context(
         &self,
         tx: &Transaction,
@@ -577,19 +630,21 @@ impl AccountState {
                 expected_nonce, tx.nonce
             ));
         }
-        if tx.max_fee != 0 && tx.max_fee != tx.fee {
-            return Err(
-                "EIP-1559 max_fee must equal legacy fee until fee distribution wiring".into(),
-            );
-        }
-        if tx.priority_fee != 0 {
-            return Err("EIP-1559 priority_fee distribution is not enabled yet".into());
-        }
+        // EIP-1559 fee validation: max_fee must cover base_fee + priority_fee.
+        // priority_fee is now distributed to the block proposer (ADIM G).
         if crate::chain::fee_market::effective_fee(tx.fee_bid(), self.base_fee).is_err() {
             return Err(format!(
-                "Fee too low: {} < {}",
+                "Fee too low: max_fee {} < base_fee {}",
                 tx.fee_limit(),
                 self.base_fee
+            ));
+        }
+        // max_fee must cover priority_fee (otherwise tip is meaningless)
+        if tx.priority_fee > tx.fee_limit() {
+            return Err(format!(
+                "priority_fee {} exceeds max_fee {}",
+                tx.priority_fee,
+                tx.fee_limit()
             ));
         }
         // Overflow guard (security): reject amount+fee > u64::MAX explicitly.
@@ -1477,6 +1532,9 @@ mod tests {
 
     #[test]
     fn phase11_8_priority_fee_is_fail_closed_until_distribution_wiring() {
+        // ADIM G: priority_fee is now production-ready (no longer fail-closed).
+        // This test verifies that priority_fee > 0 is accepted when max_fee
+        // covers base_fee + priority_fee.
         let alice_kp = KeyPair::generate().unwrap();
         let alice = Address::from(alice_kp.public_key_bytes());
         let bob = Address::from([9u8; 32]);
@@ -1484,17 +1542,25 @@ mod tests {
         state.base_fee = 10;
         state.add_balance(&alice, 1_000);
 
-        let mut tx = Transaction::new_with_fee(alice, bob, 1, 10, 0, vec![]);
-        tx.priority_fee = 1;
+        // Valid: max_fee=15 covers base_fee=10 + priority_fee=5
+        let mut tx = Transaction::new_with_fee(alice, bob, 1, 15, 0, vec![]);
+        tx.priority_fee = 5;
         tx.sign(&alice_kp);
-        let err = state
-            .validate_transaction(&tx)
-            .expect_err("priority fee distribution is intentionally gated");
+        assert!(state.validate_transaction(&tx).is_ok(), "priority_fee within max_fee should be accepted");
+
+        // Invalid: priority_fee exceeds max_fee
+        let mut tx2 = Transaction::new_with_fee(alice, bob, 1, 15, 1, vec![]);
+        tx2.priority_fee = 20; // exceeds max_fee
+        tx2.sign(&alice_kp);
+        let err = state.validate_transaction(&tx2).expect_err("priority_fee exceeding max_fee must be rejected");
         assert!(err.contains("priority_fee"), "got {err}");
     }
 
     #[test]
     fn phase11_8_max_fee_must_match_legacy_fee_during_migration() {
+        // ADIM G: max_fee != fee is now production-ready (no longer fail-closed).
+        // This test verifies that max_fee > fee is accepted when it covers
+        // base_fee + priority_fee.
         let alice_kp = KeyPair::generate().unwrap();
         let alice = Address::from(alice_kp.public_key_bytes());
         let bob = Address::from([10u8; 32]);
@@ -1502,13 +1568,44 @@ mod tests {
         state.base_fee = 10;
         state.add_balance(&alice, 1_000);
 
+        // Valid: max_fee=15 covers base_fee=10 + priority_fee=5
         let mut tx = Transaction::new_with_fee(alice, bob, 1, 10, 0, vec![]);
-        tx.max_fee = 11;
+        tx.max_fee = 15;
+        tx.priority_fee = 5;
         tx.sign(&alice_kp);
-        let err = state
-            .validate_transaction(&tx)
-            .expect_err("partial max_fee distribution is intentionally gated");
-        assert!(err.contains("max_fee"), "got {err}");
+        assert!(state.validate_transaction(&tx).is_ok(), "max_fee > fee should be accepted");
+
+        // Invalid: max_fee below base_fee
+        let mut tx2 = Transaction::new_with_fee(alice, bob, 1, 10, 1, vec![]);
+        tx2.max_fee = 5; // below base_fee
+        tx2.sign(&alice_kp);
+        let err = state.validate_transaction(&tx2).expect_err("max_fee below base_fee must be rejected");
+        assert!(err.contains("Fee too low"), "got {err}");
+    }
+
+    #[test]
+    fn phase11_8_fee_distribution_burns_base_fee_and_pays_proposer() {
+        let alice_kp = KeyPair::generate().unwrap();
+        let alice = Address::from(alice_kp.public_key_bytes());
+        let bob = Address::from([11u8; 32]);
+        let proposer = Address::from([20u8; 32]);
+        let mut state = AccountState::new();
+        state.base_fee = 10;
+        state.add_balance(&alice, 1_000);
+
+        let mut tx = Transaction::new_with_fee(alice, bob, 1, 15, 0, vec![]);
+        tx.priority_fee = 5;
+        tx.sign(&alice_kp);
+
+        let distributions = state.distribute_block_fees(&proposer, None, &[&tx]);
+        assert_eq!(distributions.len(), 1);
+        let dist = &distributions[0];
+        assert_eq!(dist.base_fee_burned, 10);
+        assert_eq!(dist.priority_fee_to_proposer, 5);
+        assert_eq!(dist.treasury_fee, 0); // 0% treasury rate in test
+
+        // Proposer should have received the tip
+        assert_eq!(state.get_balance(&proposer), 5);
     }
 
     #[test]
