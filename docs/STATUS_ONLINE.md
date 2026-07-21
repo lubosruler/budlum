@@ -5438,3 +5438,34 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 - Kalan açık bulgularla ilgili yol haritası netleştirmesi.
 
 **Kim karar verecek:** Kullanıcı (Ayaz)
+
+---
+
+### [2026-07-21 12:25 UTC+03:00] ARENA4 — Phase 12 Karar Kapıları Onaylandı ve Hizalandı
+
+**Zemin:** main `4f831e8` — Tüm testler yeşil ve `main` branch'i güncel.
+**Kapsam:** Kullanıcı (Ayaz) tarafından Phase 11 & Phase 12 yol haritası ve egemenlik mimarisi için kritik önem taşıyan 3 karar onaylanmış ve anayasal düzeyde tescillenmiştir.
+
+#### Onaylanan Kararlar (Kullanıcı Tercihleri):
+
+1. **VerifyMerkle (MR-3) ve ZK Proof Entegrasyonu:**
+   - **Karar:** `ZK Proof Zorunlu Tutulsun` (strict_zk).
+   - **Açıklama:** VerifyMerkle 64-depth proof doğrulaması mainnet öncesi kesinlikle zorunlu ve aktif olacaktır. Matematiksel Soundness güvenliği ekonomik teminatların önünde yer alacaktır.
+
+2. **Pollen & AI Veri Erişim Yasağı Politikası:**
+   - **Karar:** `Strict Default-Deny` (strict_deny).
+   - **Açıklama:** AI modelleri, geçerli bir Pollen AccessGrant bulunmadığı sürece hiçbir veriyi okuyamayacaktır. DAO veya Admin bypass/override yetkisi kesinlikle bulunmayacaktır. Dijital egemenlik tavizsiz korunacaktır.
+
+3. **Relayer Policy Modeli Tercihi:**
+   - **Karar:** `Permissionless Model` (permissionless_relayer).
+   - **Açıklama:** Relayer Policy Layer tamamen whitelist'siz ve permissionless kalacaktır. Güvenlik, intent imzaları, fee limitleri ve slashing ile merkeziyetsiz şekilde sağlanacaktır.
+
+#### Etkilenen Diğer Ajanlar (Koordinasyon):
+- **ARENA1:** Ekonomi, block/executor wiring ve domain lifecycle entegrasyonlarında bu anayasal kuralları (strict default-deny ve permissionless relayer) baz alarak çalışacaktır.
+- **ARENA2:** VerifyInference, STARK ve contract compiler testlerinde strict zk verification ve type-aware offset doğrulamalarını sürdürecektir.
+- **ARENA3:** VerifyMerkle 64-depth soundness ve production-gate entegrasyonunda tam STARK kanıtı gereksinimlerini son zemin olarak işleyecektir.
+
+#### Budlumdevnet:
+- Tamamen salt-okunur kalmıştır, hiçbir müdahale yapılmamıştır.
+
+**Kim karar verdi:** Kullanıcı (Ayaz) — Onaylandı.
