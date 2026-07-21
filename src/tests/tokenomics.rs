@@ -311,6 +311,8 @@ fn f4_boost_share_accumulates_in_pending_bud_boost_share() {
         to: Address::zero(),
         amount: 0,
         fee: 100,
+        max_fee: 100,
+        priority_fee: 0,
         nonce: 1,
         data: bincode::serialize(&(nft_id, boost_amount)).unwrap(),
         timestamp: 1000,

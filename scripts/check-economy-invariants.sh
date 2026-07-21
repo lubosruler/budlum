@@ -13,6 +13,9 @@ required_tests=(
   phase11_8_total_bud_committed_counts_stake_and_unbonding
   phase11_8_supply_capacity_remaining_uses_committed_denominator
   phase11_8_legacy_fee_validation_uses_fee_market_gate
+  phase11_8_priority_fee_is_fail_closed_until_distribution_wiring
+  phase11_8_max_fee_must_match_legacy_fee_during_migration
+  phase11_8_fee_field_tampering_invalidates_signature
 )
 
 fail() {

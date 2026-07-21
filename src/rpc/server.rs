@@ -1922,6 +1922,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: cost,
             fee: 1000,
+            max_fee: 1000,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&owner_addr).await,
             data,
             timestamp: std::time::SystemTime::now()
@@ -1963,6 +1965,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: 0,
             data,
             timestamp: std::time::SystemTime::now()
@@ -2018,6 +2022,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&owner_addr).await,
             data,
             timestamp: std::time::SystemTime::now()
@@ -2126,6 +2132,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&author_addr).await,
             data,
             timestamp: std::time::SystemTime::now()
@@ -2165,6 +2173,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&owner_addr).await,
             data,
             timestamp: std::time::SystemTime::now()
@@ -2201,6 +2211,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&booster_addr).await,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()
@@ -2254,6 +2266,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&seller_addr).await,
             data,
             timestamp: std::time::SystemTime::now()
@@ -2296,6 +2310,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&buyer_addr).await,
             data,
             timestamp: std::time::SystemTime::now()
@@ -2445,6 +2461,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 500,
+            max_fee: 500,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&dev_addr).await,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()
@@ -2499,6 +2517,8 @@ impl BudlumApiServer for RpcServer {
             to: Address::zero(),
             amount: 0,
             fee: 2000,
+            max_fee: 2000,
+            priority_fee: 0,
             nonce: self.chain.get_nonce(&from_addr).await,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()
@@ -2733,6 +2753,8 @@ impl BudlumApiServer for RpcServer {
             to: crate::core::address::Address::zero(),
             amount: 0,
             fee: crate::core::account::MIN_TX_FEE,
+            max_fee: crate::core::account::MIN_TX_FEE,
+            priority_fee: 0,
             nonce: 0,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()
@@ -2848,6 +2870,8 @@ impl BudlumApiServer for RpcServer {
             to: crate::core::address::Address::zero(),
             amount: 0,
             fee: crate::core::account::MIN_TX_FEE,
+            max_fee: crate::core::account::MIN_TX_FEE,
+            priority_fee: 0,
             nonce: 0,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()
@@ -2944,6 +2968,8 @@ impl BudlumApiServer for RpcServer {
             to: crate::core::address::Address::zero(),
             amount: 0,
             fee: crate::core::account::MIN_TX_FEE,
+            max_fee: crate::core::account::MIN_TX_FEE,
+            priority_fee: 0,
             nonce: 0,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()
@@ -3174,6 +3200,8 @@ impl BudlumApiServer for RpcServer {
             to: crate::core::address::Address::zero(),
             amount: 0,
             fee: crate::core::account::MIN_TX_FEE,
+            max_fee: crate::core::account::MIN_TX_FEE,
+            priority_fee: 0,
             nonce: 0,
             data: Vec::new(),
             timestamp: std::time::SystemTime::now()

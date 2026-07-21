@@ -577,13 +577,14 @@ impl AccountState {
                 expected_nonce, tx.nonce
             ));
         }
-        if crate::chain::fee_market::effective_fee(
-            crate::chain::fee_market::FeeBid::legacy(tx.fee),
-            self.base_fee,
-        )
-        .is_err()
-        {
-            return Err(format!("Fee too low: {} < {}", tx.fee, self.base_fee));
+        if tx.max_fee != 0 && tx.max_fee != tx.fee {
+            return Err("EIP-1559 max_fee must equal legacy fee until fee distribution wiring".into());
+        }
+        if tx.priority_fee != 0 {
+            return Err("EIP-1559 priority_fee distribution is not enabled yet".into());
+        }
+        if crate::chain::fee_market::effective_fee(tx.fee_bid(), self.base_fee).is_err() {
+            return Err(format!("Fee too low: {} < {}", tx.fee_limit(), self.base_fee));
         }
         // Overflow guard (security): reject amount+fee > u64::MAX explicitly.
         // total_cost() uses saturating_add, which would silently clamp to
@@ -1464,6 +1465,42 @@ mod tests {
         let mut priced = Transaction::new_with_fee(alice, bob, 1, 10, 0, vec![]);
         priced.sign(&alice_kp);
         assert!(state.validate_transaction(&priced).is_ok());
+    }
+
+    #[test]
+    fn phase11_8_priority_fee_is_fail_closed_until_distribution_wiring() {
+        let alice_kp = KeyPair::generate().unwrap();
+        let alice = Address::from(alice_kp.public_key_bytes());
+        let bob = Address::from([9u8; 32]);
+        let mut state = AccountState::new();
+        state.base_fee = 10;
+        state.add_balance(&alice, 1_000);
+
+        let mut tx = Transaction::new_with_fee(alice, bob, 1, 10, 0, vec![]);
+        tx.priority_fee = 1;
+        tx.sign(&alice_kp);
+        let err = state
+            .validate_transaction(&tx)
+            .expect_err("priority fee distribution is intentionally gated");
+        assert!(err.contains("priority_fee"), "got {err}");
+    }
+
+    #[test]
+    fn phase11_8_max_fee_must_match_legacy_fee_during_migration() {
+        let alice_kp = KeyPair::generate().unwrap();
+        let alice = Address::from(alice_kp.public_key_bytes());
+        let bob = Address::from([10u8; 32]);
+        let mut state = AccountState::new();
+        state.base_fee = 10;
+        state.add_balance(&alice, 1_000);
+
+        let mut tx = Transaction::new_with_fee(alice, bob, 1, 10, 0, vec![]);
+        tx.max_fee = 11;
+        tx.sign(&alice_kp);
+        let err = state
+            .validate_transaction(&tx)
+            .expect_err("partial max_fee distribution is intentionally gated");
+        assert!(err.contains("max_fee"), "got {err}");
     }
 
     #[test]

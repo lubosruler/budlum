@@ -190,6 +190,10 @@ pub struct Transaction {
     pub to: Address,
     pub amount: u64,
     pub fee: u64,
+    #[serde(default)]
+    pub max_fee: u64,
+    #[serde(default)]
+    pub priority_fee: u64,
     pub nonce: u64,
     pub data: Vec<u8>,
     pub timestamp: u128,
@@ -296,6 +300,8 @@ impl Transaction {
             to,
             amount,
             fee,
+            max_fee: fee,
+            priority_fee: 0,
             nonce,
             data,
             timestamp,
@@ -333,6 +339,8 @@ impl Transaction {
             to: Address::zero(),
             amount: 0,
             fee: 0,
+            max_fee: 0,
+            priority_fee: 0,
             nonce: 0,
             data: b"BUDLUM_GENESIS_TX".to_vec(),
             timestamp: 0,
@@ -355,6 +363,8 @@ impl Transaction {
         put_fixed(&mut preimage, self.to.as_bytes());
         put_u64(&mut preimage, self.amount);
         put_u64(&mut preimage, self.fee);
+        put_u64(&mut preimage, self.max_fee);
+        put_u64(&mut preimage, self.priority_fee);
         put_u64(&mut preimage, self.nonce);
         put_bytes(&mut preimage, &self.data);
         put_u128(&mut preimage, self.timestamp);
@@ -484,8 +494,19 @@ impl Transaction {
     pub fn to_bytes(&self) -> Vec<u8> {
         serde_json::to_vec(self).expect("BUG: Transaction must serialize to_bytes")
     }
+    pub fn fee_bid(&self) -> crate::chain::fee_market::FeeBid {
+        crate::chain::fee_market::FeeBid {
+            max_fee: if self.max_fee == 0 { self.fee } else { self.max_fee },
+            priority_fee: self.priority_fee,
+        }
+    }
+
+    pub fn fee_limit(&self) -> u64 {
+        self.fee_bid().max_fee
+    }
+
     pub fn total_cost(&self) -> u64 {
-        self.amount.saturating_add(self.fee)
+        self.amount.saturating_add(self.fee_limit())
     }
 
     pub fn estimate_gas_with_schedule(&self, schedule: GasSchedule) -> u64 {
@@ -983,5 +1004,16 @@ mod v29_signing_tests {
         ));
         tx.tx_type = TransactionType::AiFeeReclaim(crate::ai::types::AiRequestId([2u8; 32]));
         assert!(!tx.verify());
+    }
+
+    #[test]
+    fn phase11_8_fee_field_tampering_invalidates_signature() {
+        let mut tx = signed_variant(TransactionType::Transfer);
+        tx.max_fee = tx.max_fee.saturating_add(1);
+        assert!(!tx.verify(), "max_fee is execution-relevant and signed");
+
+        let mut tx = signed_variant(TransactionType::Transfer);
+        tx.priority_fee = 1;
+        assert!(!tx.verify(), "priority_fee is execution-relevant and signed");
     }
 }
