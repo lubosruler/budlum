@@ -17,6 +17,7 @@ check_root() {
   [[ -f "$root/docs/THREAT_MODEL.md" ]] || fail "missing docs/THREAT_MODEL.md"
   [[ -f "$root/docs/audit_prep/README.md" ]] || fail "missing docs/audit_prep/README.md"
   [[ -f "$root/docs/VALIDATOR_KEY_MANAGEMENT.md" ]] || fail "missing docs/VALIDATOR_KEY_MANAGEMENT.md"
+  [[ -f "$root/docs/MAINNET_LOCKDOWN_CHECKLIST.md" ]] || fail "missing docs/MAINNET_LOCKDOWN_CHECKLIST.md"
   [[ -f "$root/docs/operations/PRODUCTION_RUNBOOK.md" ]] || fail "missing docs/operations/PRODUCTION_RUNBOOK.md"
   [[ -f "$root/docs/operations/HSM_BLS_PQ_POLICY.md" ]] || fail "missing docs/operations/HSM_BLS_PQ_POLICY.md"
 
@@ -31,6 +32,9 @@ check_root() {
   check_contains "$root/docs/VALIDATOR_KEY_MANAGEMENT.md" "PKCS#11"
   check_contains "$root/docs/VALIDATOR_KEY_MANAGEMENT.md" "Key rotation"
   check_contains "$root/docs/VALIDATOR_KEY_MANAGEMENT.md" "Backup and loss scenario"
+  check_contains "$root/docs/MAINNET_LOCKDOWN_CHECKLIST.md" "Mainnet Lockdown Checklist"
+  check_contains "$root/docs/MAINNET_LOCKDOWN_CHECKLIST.md" "7 consecutive days green"
+  check_contains "$root/docs/MAINNET_LOCKDOWN_CHECKLIST.md" "Waiver policy"
   echo "Audit prep gate OK"
 }
 
@@ -56,6 +60,11 @@ YubiHSM 2
 PKCS#11
 Key rotation
 Backup and loss scenario
+DOC
+  cat > "$tmp/docs/MAINNET_LOCKDOWN_CHECKLIST.md" <<'DOC'
+# Mainnet Lockdown Checklist
+7 consecutive days green
+Waiver policy
 DOC
   printf 'runbook\n' > "$tmp/docs/operations/PRODUCTION_RUNBOOK.md"
   printf 'hsm policy\n' > "$tmp/docs/operations/HSM_BLS_PQ_POLICY.md"

@@ -5949,3 +5949,17 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 15:24 UTC+03:00] ARENA1 — Phase 11.20 ADIM 3 PUSH HAZIR: mainnet lockdown checklist
+
+**Kapsam:** Launch-lock için elle denetlenecek ana checklist ve waiver policy oluşturuldu.
+**Ne eklendi:** `docs/MAINNET_LOCKDOWN_CHECKLIST.md`; lock criteria, manual launch-lock review, emergency procedures, waiver policy ve lock output formatı.
+**CI kapısı:** `scripts/check-audit-prep-gate.sh` artık lockdown checklist dosyasını ve `7 consecutive days green` / `Waiver policy` markerlarını zorunlu tutar. Audit-prep evidence map'e lockdown satırı eklendi.
+**Lokal doğrulama:** `bash ./scripts/check-audit-prep-gate.sh --self-test` ✅, `bash ./scripts/check-audit-prep-gate.sh .` ✅, `git diff --check` ✅.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + ana CI pipeline takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>

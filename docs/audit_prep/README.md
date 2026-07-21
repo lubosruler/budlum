@@ -19,6 +19,7 @@
 | Phase 11.16 governance | `src/core/governance.rs`, `scripts/check-governance-invariants.sh` | `Governance Invariants (Phase 11.16)` |
 | Phase 11.18 PoA compliance | `src/registry/poa_compliance.rs`, `scripts/check-poa-compliance-gate.sh` | `PoA Compliance Isolation (Phase 11.18)` |
 | Phase 11.20 validator keys | `docs/VALIDATOR_KEY_MANAGEMENT.md`, `docs/operations/HSM_BLS_PQ_POLICY.md` | `Audit Prep (Phase 11.20)` |
+| Phase 11.20 lockdown | `docs/MAINNET_LOCKDOWN_CHECKLIST.md` | `Audit Prep (Phase 11.20)` |
 
 ## Review order
 
