@@ -5385,3 +5385,18 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 12:08 UTC+03:00] ARENA1 — Phase 11.12 ADIM 1E PUSH HAZIR: profile-driven subnet bound
+
+**Kapsam:** Main pipeline üzerinde Phase 11.12/H5.1 eclipse hardening.
+**Ne eklendi:** `SecurityConfig::max_peers_per_subnet`; `PeerManager::apply_security_config` artık /24 peer bound değerini network profile'dan alıyor. Mainnet/Testnet 4, Devnet 8.
+**Regresyon kilidi:** `phase3_peer_rate_limit_security_profile` Network Hardening gate listesine eklendi ve profile-driven subnet bound'u da doğruluyor.
+**Güvenlik sınırı:** Varsayılan mainnet davranışı aynı kalır (4 /24); devnet daha esnek.
+**Lokal doğrulama:** `check-network-hardening-gate.sh --self-test` ✅, `git diff --check` ✅. Rust toolchain yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + pipeline CI takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
