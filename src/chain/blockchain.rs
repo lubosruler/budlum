@@ -2667,6 +2667,15 @@ impl Blockchain {
         )
         .map_err(|e| format!("Failed to apply block: {}", e))?;
         Self::apply_system_effects(&mut next_state, block);
+
+        // Phase 11.8 (ADIM G): Distribute EIP-1559 fees to proposer + treasury.
+        // The executor already deducted tx.fee from senders; this method only
+        // mints the proposer tip and treasury cut (no double-charge).
+        if let Some(producer) = block.producer.as_ref() {
+            let tx_refs: Vec<&Transaction> = block.transactions.iter().collect();
+            next_state.distribute_block_fees(producer, None, &tx_refs);
+        }
+
         Ok(next_state)
     }
 

@@ -131,6 +131,8 @@ pub struct AccountState {
     pub base_fee: u64,
     /// EIP-1559 fee distributions: base_fee_burned, proposer tip, treasury split.
     /// Populated by `distribute_block_fees` during block finalization.
+    /// NOT included in `calculate_state_root` — this is an audit log, not
+    /// consensus state. Overwritten each block (not appended).
     pub fee_distributions: Vec<crate::chain::fee_market::FeeDistribution>,
     dirty_accounts: HashSet<Address>,
     keys_dirty: bool,
@@ -568,13 +570,16 @@ impl AccountState {
         )
     }
 
-    /// Distribute block fees: burn base fee, pay proposer tip, send treasury cut.
+    /// Distribute block fees: credit proposer tip, send treasury cut.
     ///
-    /// Called during block finalization. Uses EIP-1559 `distribute_fee` to
-    /// compute the split, then applies it to the state:
-    /// - base_fee_burned: burned from the fee payer (reduces supply)
-    /// - priority_fee_to_proposer: credited to the block proposer
-    /// - treasury_fee: credited to the treasury (if configured)
+    /// Called during block finalization. The executor already deducted the
+    /// full `tx.fee` from the sender during `apply_block_checked`. This method
+    /// does NOT re-deduct from the sender (Approach B: mint-only dağıtım).
+    ///
+    /// Uses EIP-1559 `distribute_fee` to compute the split:
+    /// - base_fee_burned: already burned by executor (not re-burned here)
+    /// - priority_fee_to_proposer: minted to the block proposer
+    /// - treasury_fee: minted to the treasury (if configured)
     pub fn distribute_block_fees(
         &mut self,
         proposer: &Address,
@@ -595,13 +600,14 @@ impl AccountState {
                 gas_used,
                 treasury_rate,
             ) {
-                // Burn base fee from sender
-                self.burn_from(&tx.from, dist.base_fee_burned);
+                // NOTE: base_fee_burned is NOT re-burned here.
+                // The executor already deducted tx.fee from the sender.
+                // We only mint the proposer tip and treasury cut.
 
-                // Credit proposer tip
+                // Credit proposer tip (mint)
                 self.add_balance(proposer, dist.priority_fee_to_proposer);
 
-                // Credit treasury
+                // Credit treasury (mint)
                 if let Some(treasury) = treasury {
                     self.add_balance(treasury, dist.treasury_fee);
                 }
@@ -1531,7 +1537,7 @@ mod tests {
     }
 
     #[test]
-    fn phase11_8_priority_fee_is_fail_closed_until_distribution_wiring() {
+    fn phase11_8_priority_fee_accepted_when_within_max_fee() {
         // ADIM G: priority_fee is now production-ready (no longer fail-closed).
         // This test verifies that priority_fee > 0 is accepted when max_fee
         // covers base_fee + priority_fee.
@@ -1612,7 +1618,7 @@ mod tests {
         let dist = &distributions[0];
         assert_eq!(dist.base_fee_burned, 10);
         assert_eq!(dist.priority_fee_to_proposer, 5);
-        assert_eq!(dist.treasury_fee, 0); // 0% treasury rate in test
+        assert_eq!(dist.treasury_fee, 0); // %1 rate, small fee floor->0
 
         // Proposer should have received the tip
         assert_eq!(state.get_balance(&proposer), 5);
