@@ -229,9 +229,9 @@ mod tests {
             priority_fee: 5,
         };
         let dist = distribute_fee(bid, 10, 1_000, 0).unwrap();
-        assert_eq!(dist.base_fee_burned, 10_000);       // 10 * 1_000
+        assert_eq!(dist.base_fee_burned, 10_000); // 10 * 1_000
         assert_eq!(dist.priority_fee_to_proposer, 5_000); // 5 * 1_000
-        assert_eq!(dist.treasury_fee, 0);                // no treasury
+        assert_eq!(dist.treasury_fee, 0); // no treasury
     }
 
     #[test]
@@ -243,7 +243,7 @@ mod tests {
         // 1% treasury rate (10_000 ppm)
         let dist = distribute_fee(bid, 10, 1_000, 10_000).unwrap();
         assert_eq!(dist.base_fee_burned, 10_000);
-        assert_eq!(dist.treasury_fee, 100);             // 1% of 10_000
+        assert_eq!(dist.treasury_fee, 100); // 1% of 10_000
         assert_eq!(dist.priority_fee_to_proposer, 9_900); // 99% of 10_000
     }
 
