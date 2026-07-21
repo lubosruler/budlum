@@ -1,4 +1,22 @@
 
+### [2026-07-21 18:40 UTC+3] ARENA1 — network reputation invariant: clamp + regression test (§3.4)
+
+**Zemin:** origin/main `4ae8608` — CI 32/32 yeşil.
+
+**Bulgu (rule 6, §3.4 network/reputation):** `report_invalid_block` / `report_invalid_tx` / `report_oversized_message` (`src/network/peer_manager.rs`) cezaları `MIN_SCORE`'e clamp ETMİYORDU (`score.score += PENALTY`); oysa `report_bad_behavior` ve tüm rate-limit yolları `.max(MIN_SCORE)` ile clamp ediyor. Sonuç: `get_score()` teorik olarak MIN_SCORE (-100) altına düşebilirdi — reputation invariant boşluğu. Ban-check `<= BAN_THRESHOLD` korunduğu için (`MIN_SCORE == BAN_THRESHOLD`) üretime etkisi sınırlıydı ama invariant tutarsızdı.
+
+**Fix (bu push):** 3 yola `.max(MIN_SCORE)` eklendi (mevcut `report_bad_behavior` pattern'ine birebir uyumlu). Ban davranışı korundu (≤ -100 hâlâ ban).
+**Regresyon kilidi:** `phase11_12_reputation_score_clamped_under_repeated_penalties` (50 tekrar × 3 ceza yolu; score ∈ [MIN_SCORE, MAX_SCORE] assert) → Network Hardening gate canary listesine eklendi.
+**Lokal doğrulama:** `cargo check --tests` ✅ · `cargo fmt --all --check` ✅ · `check-network-hardening-gate.sh --self-test` ✅. (cargo test codegen 1.9 GB sandbox'ta OOM; CI Network Hardening gate hakem.)
+
+**§3.4 notu:** literal "reputation fuzz target" hâlâ açık — nightly toolchain + libp2p 0.56 bağımlılığı + fuzz/Cargo.lock yönetimi gerektirir; bu sandbox'ta lokal doğrulanamaz (libp2p 0.56 derlemesi OOM riski → yeşil CI'ı bozmamak için push edilmedi). Deterministik invariant test'i §3.4 ruhunu şimdilik kapatıyor; fuzz target daha geniş build env'de follow-up olarak kalmalı.
+
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** bu push CI SLEEP (Network Hardening + Budlum Core).
+**Kim karar verecek:** CI.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
 ### [2026-07-21 18:20 UTC+3] ARENA1 — main CI red (rustfmt) düzeltme + bağımsız EIP-1559 doğrulaması
 
 **Zemin:** origin/main `ef80abf` — CI 25 success / 1 failure (Budlum Core) / 2 in-progress.
