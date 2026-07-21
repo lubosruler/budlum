@@ -6,6 +6,10 @@ required_tests=(
   phase11_10_storage_provider_rejects_invalid_range
   phase11_10_storage_provider_prove_settle_roundtrip
   phase11_10_storage_provider_rejects_forged_proof_range_hash
+  phase11_10_lifecycle_happy_path_settled
+  phase11_10_lifecycle_challenge_can_miss_or_slash
+  phase11_10_lifecycle_rejects_skip_open_to_settled
+  phase11_10_lifecycle_terminal_states_are_final
 )
 
 fail() {

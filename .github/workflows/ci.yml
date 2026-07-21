@@ -269,7 +269,7 @@ jobs:
       - name: Phase 11.10 StorageProvider tests
         run: |
           set -euo pipefail
-          cargo test --lib phase11_10_storage_provider 2>&1 | tee /tmp/storage-provider-gate.txt
+          cargo test --lib phase11_10 2>&1 | tee /tmp/storage-provider-gate.txt
           bash ./scripts/check-storage-provider-gate.sh /tmp/storage-provider-gate.txt
 
   # ============================ Phase 10 / Bolum 4 (BNS gate) ============================

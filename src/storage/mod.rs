@@ -18,6 +18,7 @@
 
 pub mod content_id;
 pub mod db;
+pub mod lifecycle;
 pub mod manifest;
 pub mod merkle_trie;
 pub mod mobile_self;
@@ -25,6 +26,7 @@ pub mod provider;
 pub mod traits;
 
 pub use content_id::{ContentId, DEFAULT_CHUNK_SIZE_BYTES};
+pub use lifecycle::{transition as transition_storage_lifecycle, StorageLifecycleError, StorageLifecycleState};
 pub use manifest::{manifest_id_from_shards, ContentManifest, ShardRef};
 pub use mobile_self::{
     MobileAvailabilityClass, MobileSelfContentPolicy, MobileSelfProfile, ReplicaRecommendation,
