@@ -1,28 +1,21 @@
-//! P12-11: Proof Verification Market — ProofTask + ProofReceipt modelleri.
+//! P12-11: Proof Verification Market — settlement-side proof task/receipt model.
 //!
-//! Proof Verification Market, Budlum'un çoklu-consensus mimarisinde
-//! proof doğrulama işlemlerini ekonomik bir pazara dönüştürür. Prover'lar
-//! proof görevlerini üstlenir ve doğrulama karşılığında ödüllendirilir.
-//!
-//! # Model
-//!
-//! ```text
-//! ProofTask → (prover submits proof) → ProofReceipt → settlement verification
-//! ```
-//!
-//! ProofTask: Doğrulanması gereken bir kanıt görevi (domain commitment,
-//! event verification, zk-proof doğrulama).
-//!
-//! ProofReceipt: Prover'ın bir görevi başarıyla tamamladığını kanıtlayan
-//! makbuz. Settlement layer'da doğrulanır ve ödül dağıtılır.
-//!
-//! Not: LUM (proof market token) entegrasyonu henüz yapılmamıştır.
-//! ProofReceipt'ler şu an $BUD cinsinden ödüllendirilir.
+//! This module is intentionally LUM-adapter free. It models bounded proof tasks,
+//! prover receipts and settlement accounting in $BUD-compatible commitments so
+//! a future LUM/DeFi adapter can be attached without weakening fail-closed proof
+//! verification semantics.
 
 use crate::core::address::Address;
 use crate::core::hash::hash_fields_bytes;
 use crate::domain::{DomainId, Hash32};
 use serde::{Deserialize, Serialize};
+
+pub const MAX_PROOF_MARKET_ACTIVE_TASKS: usize = 10_000;
+pub const MAX_PROOF_MARKET_PENDING_RECEIPTS: usize = 10_000;
+
+fn nonzero_hash(value: &Hash32) -> bool {
+    *value != [0u8; 32]
+}
 
 /// Proof görev türü.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -50,6 +43,100 @@ pub enum ProofTaskKind {
     },
 }
 
+impl ProofTaskKind {
+    pub fn validate(&self) -> Result<(), String> {
+        match self {
+            ProofTaskKind::DomainCommitment {
+                domain_id,
+                domain_height,
+                ..
+            } => {
+                if *domain_id == 0 {
+                    return Err("ProofTaskKind domain_id cannot be zero".into());
+                }
+                if *domain_height == 0 {
+                    return Err("ProofTaskKind domain_height cannot be zero".into());
+                }
+            }
+            ProofTaskKind::ZkProof {
+                circuit_id,
+                public_inputs_hash,
+            } => {
+                if !nonzero_hash(circuit_id) {
+                    return Err("ProofTaskKind circuit_id cannot be zero".into());
+                }
+                if !nonzero_hash(public_inputs_hash) {
+                    return Err("ProofTaskKind public_inputs_hash cannot be zero".into());
+                }
+            }
+            ProofTaskKind::SyncCommitteeSig { domain_id, epoch } => {
+                if *domain_id == 0 {
+                    return Err("ProofTaskKind sync domain_id cannot be zero".into());
+                }
+                if *epoch == 0 {
+                    return Err("ProofTaskKind sync epoch cannot be zero".into());
+                }
+            }
+            ProofTaskKind::StorageAttestation {
+                deal_id,
+                challenge_epoch,
+            } => {
+                if !nonzero_hash(deal_id) {
+                    return Err("ProofTaskKind storage deal_id cannot be zero".into());
+                }
+                if *challenge_epoch == 0 {
+                    return Err("ProofTaskKind storage challenge_epoch cannot be zero".into());
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn tag(&self) -> u8 {
+        match self {
+            ProofTaskKind::DomainCommitment { .. } => 1,
+            ProofTaskKind::ZkProof { .. } => 2,
+            ProofTaskKind::SyncCommitteeSig { .. } => 3,
+            ProofTaskKind::StorageAttestation { .. } => 4,
+        }
+    }
+
+    fn canonical_bytes(&self) -> Vec<u8> {
+        let mut out = Vec::new();
+        out.push(self.tag());
+        match self {
+            ProofTaskKind::DomainCommitment {
+                domain_id,
+                domain_height,
+                sequence,
+            } => {
+                out.extend_from_slice(&domain_id.to_le_bytes());
+                out.extend_from_slice(&domain_height.to_le_bytes());
+                out.extend_from_slice(&sequence.to_le_bytes());
+            }
+            ProofTaskKind::ZkProof {
+                circuit_id,
+                public_inputs_hash,
+            } => {
+                out.extend_from_slice(circuit_id);
+                out.extend_from_slice(public_inputs_hash);
+            }
+            ProofTaskKind::SyncCommitteeSig { domain_id, epoch } => {
+                out.extend_from_slice(&domain_id.to_le_bytes());
+                out.extend_from_slice(&epoch.to_le_bytes());
+            }
+            ProofTaskKind::StorageAttestation {
+                deal_id,
+                challenge_epoch,
+            } => {
+                out.extend_from_slice(deal_id);
+                out.extend_from_slice(&challenge_epoch.to_le_bytes());
+            }
+        }
+        out
+    }
+}
+
 /// Proof görev durumu.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ProofTaskStatus {
@@ -65,15 +152,13 @@ pub enum ProofTaskStatus {
     /// Süresi dolmuş.
     Expired,
     /// Başarısız — proof geçersiz.
-    Failed {
-        reason: String,
-    },
+    Failed { reason: String },
 }
 
 /// Proof görevi — prover'ların üstlenebileceği bir doğrulama görevi.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProofTask {
-    /// Görev ID (deterministik: hash(task_kind + creator + created_epoch)).
+    /// Görev ID (deterministik: hash(task_kind + creator + created/deadline/reward)).
     pub task_id: [u8; 32],
     /// Görev türü.
     pub kind: ProofTaskKind,
@@ -100,7 +185,7 @@ impl ProofTask {
         deadline_epoch: u64,
         reward: u64,
     ) -> Self {
-        let task_id = Self::compute_task_id(&kind, &creator, created_epoch);
+        let task_id = Self::compute_task_id(&kind, &creator, created_epoch, deadline_epoch, reward);
         let difficulty = Self::default_difficulty(&kind);
         Self {
             task_id,
@@ -119,13 +204,49 @@ impl ProofTask {
         kind: &ProofTaskKind,
         creator: &Address,
         created_epoch: u64,
+        deadline_epoch: u64,
+        reward: u64,
     ) -> [u8; 32] {
-        let kind_bytes = serde_json::to_vec(kind).unwrap_or_default();
+        let kind_bytes = kind.canonical_bytes();
         hash_fields_bytes(&[
+            b"BDLM_SETTLEMENT_PROOF_TASK_V1",
             &kind_bytes,
             creator.as_bytes(),
             &created_epoch.to_le_bytes(),
+            &deadline_epoch.to_le_bytes(),
+            &reward.to_le_bytes(),
         ])
+    }
+
+    pub fn verify_id(&self) -> bool {
+        self.task_id
+            == Self::compute_task_id(
+                &self.kind,
+                &self.creator,
+                self.created_epoch,
+                self.deadline_epoch,
+                self.reward,
+            )
+    }
+
+    pub fn validate_shape(&self) -> Result<(), String> {
+        if self.task_id == [0u8; 32] {
+            return Err("ProofTask task_id cannot be zero".into());
+        }
+        if self.creator == Address::zero() {
+            return Err("ProofTask creator cannot be zero".into());
+        }
+        self.kind.validate()?;
+        if self.deadline_epoch <= self.created_epoch {
+            return Err("ProofTask deadline_epoch must be after created_epoch".into());
+        }
+        if self.reward == 0 {
+            return Err("ProofTask reward must be >= 1".into());
+        }
+        if !self.verify_id() {
+            return Err("ProofTask task_id mismatch".into());
+        }
+        Ok(())
     }
 
     /// Görev türüne göre varsayılan zorluk.
@@ -140,12 +261,19 @@ impl ProofTask {
 
     /// Görevi bir prover'a atar.
     pub fn assign(&mut self, prover: Address, current_epoch: u64) -> Result<(), String> {
+        self.validate_shape()?;
+        if prover == Address::zero() {
+            return Err("ProofTask prover cannot be zero".into());
+        }
         if self.status != ProofTaskStatus::Pending {
             return Err(format!(
                 "Task {:?} is not pending (status: {:?})",
                 &self.task_id[..4],
                 self.status
             ));
+        }
+        if current_epoch < self.created_epoch {
+            return Err("Task cannot be assigned before created_epoch".into());
         }
         if current_epoch > self.deadline_epoch {
             return Err("Task has already expired".to_string());
@@ -165,13 +293,17 @@ impl ProofTask {
                 Ok(())
             }
             ProofTaskStatus::Pending => Err("Task must be assigned before completing".to_string()),
-            other => Err(format!("Cannot complete task in state {:?}", other)),
+            other => Err(format!("Cannot complete task in state {other:?}")),
         }
     }
 
     /// Görevi süresi dolmuş olarak işaretler.
-    pub fn expire(&mut self) {
+    pub fn expire(&mut self) -> Result<(), String> {
+        if !self.is_active() {
+            return Err("Only active tasks can expire".into());
+        }
         self.status = ProofTaskStatus::Expired;
+        Ok(())
     }
 
     /// Görev aktif mi (pending veya assigned)?
@@ -184,7 +316,7 @@ impl ProofTask {
 }
 
 /// Proof makbuzu — prover'ın bir görevi başarıyla tamamladığını kanıtlar.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ProofReceipt {
     /// İlgili görev ID.
     pub task_id: [u8; 32],
@@ -208,9 +340,7 @@ pub enum ReceiptStatus {
     /// Ödenmiş — ödül prover'a dağıtıldı.
     Paid,
     /// İptal — proof geçersiz bulundu.
-    Revoked {
-        reason: String,
-    },
+    Revoked { reason: String },
 }
 
 impl ProofReceipt {
@@ -232,6 +362,36 @@ impl ProofReceipt {
         }
     }
 
+    pub fn validate_for_task(&self, task: &ProofTask) -> Result<(), String> {
+        task.validate_shape()?;
+        if self.task_id != task.task_id {
+            return Err("ProofReceipt task_id mismatch".into());
+        }
+        if self.prover == Address::zero() {
+            return Err("ProofReceipt prover cannot be zero".into());
+        }
+        let ProofTaskStatus::Assigned {
+            prover,
+            assigned_at_epoch,
+        } = &task.status
+        else {
+            return Err("ProofReceipt requires assigned task".into());
+        };
+        if self.prover != *prover {
+            return Err("ProofReceipt prover does not match assigned prover".into());
+        }
+        if self.verified_epoch < *assigned_at_epoch || self.verified_epoch > task.deadline_epoch {
+            return Err("ProofReceipt verified_epoch outside task window".into());
+        }
+        if !nonzero_hash(&self.verification_hash) {
+            return Err("ProofReceipt verification_hash cannot be zero".into());
+        }
+        if self.reward_claimed == 0 || self.reward_claimed > task.reward {
+            return Err("ProofReceipt reward_claimed invalid".into());
+        }
+        Ok(())
+    }
+
     /// Makbuzu ödenmiş olarak işaretler.
     pub fn mark_paid(&mut self) -> Result<(), String> {
         if self.status != ReceiptStatus::Pending {
@@ -243,6 +403,9 @@ impl ProofReceipt {
 
     /// Makbuzu iptal eder.
     pub fn revoke(&mut self, reason: String) -> Result<(), String> {
+        if reason.is_empty() || reason.len() > 256 {
+            return Err("Receipt revoke reason invalid".into());
+        }
         if matches!(self.status, ReceiptStatus::Revoked { .. }) {
             return Err("Receipt is already revoked".to_string());
         }
@@ -280,10 +443,22 @@ impl ProofMarketState {
     }
 
     /// Yeni görev ekler.
-    pub fn add_task(&mut self, task: ProofTask) {
+    pub fn add_task(&mut self, task: ProofTask) -> Result<(), String> {
+        task.validate_shape()?;
         if task.is_active() {
+            if self.active_tasks.len() >= MAX_PROOF_MARKET_ACTIVE_TASKS {
+                return Err("ProofMarketState active task limit exceeded".into());
+            }
+            if self
+                .active_tasks
+                .iter()
+                .any(|existing| existing.task_id == task.task_id)
+            {
+                return Err("ProofMarketState duplicate task".into());
+            }
             self.active_tasks.push(task);
         }
+        Ok(())
     }
 
     /// Görev tamamlandığında makbuz üretir ve görevi kaldırır.
@@ -294,14 +469,17 @@ impl ProofMarketState {
             .position(|t| t.task_id == task_id)
             .ok_or("Task not found in active tasks")?;
 
+        receipt.validate_for_task(&self.active_tasks[idx])?;
         let mut task = self.active_tasks.remove(idx);
         task.complete()?;
+        if self.pending_receipts.len() >= MAX_PROOF_MARKET_PENDING_RECEIPTS {
+            return Err("ProofMarketState pending receipt limit exceeded".into());
+        }
         self.pending_receipts.push(receipt);
         self.total_tasks_completed = self
             .total_tasks_completed
             .checked_add(1)
-            .unwrap_or(u64::MAX);
-
+            .ok_or_else(|| "ProofMarketState total_tasks_completed overflow".to_string())?;
         Ok(())
     }
 
@@ -314,19 +492,18 @@ impl ProofMarketState {
 
         let reward = receipt.reward_claimed;
         receipt.mark_paid()?;
-
         self.total_rewards_paid = self
             .total_rewards_paid
             .checked_add(reward)
-            .unwrap_or(u64::MAX);
-
+            .ok_or_else(|| "ProofMarketState total_rewards_paid overflow".to_string())?;
         Ok(reward)
     }
 
     /// Süresi dolmuş görevleri temizler.
     pub fn prune_expired(&mut self, current_epoch: u64) -> usize {
         let before = self.active_tasks.len();
-        self.active_tasks.retain(|t| t.deadline_epoch >= current_epoch || !t.is_active());
+        self.active_tasks
+            .retain(|t| t.deadline_epoch >= current_epoch || !t.is_active());
         before - self.active_tasks.len()
     }
 
@@ -342,23 +519,41 @@ impl ProofMarketState {
     /// V208: Cap active_tasks + pending_receipts to prevent unbounded memory
     /// growth on long-running nodes.
     pub fn enforce_max_sizes(&mut self) {
-        const MAX_ACTIVE_TASKS: usize = 10_000;
-        const MAX_PENDING_RECEIPTS: usize = 10_000;
-
-        if self.active_tasks.len() > MAX_ACTIVE_TASKS {
-            let to_remove = self.active_tasks.len() - MAX_ACTIVE_TASKS;
+        if self.active_tasks.len() > MAX_PROOF_MARKET_ACTIVE_TASKS {
+            let to_remove = self.active_tasks.len() - MAX_PROOF_MARKET_ACTIVE_TASKS;
             self.active_tasks.drain(0..to_remove);
             tracing::warn!("V208: Pruned {} expired active tasks", to_remove);
         }
-        if self.pending_receipts.len() > MAX_PENDING_RECEIPTS {
+        if self.pending_receipts.len() > MAX_PROOF_MARKET_PENDING_RECEIPTS {
             // Remove paid receipts first, then oldest
             self.prune_paid_receipts();
-            if self.pending_receipts.len() > MAX_PENDING_RECEIPTS {
-                let to_remove = self.pending_receipts.len() - MAX_PENDING_RECEIPTS;
+            if self.pending_receipts.len() > MAX_PROOF_MARKET_PENDING_RECEIPTS {
+                let to_remove = self.pending_receipts.len() - MAX_PROOF_MARKET_PENDING_RECEIPTS;
                 self.pending_receipts.drain(0..to_remove);
                 tracing::warn!("V208: Pruned {} oldest pending receipts", to_remove);
             }
         }
+    }
+
+    pub fn root(&self) -> Hash32 {
+        let mut fields: Vec<Vec<u8>> = Vec::new();
+        fields.push(b"BDLM_SETTLEMENT_PROOF_MARKET_STATE_V1".to_vec());
+        fields.push(self.total_rewards_paid.to_le_bytes().to_vec());
+        fields.push(self.total_tasks_completed.to_le_bytes().to_vec());
+        for task in &self.active_tasks {
+            fields.push(task.task_id.to_vec());
+            fields.push(task.creator.as_bytes().to_vec());
+            fields.push(task.reward.to_le_bytes().to_vec());
+            fields.push(task.deadline_epoch.to_le_bytes().to_vec());
+        }
+        for receipt in &self.pending_receipts {
+            fields.push(receipt.task_id.to_vec());
+            fields.push(receipt.prover.as_bytes().to_vec());
+            fields.push(receipt.verification_hash.to_vec());
+            fields.push(receipt.reward_claimed.to_le_bytes().to_vec());
+        }
+        let refs: Vec<&[u8]> = fields.iter().map(Vec::as_slice).collect();
+        hash_fields_bytes(&refs)
     }
 }
 
@@ -370,72 +565,107 @@ mod tests {
         Address::from([byte; 32])
     }
 
-    #[test]
-    fn proof_task_lifecycle() {
-        let kind = ProofTaskKind::DomainCommitment {
+    fn task_kind() -> ProofTaskKind {
+        ProofTaskKind::DomainCommitment {
             domain_id: 1,
             domain_height: 100,
             sequence: 0,
-        };
-        let mut task = ProofTask::new(kind, test_address(1), 10, 100, 5000);
+        }
+    }
+
+    fn assigned_task() -> ProofTask {
+        let mut task = ProofTask::new(task_kind(), test_address(1), 10, 100, 5_000);
+        task.assign(test_address(2), 15).unwrap();
+        task
+    }
+
+    #[test]
+    fn proof_task_lifecycle() {
+        let mut task = ProofTask::new(task_kind(), test_address(1), 10, 100, 5_000);
         assert!(task.is_active());
         assert_eq!(task.status, ProofTaskStatus::Pending);
+        task.validate_shape().unwrap();
 
-        // Atama
         task.assign(test_address(2), 15).unwrap();
         assert!(matches!(task.status, ProofTaskStatus::Assigned { .. }));
 
-        // Tamamlama
         task.complete().unwrap();
         assert_eq!(task.status, ProofTaskStatus::Completed);
         assert!(!task.is_active());
     }
 
     #[test]
-    fn proof_task_cannot_complete_unassigned() {
-        let kind = ProofTaskKind::SyncCommitteeSig {
+    fn proof_task_rejects_invalid_kind_and_zero_creator() {
+        let invalid_kind = ProofTaskKind::DomainCommitment {
             domain_id: 0,
-            epoch: 5,
+            domain_height: 100,
+            sequence: 0,
         };
-        let mut task = ProofTask::new(kind, test_address(1), 10, 100, 1000);
-        assert!(task.complete().is_err());
+        let task = ProofTask::new(invalid_kind, test_address(1), 10, 100, 5_000);
+        assert!(task.validate_shape().unwrap_err().contains("domain_id"));
+
+        let task = ProofTask::new(task_kind(), Address::zero(), 10, 100, 5_000);
+        assert!(task.validate_shape().unwrap_err().contains("creator"));
     }
 
     #[test]
-    fn proof_task_deterministic_id() {
-        let kind = ProofTaskKind::ZkProof {
-            circuit_id: [7u8; 32],
-            public_inputs_hash: [8u8; 32],
-        };
-        let t1 = ProofTask::new(kind.clone(), test_address(1), 10, 100, 1000);
-        let t2 = ProofTask::new(kind, test_address(1), 10, 100, 1000);
-        assert_eq!(t1.task_id, t2.task_id);
+    fn proof_task_rejects_bad_deadline_reward_and_id() {
+        let task = ProofTask::new(task_kind(), test_address(1), 10, 10, 5_000);
+        assert!(task.validate_shape().unwrap_err().contains("deadline"));
+
+        let task = ProofTask::new(task_kind(), test_address(1), 10, 100, 0);
+        assert!(task.validate_shape().unwrap_err().contains("reward"));
+
+        let mut task = ProofTask::new(task_kind(), test_address(1), 10, 100, 5_000);
+        task.task_id = [9u8; 32];
+        assert!(task.validate_shape().unwrap_err().contains("mismatch"));
+    }
+
+    #[test]
+    fn proof_task_assignment_guards() {
+        let mut task = ProofTask::new(task_kind(), test_address(1), 10, 100, 5_000);
+        assert!(task.assign(Address::zero(), 15).unwrap_err().contains("prover"));
+        assert!(task.assign(test_address(2), 9).unwrap_err().contains("created_epoch"));
+        assert!(task.assign(test_address(2), 101).unwrap_err().contains("expired"));
     }
 
     #[test]
     fn proof_receipt_lifecycle() {
-        let mut receipt = ProofReceipt::new(
-            [1u8; 32],
-            test_address(2),
-            20,
-            [3u8; 32],
-            5000,
-        );
+        let mut receipt = ProofReceipt::new([1u8; 32], test_address(2), 20, [3u8; 32], 5_000);
         assert!(receipt.is_payable());
-
         receipt.mark_paid().unwrap();
         assert!(!receipt.is_payable());
     }
 
     #[test]
-    fn proof_receipt_cannot_revoke_twice() {
-        let mut receipt = ProofReceipt::new(
-            [1u8; 32],
-            test_address(2),
-            20,
-            [3u8; 32],
-            5000,
-        );
+    fn proof_receipt_validates_against_assigned_task() {
+        let task = assigned_task();
+        let receipt = ProofReceipt::new(task.task_id, test_address(2), 20, [3u8; 32], 5_000);
+        receipt.validate_for_task(&task).unwrap();
+
+        let wrong_prover = ProofReceipt::new(task.task_id, test_address(9), 20, [3u8; 32], 5_000);
+        assert!(wrong_prover
+            .validate_for_task(&task)
+            .unwrap_err()
+            .contains("prover"));
+
+        let over_reward = ProofReceipt::new(task.task_id, test_address(2), 20, [3u8; 32], 5_001);
+        assert!(over_reward
+            .validate_for_task(&task)
+            .unwrap_err()
+            .contains("reward"));
+
+        let zero_hash = ProofReceipt::new(task.task_id, test_address(2), 20, [0u8; 32], 5_000);
+        assert!(zero_hash
+            .validate_for_task(&task)
+            .unwrap_err()
+            .contains("verification_hash"));
+    }
+
+    #[test]
+    fn proof_receipt_cannot_revoke_twice_or_with_empty_reason() {
+        let mut receipt = ProofReceipt::new([1u8; 32], test_address(2), 20, [3u8; 32], 5_000);
+        assert!(receipt.revoke(String::new()).is_err());
         receipt.revoke("bad proof".to_string()).unwrap();
         assert!(receipt.revoke("again".to_string()).is_err());
     }
@@ -443,48 +673,67 @@ mod tests {
     #[test]
     fn proof_market_state_workflow() {
         let mut market = ProofMarketState::new();
-        let kind = ProofTaskKind::StorageAttestation {
-            deal_id: [4u8; 32],
-            challenge_epoch: 10,
-        };
-        let task = ProofTask::new(kind, test_address(1), 1, 100, 3000);
+        let mut task = ProofTask::new(
+            ProofTaskKind::StorageAttestation {
+                deal_id: [4u8; 32],
+                challenge_epoch: 10,
+            },
+            test_address(1),
+            1,
+            100,
+            3_000,
+        );
         let task_id = task.task_id;
-        market.add_task(task);
+        task.assign(test_address(2), 15).unwrap();
+        market.add_task(task).unwrap();
         assert_eq!(market.active_tasks.len(), 1);
 
-        let receipt = ProofReceipt::new(task_id, test_address(2), 15, [5u8; 32], 3000);
+        let receipt = ProofReceipt::new(task_id, test_address(2), 20, [5u8; 32], 3_000);
+        let root_before = market.root();
         market.complete_task(task_id, receipt).unwrap();
         assert_eq!(market.active_tasks.len(), 0);
         assert_eq!(market.pending_receipts.len(), 1);
         assert_eq!(market.total_tasks_completed, 1);
+        assert_ne!(root_before, market.root());
 
         let reward = market.pay_receipt(0).unwrap();
-        assert_eq!(reward, 3000);
-        assert_eq!(market.total_rewards_paid, 3000);
+        assert_eq!(reward, 3_000);
+        assert_eq!(market.total_rewards_paid, 3_000);
+    }
+
+    #[test]
+    fn complete_task_does_not_drop_task_on_invalid_receipt() {
+        let mut market = ProofMarketState::new();
+        let mut task = ProofTask::new(task_kind(), test_address(1), 1, 100, 1_000);
+        let task_id = task.task_id;
+        task.assign(test_address(2), 10).unwrap();
+        market.add_task(task).unwrap();
+        let bad_receipt = ProofReceipt::new(task_id, test_address(9), 20, [5u8; 32], 1_000);
+        assert!(market.complete_task(task_id, bad_receipt).is_err());
+        assert_eq!(market.active_tasks.len(), 1);
+        assert!(market.pending_receipts.is_empty());
     }
 
     #[test]
     fn proof_market_prune_expired() {
         let mut market = ProofMarketState::new();
-        let kind1 = ProofTaskKind::DomainCommitment {
-            domain_id: 0,
-            domain_height: 10,
-            sequence: 0,
-        };
-        let kind2 = ProofTaskKind::DomainCommitment {
-            domain_id: 1,
-            domain_height: 20,
-            sequence: 1,
-        };
-        let mut t1 = ProofTask::new(kind1, test_address(1), 1, 5, 100);
-        let mut t2 = ProofTask::new(kind2, test_address(1), 1, 100, 100);
-        // Assign both so they're active
+        let mut t1 = ProofTask::new(task_kind(), test_address(1), 1, 5, 100);
+        let mut t2 = ProofTask::new(
+            ProofTaskKind::DomainCommitment {
+                domain_id: 2,
+                domain_height: 20,
+                sequence: 1,
+            },
+            test_address(1),
+            1,
+            100,
+            100,
+        );
         t1.assign(test_address(2), 2).unwrap();
         t2.assign(test_address(3), 2).unwrap();
-        market.add_task(t1);
-        market.add_task(t2);
+        market.add_task(t1).unwrap();
+        market.add_task(t2).unwrap();
 
-        // At epoch 6, t1 is expired (deadline 5)
         let pruned = market.prune_expired(6);
         assert_eq!(pruned, 1);
         assert_eq!(market.active_tasks.len(), 1);
@@ -493,14 +742,27 @@ mod tests {
     #[test]
     fn default_difficulty_per_kind() {
         let kinds = vec![
-            ProofTaskKind::DomainCommitment { domain_id: 0, domain_height: 1, sequence: 0 },
-            ProofTaskKind::ZkProof { circuit_id: [0u8; 32], public_inputs_hash: [0u8; 32] },
-            ProofTaskKind::SyncCommitteeSig { domain_id: 0, epoch: 1 },
-            ProofTaskKind::StorageAttestation { deal_id: [0u8; 32], challenge_epoch: 1 },
+            ProofTaskKind::DomainCommitment {
+                domain_id: 1,
+                domain_height: 1,
+                sequence: 0,
+            },
+            ProofTaskKind::ZkProof {
+                circuit_id: [7u8; 32],
+                public_inputs_hash: [8u8; 32],
+            },
+            ProofTaskKind::SyncCommitteeSig {
+                domain_id: 1,
+                epoch: 1,
+            },
+            ProofTaskKind::StorageAttestation {
+                deal_id: [9u8; 32],
+                challenge_epoch: 1,
+            },
         ];
         let tasks: Vec<_> = kinds
             .into_iter()
-            .map(|k| ProofTask::new(k, test_address(1), 1, 100, 1000))
+            .map(|k| ProofTask::new(k, test_address(1), 1, 100, 1_000))
             .collect();
         assert!(tasks[0].difficulty < tasks[1].difficulty); // ZK > DC
         assert!(tasks[1].difficulty > tasks[2].difficulty); // ZK > SC
