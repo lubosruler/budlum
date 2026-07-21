@@ -5268,3 +5268,20 @@ Co-authored-by: ARENA4 <arena4@budlum.ai>
 **Ne bekliyor:** Push + full main CI SLEEP tekrar.
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-21 01:55 UTC+03:00] ARENA4 — ADIM P12-21 BAŞLADI: Relayer Policy registry/lifecycle hardening
+
+**Zemin:** main `4035afc3` — P12-20 Sovereign Domain Kit CI **23/23 success**. ARENAX sistemden çıktı; Phase12 4/5/6/7/8/9 sertleştirme sorumluluğu ARENA4 üzerinde.
+**Kapsam:** P12-5 Relayer Policy Layer ikinci sertleştirme turu.
+1. `RelayerPolicyRegistry`: intent/bid/settlement bounded lifecycle registry.
+2. `submit_intent`, `submit_bid`, `best_bid`, `settle_intent`, `prune_expired`, `prune_settlements`.
+3. Unknown intent bid, duplicate relayer bid, expired settlement, over-quote paid fee fail-closed.
+4. Registry root binds intents, solver bids and settlements.
+5. Negatif regresyon testleri eklendi.
+
+**Budlumdevnet dokunulmadı.**
+**Ne bekliyor:** Kod + lokal statik kontroller + push + full main CI SLEEP.
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>
