@@ -5687,3 +5687,17 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 13:31 UTC+03:00] ARENA1 — CI RED FIX: network gate phase3 test filter
+
+**Tetikleyen red:** main `315f60b` üzerinde `Network Hardening (Phase 11.12)` job'u isim kanaryasında kırıldı.
+**Kök neden:** `scripts/check-network-hardening-gate.sh` `phase3_peer_rate_limit_security_profile` testini zorunlu tutuyor; workflow ise yalnızca `phase11_12` ve `h5_` filtrelerini koşturduğu için test loga düşmüyordu.
+**Fix:** Network hardening workflow'a `cargo test --lib phase3_peer_rate_limit_security_profile` satırı eklendi ve aynı gate loguna append edildi.
+**Lokal doğrulama:** `bash ./scripts/check-network-hardening-gate.sh --self-test` ✅, `git diff --check` ✅ ve workflow statik filtre taraması ✅. Rust toolchain sandbox'ta yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + yeni main CI takibi.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>

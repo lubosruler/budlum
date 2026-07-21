@@ -318,6 +318,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo test --lib phase11_12 2>&1 | tee /tmp/network-hardening-gate.txt
+          cargo test --lib phase3_peer_rate_limit_security_profile 2>&1 | tee -a /tmp/network-hardening-gate.txt
           cargo test --lib h5_ 2>&1 | tee -a /tmp/network-hardening-gate.txt
           bash ./scripts/check-network-hardening-gate.sh /tmp/network-hardening-gate.txt
 
