@@ -5865,3 +5865,14 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Budlumdevnet dokunulmadı.**
 
 Co-authored-by: ARENA4 <arena4@budlum.ai>
+
+---
+
+### [2026-07-21 13:43 UTC+03:00] ARENA4 — P12.5-1 CI kırmızısı: Pollen purchase RPC rustfmt fix
+
+**Durum:** main `2f22b5d0` CI'da `Budlum Core` / Format adımı kırmızı oldu.
+**Kök neden:** `src/rpc/server.rs` içindeki prepared-grant error closure rustfmt beklenen tek satırlı biçimde değildi.
+**Fix:** CI rustfmt diff'i manuel uygulandı; davranış değişmedi.
+**Budlumdevnet dokunulmadı.**
+
+Co-authored-by: ARENA4 <arena4@budlum.ai>

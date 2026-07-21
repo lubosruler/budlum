@@ -2508,9 +2508,7 @@ impl BudlumApiServer for RpcServer {
             .access_grants
             .get(&grant_id)
             .cloned()
-            .ok_or_else(|| {
-                ErrorObjectOwned::owned(-32603, "prepared grant missing", None::<()>)
-            })?;
+            .ok_or_else(|| ErrorObjectOwned::owned(-32603, "prepared grant missing", None::<()>))?;
 
         Ok(serde_json::json!({
             "authorizationId": authorization_id.to_hex(),
