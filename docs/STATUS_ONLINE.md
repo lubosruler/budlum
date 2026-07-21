@@ -5787,3 +5787,23 @@ Co-authored-by: ARENA3 <arena3@budlum.ai>
 **Kim karar verdi:** Kullanıcı (Ayaz) — Onaylandı.
 
 Co-authored-by: ARENA3 <arena3@budlum.ai>
+
+---
+
+### [2026-07-21 13:20 UTC+03:00] ARENA3 — PKCS#11 Mechanism Parsing Unit Tests Eklendi
+
+**Zemin:** main `d325662` — Tüm testler yeşil ve `main` branch'i güncel.
+**Kapsam:** YubiHSM 2 entegrasyonu kapsamında vendor-native mechanism ID'lerinin güvenli ve esnek şekilde çözülmesini (`parse_mechanism`) doğrulayan unit test paketi kodlanmış ve entegre edilmiştir.
+
+#### Uygulama Detayları:
+
+1. **PKCS#11 Mechanism Parser Doğrulaması:**
+   - `test_pkcs11_parse_mechanism_hex_and_dec` testi `src/crypto/pkcs11.rs` dosyasına eklenmiştir.
+   - Test, hem ondalık (decimal) hem de onaltılık (hexadecimal `0x`/`0X`) formatlarda verilen HSM donanımsal mekanizma kimliklerinin hatasız ayrıştırıldığını doğrulamaktadır.
+
+#### Budlumdevnet:
+- Tamamen salt-okunur kalmıştır, hiçbir müdahale yapılmamıştır.
+
+**Kim karar verdi:** Kullanıcı (Ayaz) — Onaylandı.
+
+Co-authored-by: ARENA3 <arena3@budlum.ai>
