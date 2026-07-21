@@ -364,6 +364,9 @@ pub struct NetworkSection {
 #[serde(deny_unknown_fields)]
 pub struct NodeSection {
     pub role: Option<String>, // validator | sentry | seed | rpc | archive
+    /// Phase 11.10 alias: full | archive. `archive` normalizes to role=archive;
+    /// `full` is compatible with validator/sentry/seed/rpc but not archive.
+    pub mode: Option<String>,
     pub dial: Option<String>,
 }
 
@@ -567,6 +570,20 @@ impl NodeConfig {
                     }
                     other => {
                         eprintln!("CRITICAL: Invalid node role '{}'", other);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            if let Some(mode) = node.mode {
+                match mode.as_str() {
+                    "archive" => self.role = "archive".to_string(),
+                    "full" if self.role != "archive" => {}
+                    "full" => {
+                        eprintln!("CRITICAL: node.mode='full' conflicts with role='archive'");
+                        std::process::exit(1);
+                    }
+                    other => {
+                        eprintln!("CRITICAL: Invalid node mode '{}'", other);
                         std::process::exit(1);
                     }
                 }
@@ -1057,6 +1074,35 @@ mod tests {
             ..Default::default()
         };
         assert!(cfg.pruning_policy().unwrap_err().contains("unknown node role"));
+    }
+
+    #[test]
+    fn phase11_10_cli_node_mode_archive_normalizes_role() {
+        let mut cfg = NodeConfig::default();
+        cfg.apply_file_config(FileConfig {
+            node: Some(NodeSection {
+                mode: Some("archive".into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        assert_eq!(cfg.role, "archive");
+        assert_eq!(cfg.pruning_policy().unwrap().mode, crate::storage::NodeMode::Archive);
+    }
+
+    #[test]
+    fn phase11_10_cli_node_mode_full_keeps_validator_role() {
+        let mut cfg = NodeConfig::default();
+        cfg.apply_file_config(FileConfig {
+            node: Some(NodeSection {
+                role: Some("validator".into()),
+                mode: Some("full".into()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        assert_eq!(cfg.role, "validator");
+        assert_eq!(cfg.pruning_policy().unwrap().mode, crate::storage::NodeMode::Full);
     }
 }
 

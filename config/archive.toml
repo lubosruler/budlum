@@ -7,6 +7,7 @@ chain_id = 42
 genesis_file = "./config/testnet-genesis.json"
 
 [node]
+mode = "archive"
 role = "archive"
 
 [storage]
