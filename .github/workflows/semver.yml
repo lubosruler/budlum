@@ -43,8 +43,10 @@ jobs:
         uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
         with:
           toolchain: "1.94.0"
-      - name: Install nightly (rustdoc-json backend for semver-checks)
-        run: rustup toolchain install nightly --profile minimal
+      - name: Install pinned nightly (rustdoc-json backend for semver-checks)
+        run: |
+          rustup toolchain install nightly-2026-07-19 --profile minimal
+          rustup component add rustdoc --toolchain nightly-2026-07-19
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
         with:
           # İki-checkout yerleşiminde workspace kökünde Cargo.toml yok;
@@ -56,20 +58,29 @@ jobs:
         run: cargo +1.94.0 install cargo-semver-checks --locked
       - name: Gate canary (vacuous-gate koruması)
         run: bash ./current/scripts/check-semver.sh --self-test
+      - name: Teşhis (GEÇİCİ, kanıt toplama) — doğrudan rustdoc-json
+        continue-on-error: true
+        env:
+          RUSTUP_TOOLCHAIN: nightly-2026-07-19
+          CARGO_BUILD_JOBS: "2"
+          RUSTFLAGS: "-C debuginfo=0"
+          RUST_BACKTRACE: "1"
+        run: |
+          set +e
+          cd current
+          cargo rustdoc -p budlum-core --lib -- -Z unstable-options --output-format json -o target/semv_diag 2>&1 | tail -60
+          echo "RUSTDOC_DIRECT_EXIT: $?"
       - name: Semver gate — budlum-core vs baseline
         env:
           SEMVER_BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
-          # Kök-neden analizi (üçüncü koşu kanıtı): rustdoc-json üretimi,
-          # bağımlılıkların DERLENMESİ tamamlandıktan sonra, crate'in kendi
-          # rustdoc-json adımında ölüyordu ve memory snapshot 9.7GB boş
-          # gösteriyordu (OOM tezi çürütüldü). Neden: `rust-toolchain.toml`
-          # (channel=1.94.0) araç zinciri seçiminde `RUSTUP_TOOLCHAIN`'i yener;
-          # rustdoc'un `--output-format json` modu HALA nightly-only olduğundan
-          # stable rustdoc crate-adımında kırılıyordu. Çözüm: gate adımına
-          # RUSTUP_TOOLCHAIN=nightly (rust-toolchain.toml'u yener, hem current
-          # hem baseline aynı nightly ile diff'lenir → tutarlı). MSRV yükümlülüğü
-          # ayrı job'ların (build/test 1.94.0) sorumluluğunda kalır.
-          RUSTUP_TOOLCHAIN: nightly
+          # Kök-neden analizi (dördüncü koşu kanıtı): rustdoc-json ölümü
+          # floating nightly'de de tekrarlandı — sessiz crash, error body
+          # log'a düşmüyor. Miri job'unun derleyebildiği KANITLI pin
+          # (nightly-2026-07-19, budzero/crypto miri derlemesi başarılı)
+          # kullanılıyor; floating-nightly rustdoc regresyon ihtimali elenir.
+          # Ayrıca gate öncesi doğrudan rustdoc-json teşhis adımı ham
+          # stderr'ı görünür kılar (wrapper'ın kaybettiği hata gövdesi).
+          RUSTUP_TOOLCHAIN: nightly-2026-07-19
           CARGO_BUILD_JOBS: "2"
           RUSTFLAGS: "-C debuginfo=0"
         run: |
