@@ -32,10 +32,7 @@ pub enum ProofTaskKind {
         public_inputs_hash: Hash32,
     },
     /// Sync-committee BLS imza doğrulama.
-    SyncCommitteeSig {
-        domain_id: DomainId,
-        epoch: u64,
-    },
+    SyncCommitteeSig { domain_id: DomainId, epoch: u64 },
     /// Storage attestation doğrulama.
     StorageAttestation {
         deal_id: [u8; 32],
@@ -253,7 +250,7 @@ impl ProofTask {
     fn default_difficulty(kind: &ProofTaskKind) -> u64 {
         match kind {
             ProofTaskKind::DomainCommitment { .. } => 1_000_000, // FIXED_POINT_SCALE = 1x
-            ProofTaskKind::ZkProof { .. } => 10_000_000,        // 10x
+            ProofTaskKind::ZkProof { .. } => 10_000_000,         // 10x
             ProofTaskKind::SyncCommitteeSig { .. } => 2_000_000, // 2x
             ProofTaskKind::StorageAttestation { .. } => 3_000_000, // 3x
         }
@@ -462,7 +459,11 @@ impl ProofMarketState {
     }
 
     /// Görev tamamlandığında makbuz üretir ve görevi kaldırır.
-    pub fn complete_task(&mut self, task_id: [u8; 32], receipt: ProofReceipt) -> Result<(), String> {
+    pub fn complete_task(
+        &mut self,
+        task_id: [u8; 32],
+        receipt: ProofReceipt,
+    ) -> Result<(), String> {
         let idx = self
             .active_tasks
             .iter()
@@ -624,9 +625,18 @@ mod tests {
     #[test]
     fn proof_task_assignment_guards() {
         let mut task = ProofTask::new(task_kind(), test_address(1), 10, 100, 5_000);
-        assert!(task.assign(Address::zero(), 15).unwrap_err().contains("prover"));
-        assert!(task.assign(test_address(2), 9).unwrap_err().contains("created_epoch"));
-        assert!(task.assign(test_address(2), 101).unwrap_err().contains("expired"));
+        assert!(task
+            .assign(Address::zero(), 15)
+            .unwrap_err()
+            .contains("prover"));
+        assert!(task
+            .assign(test_address(2), 9)
+            .unwrap_err()
+            .contains("created_epoch"));
+        assert!(task
+            .assign(test_address(2), 101)
+            .unwrap_err()
+            .contains("expired"));
     }
 
     #[test]
