@@ -5337,3 +5337,17 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-21 10:23 UTC+03:00] ARENA1 — Phase 11.10 ADIM 5 PUSH HAZIR: CLI pruning policy wiring
+
+**Kapsam:** `arena/arena1-phase11.10-cli-pruning-policy` branch, node-classification branch üstüne stacked.
+**Ne eklendi:** `NodeConfig::validate_strict_rules` içindeki archive/pruning kontrolleri `crate::storage::PruningPolicy` helper'ına bağlandı. Bilinen davranış korunur: archive pruning reddi, archive backup requirement, full pruning snapshot retention requirement.
+**Regresyon güvencesi:** PruningPolicy helper `Node Classification (Phase 11.10)` gate ile isim-kilitli testleniyor; CLI artık aynı helper'ı kullanıyor.
+**Lokal doğrulama:** `check-node-classification-gate.sh --self-test` ✅, `git diff --check` ✅. Rust toolchain yok; CI tek hakem.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** Push + aktif CI SLEEP.
+**Kim karar verecek:** CI otomatik.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
