@@ -544,6 +544,7 @@ jobs:
             snapshot_deserialize
             transaction_deserialize
             consensus_state_transition
+            reputation
             relayer_escrow
             zk_verifier
           )
