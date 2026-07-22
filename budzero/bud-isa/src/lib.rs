@@ -47,6 +47,16 @@ pub enum Opcode {
     /// ceremony completes. This ensures the AI verification layer
     /// is thoroughly audited before mainnet deployment.
     VerifyInference = 0x1F,
+    /// D2 (2026-07-22): Privacy layer — commitment for private transfer.
+    /// Binds amount + recipient + blinding into a Poseidon commitment hash.
+    /// Mainnet-gated (staged rollout, like VerifyMerkle/VerifyInference).
+    PrivacyCommit = 0x20,
+    /// D2: nullifier check — marks a spent commitment without revealing which.
+    /// Prevents double-spend. Mainnet-gated.
+    NullifierCheck = 0x21,
+    /// D2: sum-conservation — proves Σinputs == Σoutputs without revealing
+    /// amounts (homomorphic commitment). Mainnet-gated.
+    SumConservation = 0x22,
 }
 
 impl Opcode {
@@ -58,7 +68,14 @@ impl Opcode {
     /// activation gate. VerifyMerkle and VerifyInference are the opcodes
     /// with a staged rollout.
     pub fn requires_mainnet_activation(&self) -> bool {
-        matches!(self, Opcode::VerifyMerkle | Opcode::VerifyInference)
+        matches!(
+            self,
+            Opcode::VerifyMerkle
+                | Opcode::VerifyInference
+                | Opcode::PrivacyCommit
+                | Opcode::NullifierCheck
+                | Opcode::SumConservation
+        )
     }
 }
 
@@ -83,6 +100,10 @@ pub struct MainnetActivation {
     /// When true, VerifyInference (0x1F) opcode is allowed on mainnet,
     /// enabling ZKVM-proven AI inference verification.
     pub verify_inference_enabled: bool,
+    /// D2 (2026-07-22): privacy-layer opcode gates (staged rollout).
+    pub privacy_commit_enabled: bool,
+    pub nullifier_check_enabled: bool,
+    pub sum_conservation_enabled: bool,
 }
 
 impl MainnetActivation {
@@ -91,6 +112,9 @@ impl MainnetActivation {
         Self {
             verify_merkle_enabled: true,
             verify_inference_enabled: true,
+            privacy_commit_enabled: true,
+            nullifier_check_enabled: true,
+            sum_conservation_enabled: true,
         }
     }
 
@@ -100,6 +124,9 @@ impl MainnetActivation {
             match opcode {
                 Opcode::VerifyMerkle => self.verify_merkle_enabled,
                 Opcode::VerifyInference => self.verify_inference_enabled,
+                Opcode::PrivacyCommit => self.privacy_commit_enabled,
+                Opcode::NullifierCheck => self.nullifier_check_enabled,
+                Opcode::SumConservation => self.sum_conservation_enabled,
                 _ => false,
             }
         } else {
@@ -185,6 +212,9 @@ impl Instruction {
             0x1D => Opcode::Syscall,
             0x1E => Opcode::VerifyMerkle,
             0x1F => Opcode::VerifyInference,
+            0x20 => Opcode::PrivacyCommit,
+            0x21 => Opcode::NullifierCheck,
+            0x22 => Opcode::SumConservation,
             _ => return Err(DecodeError::InvalidOpcode(op_u8)),
         };
         Ok(Self {
@@ -368,5 +398,74 @@ mod tests {
         let inst = Instruction::decode_for_mainnet(raw, MainnetActivation::full())
             .expect("VerifyInference allowed with full mainnet activation");
         assert_eq!(inst.opcode, Opcode::VerifyInference);
+    }
+
+    // ===================== D2 — Privacy opcodes (0x20–0x22) =====================
+
+    #[test]
+    fn d2_privacy_opcodes_decode_and_decode_any_roundtrip() {
+        for op in [
+            Opcode::PrivacyCommit,
+            Opcode::NullifierCheck,
+            Opcode::SumConservation,
+        ] {
+            let raw = Instruction {
+                opcode: op,
+                rd: 1,
+                rs1: 2,
+                rs2: 3,
+                imm: 0,
+            }
+            .encode();
+            let inst = Instruction::decode_any(raw).expect("decodes via decode_any");
+            assert_eq!(inst.opcode, op);
+            let inst2 = Instruction::decode_for_profile(raw, IsaProfile::Production).unwrap();
+            assert_eq!(inst2.opcode, op);
+        }
+    }
+
+    #[test]
+    fn d2_mainnet_activation_default_rejects_privacy_opcodes() {
+        for op in [
+            Opcode::PrivacyCommit,
+            Opcode::NullifierCheck,
+            Opcode::SumConservation,
+        ] {
+            let raw = Instruction {
+                opcode: op,
+                rd: 1,
+                rs1: 2,
+                rs2: 3,
+                imm: 0,
+            }
+            .encode();
+            let err = Instruction::decode_for_mainnet(raw, MainnetActivation::default())
+                .expect_err("privacy opcode blocked on mainnet by default");
+            assert!(
+                matches!(err, DecodeError::MainnetActivationRequired(_)),
+                "D2: {op:?} must require mainnet activation"
+            );
+        }
+    }
+
+    #[test]
+    fn d2_mainnet_activation_full_allows_privacy_opcodes() {
+        for op in [
+            Opcode::PrivacyCommit,
+            Opcode::NullifierCheck,
+            Opcode::SumConservation,
+        ] {
+            let raw = Instruction {
+                opcode: op,
+                rd: 1,
+                rs1: 2,
+                rs2: 3,
+                imm: 0,
+            }
+            .encode();
+            let inst = Instruction::decode_for_mainnet(raw, MainnetActivation::full())
+                .expect("privacy opcode allowed with full mainnet activation");
+            assert_eq!(inst.opcode, op);
+        }
     }
 }
