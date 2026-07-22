@@ -16,9 +16,6 @@ pub mod bench_performance;
 pub mod block_reward;
 #[cfg(test)]
 pub mod bns;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 // Phase 0.38, Faz 1-2 + Faz 5: B.U.D. E2E test + ekip-bağımsızlık invariantları.
 // 3-aktör (operatör A + operatör B + izleyici C) senaryosu + 9 adet
 // permissionless/whitelist/data-sovereignty invariantı (Phase 0.39 plan §0.5
@@ -33,11 +30,6 @@ pub mod chaos;
 pub mod distributed_settlement;
 #[cfg(test)]
 pub mod qcblob_quorum;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 // Phase 0.08: re-enabled (was `#![cfg(false)]`'d during Phase 0.02 ghost-hunting).
 // The permissionless-registry / liveness / invalid-vote state was reinstated
 // on `AccountState`, so these test files now exercise the real code paths
@@ -70,21 +62,6 @@ pub mod pow_light_client;
 pub mod prover;
 #[cfg(test)]
 pub mod relayer_liveness;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 // Phase 8.9 / Dalga 5: L1 relayer proof kripto-doorulama + M5 hub fee + M4 BNS fee
 // regresyon kapilari (kullanici karari Q-A, 2026-07-16).
 #[cfg(test)]
@@ -94,23 +71,16 @@ pub mod settlement_prod;
 #[cfg(test)]
 pub mod tokenomics;
 pub mod tokenomics_proptest;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 #[cfg(test)]
 pub mod zkvm;
 // Phase 9 / F4 mühürü (ARENA3, 2026-07-17): SocialFi boost %4 B.U.D. operatör
 // dağıtımı + remainder determinizmi + operatörsüz burn fallback regresyonları.
 #[cfg(test)]
 pub mod adversarial_p2p;
-pub mod v95_v98_canaries;
 // Phase 9 / F1 mühürü (ARENA3, 2026-07-17): NftBurn -> storage manifest hard
 // prune zincir-seviyesi regresyon kilidi (produce_block yolu).
 #[cfg(test)]
 pub mod bns_expanded;
-pub mod v95_v98_canaries;
 // ADIM5 §5.1: Universal Relayer E2E integration tests (ARENA1).
 #[cfg(test)]
 pub mod consensus_expanded;
@@ -132,16 +102,6 @@ pub mod security_auditor;
 pub mod socialfi;
 #[cfg(test)]
 pub mod target_700;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 // P0 mainnet-gap (ARENA3, 2026-07-18): bridge negatif süiti — forgery /
 // replay / anchor-substitution / inactive-relayer / unknown-message reddi.
 // Yalnızca mevcut tanımlı red yollarını doğrular; protokol davranışı değişmez.
@@ -150,20 +110,15 @@ pub mod bridge_negatives;
 pub mod domain_edge_cases;
 #[cfg(test)]
 pub mod encryption_dao;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 // Phase 11.3 Görev 4: PoA katılımcı onboarding yaşam-döngüsü + whitelist
 // zorunluluğu + KYC expiry test matrisi. İzolasyon mührü poa_isolation.rs'de.
 pub mod poa_onboarding_matrix;
-pub mod v95_v98_canaries;
 // P0 mainnet-gap 3/3 (ARENA3, 2026-07-19): snapshot-corruption +
 // crash-recovery kaos süiti. İki _gap pini bilinçli olarak bugünkü davranışı
 // mühürler (snapshot authenticity yok + v1/v2 çapraz-gölgeleme + boot
 // sessiz-rollback); ürün düzeltmesi emirle geldiğinde ters çevrilir.
 #[cfg(test)]
 pub mod snapshot_chaos;
-pub mod v95_v98_canaries;
 // P5 regresyon kilidi (ARENA2, 2026-07-19): ZK finality fail-open +
 // relayer escrow silent-failure CI kırıcı güvenlik mühürleri.
 #[cfg(test)]
@@ -177,19 +132,11 @@ pub mod hardening_locks;
 #[cfg(test)]
 pub mod regression_lock;
 pub mod slashing_matrix;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
-pub mod v95_v98_canaries;
 // ADIM-1 (ARENA2, 2026-07-21): cross-platform consensus determinism digest'i.
 // determinism.yml bu modüldeki testten üretilen CONSENSUS_DIGEST satırını üç
 // işletim sisteminde toplayıp byte-eşitlik ister.
 pub mod consensus_digest;
-pub mod v95_v98_canaries;
 // ADIM-1 (ARENA2, 2026-07-21): CI Genişletme Madde 1 — genesis
 // reproducibility sondası (`genesis_hash_deterministic`, bkz. determinism.yml).
 #[cfg(test)]
 pub mod genesis_repro;
-pub mod v95_v98_canaries;

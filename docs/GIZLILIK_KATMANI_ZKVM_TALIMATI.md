@@ -67,13 +67,15 @@ Mevcut BudZKVM/Lubot doğrulama tasarımı **bütünlük (integrity)** kanıtlı
 - Öncelik PoA/kurumsal domain (BDDK/KYC) ile ilişkili; permissionless tarafta acil değil.
 - Mevcut B.U.D./Lubot/NFT sistemlerine dokunmadan, ayrı bir opcode ailesi olarak eklenecek.
 
-## 10. Açık Sorular
+## 10. Açık Sorular — ÇÖZÜLDÜ (2026-07-22, ask_user akışı)
 
-1. **Poseidon mu Rescue mu?** — hangi field-native hash, mevcut Plonky3 yığınıyla uyumluluk testiyle netleşecek.
-2. **Note/UTXO modeli** mevcut account-model ile nasıl bir arada yaşayacak — hibrit mi, tamamen paralel mi?
-3. **View-key mekanizması** — üretim, saklama, ibraz koşulları netleşmemiş.
-4. **Zamanlama** — bu katman mainnet launch'a dahil mi, yoksa mevcut direct-testnet stratejisinden sonraki bir faz mı?
-5. **Execution-time confidentiality** (operatör bile veri görmesin) ayrı bir istekse, TEE/FHE/MPC entegrasyonu ayrı bir araştırma hattı olarak mı açılacak?
+1. ✅ **Poseidon mu Rescue mu?** → **POSEIDON** (Plonky3 stdlib ile en yaygın uyum).
+2. ✅ **Note/UTXO modeli** → **PARALEL İZOLE SUBTREE** (gizli note'lar ayrı state alt-ağacı; account-model'e dokunmaz, Bölüm 7 ile uyumlu).
+3. ✅ **View-key mekanizması** → **KULLANICI ÜRETİR + PAYLAŞIR** (Zcash deseni; kullanıcı cüzdanında üretir/saklar, yetkiliye manuel ibraz eder).
+4. ✅ **Zamanlama** → **MAİN NET v1'DE DAHİL** (ertelenmedi).
+5. ✅ **Execution-time confidentiality** → **TEE, OPT-IN CÜZDAN ÖZELLİĞİ**. Cüzdan içi toggle: *"Bu cüzdanın işlemleri TEE katmanıyla gizli kılınsın mı? → Evet (işlemleriniz biraz yavaşlar)."* Varsayılan kapalı. Client-side TEE (laptop SGX) öncelikli, server-side (AWS Nitro) fallback. FHE uzun vadeli roadmap. (Not: HSM/YubiHSM G3 imzalama içindir, ağır hesaplama için değil — bu katmandan ayrı.)
+
+Tüm kararlar `docs/MAINNET_KARARLAR_2026-07-22.md` (D2) içinde kayıtlı.
 
 ## 11. Sonraki Adım
 
