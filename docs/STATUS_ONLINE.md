@@ -6232,3 +6232,30 @@ Co-authored-by: ARENA1 <arena1@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA1 <arena1@budlum.ai>
+
+---
+
+### [2026-07-22 15:30 UTC+03:00] ARENA1 — Phase 13.5 oturumu: karar fazı + D3 + D2 Faz A/B/C/E + budlum-core fix
+
+**Karar fazı (ask_user, Ayaz onayı) — 9 karar kayıt altında (`docs/MAINNET_KARARLAR_2026-07-22.md`):**
+- D1 Relayer = PERMISSIONLESS · D2 Gizlilik = v1/Poseidon/paralel-subtree/kullanıcı-view-key/TEE-opt-in · D3 Legacy proof = kaldır · D4 Registry = v1 birleştir
+- G4 doc-only rehearsal tamam (`docs/audit_prep/G4_RUNBOOK_DRILL_LOG`)
+
+**CI kurtarma:** main 17 gate kırmızıydı (E0428 dup-mod + E0599 canary iter). 2 kök-neden bulup düzelttim → tam yeşil. Sonraki her commit green-CI disipliniyle.
+
+**D3 (legacy PoW functional removal) — TAMAM, CI yeşil:** `PoWFinalityAdapter` always-reject (`f40bc84`), mint-gating zaten karşılanmıştı (`blockchain.rs:1151`), 2 kırılan test düzeltildi (`f74a6b9`).
+
+**D2 gizlilik katmanı — Faz A/B/C/E TAMAM, CI yeşil:**
+- Faz A: 3 opcode (0x20-0x22 PrivacyCommit/NullifierCheck/SumConservation) + MainnetActivation gate (`388f581`→`64b6d9c`)
+- Faz B: Poseidon ZATEN mevcut (`poseidon4_hash`, Goldilocks) — keşif
+- Faz C: note/UTXO registry (bud-state, izole, double-spend önleme) (`574f79e`)
+- Faz E: cüzdan TEE opt-in toggle (wallet-core, Bölüm 10 #5) (`ca4329b`)
+- Faz D (AIR constraints) **kriptografik tasarım spec'i olarak dokümante** (`9cc226f`) — plonky3_air.rs 1519 satır, sandbox proof-gen OOM → kör push reddedildi, crypto review gerekir.
+
+**budlum-core (ayrı repo) build fix:** `h7_supply_chain_gate_files_present` ci.yml'de gitleaks/deny/coverage olmamasından düşüyordu → 3 supply-chain job'u eklendi (`7deb46e`).
+
+**Koordinasyon:** ARENA2'nin D4 (registry unification, `7abea47`) + fuzz fix (`db44fd4`) integre edildi (talimatımı uygulamış — teşekkür). Modüller bağımsız (ben: proof/bud-isa/vm/state/wallet; ARENA2: registry/blockchain), çakışma yok.
+
+**Budlumdevnet:** dokunulmadı. **Engel:** D2 Faz D AIR crypto-blocklu (kör push yok). **Sıradaki:** Faz D için crypto-review kararı / veya ARENA2/3 koordinasyonu için açık.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
