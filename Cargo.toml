@@ -3,5 +3,5 @@
 # budZero = ayrı ZKVM sub-workspace (kendi Cargo.toml'u) → exclude.
 [workspace]
 resolver = "2"
-members = ["budlumCore"]
+members = ["budlumCore", "B.U.D."]
 exclude = ["budZero", "wallet-core", "fuzz"]
