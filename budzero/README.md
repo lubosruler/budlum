@@ -66,7 +66,7 @@ cargo test --workspace
 
 ## Soundness work (honest status)
 
-Aligned with [budlum-xyz/BudZero](https://github.com/budlum-xyz/BudZero) tasks 0–12. **Z-B:** `proves_verify_merkle_valid_64_depth` is green (ARENA2 2026-07-22). VerifyMerkle remains **mainnet-gated** (`MainnetActivation`, default off) for staged rollout — not the same as the old experimental-ISA lock.
+Bu crate seti **bu monorepo içindeki** [`budzero/`](./) ağacıdır (ayrı `budlum-xyz/BudZero` checkout'u yok — kaynak burası). **Z-B:** `proves_verify_merkle_valid_64_depth` yeşil (ARENA2 2026-07-22). VerifyMerkle **mainnet-gated** (`MainnetActivation`, default off) — staged ceremony rollout; eski experimental-ISA kilidiyle aynı değil.
 
 | Item | Status |
 | --- | --- |

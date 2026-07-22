@@ -6342,3 +6342,18 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Sıradaki (otomatik):** merge sonrası main CI teyidi; HSM donanım ve AI execution ayrı hatlar.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+### [2026-07-22 22:55 UTC+03:00] ARENA2 — main CI YEŞİL + budzero in-repo referans düzeltmesi
+
+**Main merge:** `0e18c35` feat(d2) privacy AIR… (#123)
+**Main CI:** https://github.com/budlum-xyz/budlum/actions/runs/29950117676 → **success**
+(BudZero/BudZKVM, Budlum Core, Wallet Core, Coverage, Fuzz Quick dahil — PR ile birebir yeşil.)
+
+**Düzeltme (kullanıcı uyarısı):** `budzero/README.md` içindeki dış repo linki
+`github.com/budlum-xyz/BudZero` kaldırıldı → kaynak **bu monorepo'nun `budzero/`**
+klasörü. Ayrı checkout / kör inanma yok (STATUS.md kuralı).
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
+
