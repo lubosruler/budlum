@@ -619,6 +619,22 @@ impl Vm {
                 self.pc += 1;
                 (result, cur_pc + 1)
             }
+            // D2 (2026-07-22): privacy-layer opcodes (PrivacyCommit /
+            // NullifierCheck / SumConservation). Execution semantics are
+            // Faz B+ (Poseidon commitment / nullifier / sum-conservation) —
+            // not yet wired. Until then, no-op returning 0 (not verified),
+            // decode/execute shape preserved. MainnetActivation blocks these
+            // on mainnet by default; this is the execution stub.
+            Opcode::PrivacyCommit | Opcode::NullifierCheck | Opcode::SumConservation => {
+                let _ = (src1_val, src2_val, inst.imm);
+                let result = 0u64;
+                let dst_idx = inst.rd;
+                if dst_idx as usize > 0 {
+                    self.registers[dst_idx as usize] = result;
+                }
+                self.pc += 1;
+                (result, cur_pc + 1)
+            }
         };
 
         self.registers[0] = 0; // Enforce r0 is always 0
