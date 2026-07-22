@@ -2,16 +2,16 @@
 set -euo pipefail
 
 required_tests=(
-  task11_10_storage_provider_put_get_roundtrip
-  task11_10_storage_provider_rejects_invalid_range
-  task11_10_storage_provider_prove_settle_roundtrip
-  task11_10_storage_provider_rejects_forged_proof_range_hash
-  task11_10_lifecycle_happy_path_settled
-  task11_10_lifecycle_challenge_can_miss_or_slash
-  task11_10_lifecycle_rejects_skip_open_to_settled
-  task11_10_lifecycle_terminal_states_are_final
-  task11_10_registry_lifecycle_projection_tracks_challenge_and_slash
-  task11_10_registry_lifecycle_projection_tracks_expiry
+  storage_provider_put_get_roundtrip
+  storage_provider_rejects_invalid_range
+  storage_provider_prove_settle_roundtrip
+  storage_provider_rejects_forged_proof_range_hash
+  lifecycle_happy_path_settled
+  lifecycle_challenge_can_miss_or_slash
+  lifecycle_rejects_skip_open_to_settled
+  lifecycle_terminal_states_are_final
+  registry_lifecycle_projection_tracks_challenge_and_slash
+  registry_lifecycle_projection_tracks_expiry
 )
 
 fail() {

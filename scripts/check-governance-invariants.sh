@@ -2,12 +2,12 @@
 set -euo pipefail
 
 required_tests=(
-  task11_16_governance_rejects_non_whitelisted_parameter_proposal
-  task11_16_governance_rejects_invalid_parameter_value
-  task11_16_governance_sets_parameter_activation_timelock
-  task11_16_governance_records_vote_weight_snapshot
-  task11_16_governance_stake_transfer_cannot_double_count_vote_weight
-  task11_16_governance_parameter_update_waits_for_activation_epoch
+  governance_rejects_non_whitelisted_parameter_proposal
+  governance_rejects_invalid_parameter_value
+  governance_sets_parameter_activation_timelock
+  governance_records_vote_weight_snapshot
+  governance_stake_transfer_cannot_double_count_vote_weight
+  governance_parameter_update_waits_for_activation_epoch
 )
 
 fail() {

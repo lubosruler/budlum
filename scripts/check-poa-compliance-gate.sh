@@ -2,16 +2,16 @@
 set -euo pipefail
 
 required_tests=(
-  task11_18_poa_compliance_rejects_permissionless_screening
-  task11_18_poa_compliance_screening_updates_status
-  task11_18_poa_compliance_requires_admin_for_freeze
-  task11_18_poa_compliance_freeze_is_poa_only
-  task11_18_poa_compliance_audit_log_is_append_only
-  task11_18_poa_compliance_rejects_zero_evidence_hashes
-  task11_18_poa_compliance_records_travel_rule_metadata_hash
-  task11_18_poa_compliance_rejects_permissionless_travel_rule_metadata
-  task11_18_poa_compliance_exports_audit_csv
-  task11_18_poa_compliance_exports_audit_json
+  poa_compliance_rejects_permissionless_screening
+  poa_compliance_screening_updates_status
+  poa_compliance_requires_admin_for_freeze
+  poa_compliance_freeze_is_poa_only
+  poa_compliance_audit_log_is_append_only
+  poa_compliance_rejects_zero_evidence_hashes
+  poa_compliance_records_travel_rule_metadata_hash
+  poa_compliance_rejects_permissionless_travel_rule_metadata
+  poa_compliance_exports_audit_csv
+  poa_compliance_exports_audit_json
 )
 
 fail() {
