@@ -32,6 +32,10 @@ allow = [
     # SPDX: Unicode-3.0. Yerel cargo-deny 0.20.2 koşusunda 19 reddin
     # tamamının tek sebebi bu lisanstı (başka lisans ihlali yok).
     "Unicode-3.0",
+    # D1 relayer için reqwest → webpki-roots 1.0.9 CDLA-Permissive-2.0 lisanslı.
+    # CDLA-Permissive-2.0 OSI-onaylı değil ama permissive, data license; reqwest zinciri için gerekli.
+    # Gerekçe: webpki-roots Mozilla CA bundle data'sı için CDLA-Permissive-2.0 kullanır, permissive.
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 

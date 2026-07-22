@@ -681,7 +681,7 @@ async fn run_bud_to_eth_loop(config: RelayerConfig) {
         // Challenge window logic (RFC F10 §4-5):
         // If we see a bad relay (e.g., invalid burn proof), submit slashing report.
         // Open relayer set is permissionless — anyone can challenge.
-        if last_burn_height % 100 == 0 {
+        if last_burn_height.is_multiple_of(100) {
             eprintln!("BudToEth: challenge window check — no bad relays detected (open relayer set, permissionless)");
         }
 
