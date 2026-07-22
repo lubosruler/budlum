@@ -320,15 +320,13 @@ mod rpc_tests {
                 commitment: new_commitment.clone(),
                 proof: proof2,
             })
-            .await
-            .unwrap();
-        assert_eq!(
-            result,
-            format!("0x{}", hex::encode(new_commitment.leaf_hash()))
-        );
+            .await;
+        // D3 (2026-07-22): legacy PoW finality retired — valid-looking PoW
+        // proofs now reject. Previously this finalized successfully.
+        assert!(result.is_err(), "D3: legacy self-declared PoW must reject");
 
         let commitments2 = server.get_domain_commitments().await.unwrap();
-        assert_eq!(commitments2.as_array().unwrap().len(), 2);
+        assert_eq!(commitments2.as_array().unwrap().len(), 1);
 
         let mut block3 = block.clone();
         block3.index = 3;
@@ -354,11 +352,11 @@ mod rpc_tests {
         };
         let verified_result = server
             .submit_verified_domain_commitment(verified_payload)
-            .await
-            .unwrap();
-        assert_eq!(
-            verified_result,
-            format!("0x{}", hex::encode(verified_commitment.leaf_hash()))
+            .await;
+        // D3 (2026-07-22): legacy PoW finality retired — must reject.
+        assert!(
+            verified_result.is_err(),
+            "D3: legacy self-declared PoW must reject"
         );
 
         let mut block4 = block.clone();
@@ -383,7 +381,7 @@ mod rpc_tests {
             .is_err());
 
         let commitments3 = server.get_domain_commitments().await.unwrap();
-        assert_eq!(commitments3.as_array().unwrap().len(), 3);
+        assert_eq!(commitments3.as_array().unwrap().len(), 1);
 
         // The relayed submit path requires the sender to be an active relayer.
         // Fund and register a relayer (staking == registration), then use it as
