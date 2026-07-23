@@ -17,5 +17,7 @@
 # ---------------------------------------------------------------
 /src/consensus/   @lubosruler @eurymedee
 /src/crypto/      @lubosruler @eurymedee
+/src/execution/   @lubosruler @eurymedee
+/src/chain/       @lubosruler @eurymedee
 /src/rpc/         @lubosruler @eurymedee
 /config/          @lubosruler @eurymedee

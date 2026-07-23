@@ -51,6 +51,12 @@ WORKDIR /home/budlum
 #   4001 = P2P (devnet), 8545 = RPC public, 8546 = RPC operator, 9090 = Metrics
 EXPOSE 4001 8545 8546 9090
 
+# HEALTHCHECK (Güvenlik Planı §3.7): RPC portunun dinlendiğini doğrular.
+# `curl`, bu meşru sağlık-kontrolü kullanımı için runtime imajında tutuldu.
+# Konteyner ayakta ama RPC yanıt vermiyorsa unhealthy işaretlenir.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8545/ || exit 1
+
 ENV RUST_LOG=info
 
 ENTRYPOINT ["budlum-core"]
