@@ -18,15 +18,27 @@
 
 📋 **LLM / float:** mainnet v1 scope dışı — `docs/AI_ONCHAIN_EXECUTION_RESEARCH.md`.
 
-## CI güvenlik
+## Pre-mortem güvenlik audit düzeltmeleri (ARENA2 2026-07-23)
 
-✅ **CodeQL workflow** (ARENA2 2026-07-23): `.github/workflows/codeql.yml` — Rust CodeQL, security-extended, weekly schedule.
+✅ **R2 (KRİTİK):** Bridge RPC auth — mint/burn/unlock/unlock_verified → `require_operator()` (5 method)
+✅ **S1 (KRİTİK):** PrivacyCommit blinding u32 truncation → register-based full u64 (VM + wallet-core + callers)
+✅ **S2 (YÜKSEK):** SumConservation u64 vs field comparison → Goldilocks P bound check
+✅ **S4 (YÜKSEK):** Poseidon constants element-wise lock test (MDS + RC matrix)
+✅ **S5 (YÜKSEK):** VerifyMerkle env var gate kaldırıldı → hard-coded `MainnetActivation::full()`
+✅ **B2 (KRİTİK):** Bridge mint payload_hash amount verification
+✅ **B3 (YÜKSEK):** ReplayNonceStore pruning (MAX_PROCESSED_MESSAGES = 65536)
 
-✅ **cargo-vet config** (ARENA2 2026-07-23): `supply-chain/` — kademeli benimseme, FFI/unsafe crate hedef.
+### Kapanan audit bulguları (önceki agentlar tarafından):
+- A4: Unbonding queue → `retain()` ile zaten prune ediliyor (audit yanlış)
+- N2: Snapshot chunk DoS → MAX bounds zaten mevcut
 
-✅ **actionlint + zizmor**: zaten mevcut (Repo Lint job).
-
-✅ **Dockerfile devnet default** (ARENA2 2026-07-23).
+### Kalan audit bulguları (mainnet öncesi):
+- ⏳ E1: Executor saturating → checked arithmetic (108 instance — büyük iş)
+- ⏳ S6: Syscall result AIR constraint (public input binding)
+- ⏳ C1: BLS hash_to_g1 RFC 9380 (kripto değişiklik)
+- ⏳ C3: Validator VRF/BLS key mandatory on Stake (mimari değişiklik)
+- ⏳ H1: PKCS#11 BLS/PQ non-extractable (donanım/audit)
+- ⏳ W1: Wallet seed zeroize + mlock (memory safety)
 
 ## Intent → zincir (private transfer)
 
