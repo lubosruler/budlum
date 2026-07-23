@@ -17,8 +17,8 @@ docker build -t "$IMAGE_NAME" .
 echo "[docker-smoke] Starting container: $CONTAINER_NAME (Q12 devnet_fallback per user decision)"
 # Q12 devnet_fallback: mainnet container may fail without HSM/PKCS#11.
 # Try mainnet first; if timeout, fallback to devnet for smoke purposes.
-# Run with --network mainnet as default in Dockerfile CMD
-if ! docker run -d --name "$CONTAINER_NAME" -p "$RPC_PORT:$RPC_PORT" "$IMAGE_NAME"; then
+# Explicit --network mainnet (Dockerfile default is now devnet for safety).
+if ! docker run -d --name "$CONTAINER_NAME" -p "$RPC_PORT:$RPC_PORT" "$IMAGE_NAME" --network mainnet --port "$RPC_PORT"; then
   echo "[docker-smoke] Failed to start mainnet container, trying devnet fallback"
   docker run -d --name "$CONTAINER_NAME" -p "$RPC_PORT:$RPC_PORT" "$IMAGE_NAME" --network devnet --port "$RPC_PORT"
 fi
