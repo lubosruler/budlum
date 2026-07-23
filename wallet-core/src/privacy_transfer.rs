@@ -21,7 +21,8 @@ pub struct PrivateNoteInput {
 impl PrivateNoteInput {
     #[must_use]
     pub fn commitment(&self) -> u64 {
-        privacy_commit(self.amount, self.recipient_tag, self.blinding)
+        // S1 fix: privacy_commit(amount, blinding, recipient_tag)
+        privacy_commit(self.amount, self.blinding, self.recipient_tag)
     }
 
     #[must_use]
@@ -42,7 +43,8 @@ pub struct PrivateNoteOutput {
 impl PrivateNoteOutput {
     #[must_use]
     pub fn commitment(&self) -> u64 {
-        privacy_commit(self.amount, self.recipient_tag, self.blinding)
+        // S1 fix: privacy_commit(amount, blinding, recipient_tag)
+        privacy_commit(self.amount, self.blinding, self.recipient_tag)
     }
 }
 

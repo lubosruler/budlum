@@ -634,11 +634,15 @@ impl Vm {
             //   Poseidon commitment homomorfik değil → value conservation private
             //   witness üzerinden: rd = 1 iff rs1 (Σ in amounts) == rs2 (Σ out amounts).
             //   Amount'lar PrivacyCommit ile commitment'a bağlanır (ayrı satırlar).
+            // S1 fix (pre-mortem audit): blinding from register (full u64),
+            // recipient tag from imm (i32 fits). Eliminates u32 truncation
+            // that caused wallet-core/VM commitment mismatch and reduced
+            // blinding entropy to 32 bits (brute-forceable).
             Opcode::PrivacyCommit => {
                 let amount = src1_val;
-                let recipient = src2_val;
-                let blinding = inst.imm as u32 as u64;
-                let result = poseidon4_hash3(amount, recipient, blinding);
+                let blinding = src2_val; // full u64 from register
+                let recipient = inst.imm as i64 as u64; // recipient tag from imm
+                let result = poseidon4_hash3(amount, blinding, recipient);
                 if dst_idx as usize > 0 {
                     self.registers[dst_idx as usize] = result;
                 }

@@ -1026,7 +1026,8 @@ impl Wallet {
         }
         let blinding = derive_blinding(&self.seed, blinding_counter);
         let tag = address_to_recipient_tag(&self.address());
-        let commitment = privacy_commit(amount, tag, blinding);
+        // S1 fix: privacy_commit(amount, blinding, recipient_tag)
+        let commitment = privacy_commit(amount, blinding, tag);
         Ok((blinding, commitment, hash_from_field(commitment)))
     }
 
@@ -1041,7 +1042,8 @@ impl Wallet {
             return Err(WalletError::NotePrivacyDisabled);
         }
         let tag = address_to_recipient_tag(&self.address());
-        let commitment = privacy_commit(amount, tag, blinding);
+        // S1 fix: privacy_commit(amount, blinding, recipient_tag)
+        let commitment = privacy_commit(amount, blinding, tag);
         let spend_secret = derive_spend_secret(&self.seed, commitment);
         Ok(PrivateNoteInput {
             amount,

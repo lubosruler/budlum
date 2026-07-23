@@ -999,6 +999,11 @@ impl BudlumApiServer for RpcServer {
         proof: crate::cross_domain::MerkleProof,
         relayer: crate::core::address::Address,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // R2 fix (pre-mortem audit): bridge mint requires operator auth
+        self.require_operator("bud_mintBridgeTransfer")
+            .map_err(|e| {
+                ErrorObjectOwned::owned(-32000, format!("auth required: {e}"), None::<()>)
+            })?;
         self.chain
             .mint_bridge_transfer_from_verified_event(
                 source_domain,
@@ -1025,6 +1030,8 @@ impl BudlumApiServer for RpcServer {
         message_id: crate::cross_domain::MessageId,
         domain: crate::domain::DomainId,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // R2 fix: bridge burn requires operator auth
+        self.require_operator("bud_burnBridgeTransfer")?;
         self.chain
             .burn_bridge_transfer(message_id, domain)
             .await
@@ -1046,6 +1053,8 @@ impl BudlumApiServer for RpcServer {
         event_index: u32,
         expiry_height: u64,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // R2 fix: bridge burn with event requires operator auth
+        self.require_operator("bud_burnBridgeTransferWithEvent")?;
         let event = self
             .chain
             .burn_bridge_transfer_with_event(
@@ -1073,6 +1082,8 @@ impl BudlumApiServer for RpcServer {
         message_id: crate::cross_domain::MessageId,
         source_domain: crate::domain::DomainId,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // R2 fix: bridge unlock requires operator auth
+        self.require_operator("bud_unlockBridgeTransfer")?;
         self.chain
             .unlock_bridge_transfer(message_id, source_domain)
             .await
@@ -1095,6 +1106,8 @@ impl BudlumApiServer for RpcServer {
         event: crate::cross_domain::DomainEvent,
         proof: crate::cross_domain::MerkleProof,
     ) -> Result<serde_json::Value, ErrorObjectOwned> {
+        // R2 fix: bridge unlock verified requires operator auth
+        self.require_operator("bud_unlockBridgeTransferVerified")?;
         self.chain
             .unlock_bridge_transfer_from_verified_event(
                 target_domain,
