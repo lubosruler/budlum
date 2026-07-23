@@ -1,7 +1,7 @@
 //! DeEd (src/deed) integration test — exercises the canonical manifest
 //! primitives and permissionless role vocabulary in the shared integration suite.
-use crate::deed::{ArtifactKind, Manifest, Visibility, roles};
 use crate::core::address::Address;
+use crate::deed::{roles, ArtifactKind, Manifest, Visibility};
 use crate::storage::content_id::ContentId;
 
 #[test]
