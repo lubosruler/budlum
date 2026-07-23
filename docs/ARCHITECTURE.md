@@ -404,3 +404,219 @@ flowchart LR
   Challenge --> Proof[VerifyMerkle 64-depth proof]
   Roles[Permissionless roles: STORAGE_OPERATOR · ATTESTER] -. no whitelist .-> Deal
 ```
+
+## 26. BNS (Budlum Name Service) lifecycle
+
+```mermaid
+flowchart LR
+  Register[Register name 3-32 chars] --> Cost[Cost = base × multiplier × duration]
+  Cost --> Owner[Owner address bound]
+  Owner --> Resolve[resolve_content → address]
+  Owner --> SetContent[set_content → CID/hash]
+  Owner --> Transfer[Transfer to new owner]
+  Owner --> Renew[Renew before expiry]
+  Expiry[Expiry epoch reached] --> Grace[Grace period 3000 epochs]
+  Grace -->|original owner| Renew2[Renew only by original owner]
+  Grace -->|expired| Available[Name available for re-registration]
+  Squat[Front-running squatting protection] -. grace period .-> Grace
+```
+
+## 27. SocialFi NFT lifecycle
+
+```mermaid
+flowchart LR
+  Mint[Mint NFT owner-only] --> Metadata[CID + luminance=0]
+  Metadata --> Luminance[update_luminance delta i128]
+  Luminance --> Positive[Positive: amplify reach]
+  Luminance --> Negative[Negative: reduce reach]
+  Mint --> Transfer[Transfer to new owner]
+  Mint --> Burn[Burn → CID returned]
+  Registry[NftRegistry next_id auto-increment] --> Mint
+  Guard[Luminance clamp i128 → safe range] --> Luminance
+```
+
+## 28. Hub app registry
+
+```mermaid
+flowchart LR
+  Developer[Developer address] --> Register[register_app auto-increment ID]
+  Register --> Manifest[AppManifest: URL + metadata]
+  Manifest --> Update[update_app URL/manifest]
+  Register --> SelfVerify[verify_app developer self-verify]
+  SelfVerify --> Attested[developer_attested = true]
+  Attested --> Verified[verified = true DAO override reserved]
+  Root[Registry root hash] --> StateRoot[AccountState state_root]
+  Audit[Attestation audit trail] --> SelfVerify
+```
+
+## 29. Mempool internals
+
+```mermaid
+flowchart TD
+  Tx[Incoming transaction] --> Decode[V4 decode + signature verify]
+  Decode --> Admit[Admission: nonce + balance + type rules]
+  Admit --> Pool[Mempool pool max_size=20000]
+  Pool --> PerSender[max_per_sender=100]
+  Pool --> Evict[evict_lowest_fee when full]
+  Pool --> RBF[Replace-By-Fee: higher fee replaces]
+  Pool --> Dedup[Duplicate tx rejection]
+  Pool --> Select[Block producer selects by fee priority]
+  Select --> Block[Included in next block]
+  Select --> Expire[Stale tx removed after N blocks]
+```
+
+## 30. Developer OS / SDK architecture
+
+```mermaid
+flowchart LR
+  Manifest[DeveloperOsManifest deterministic] --> Project[Project ID + labels]
+  Project --> DevNet[Local devnet topology]
+  Project --> BudL[BudL package fixtures]
+  Project --> Proof[Proof fixtures]
+  Project --> Pollen[Pollen fixtures]
+  Project --> Relayer[Relayer policy fixtures]
+  Manifest --> Flags[SDK feature flags]
+  Flags --> Offline[Offline default: no external network]
+  Flags --> Safety[Safety fixtures: verified proof required]
+  Safety --> NoMock[Pollen fixture cannot bypass AI grant]
+  Project --> Traversal[Path traversal rejection]
+```
+
+## 31. Gateway — Atlas + Passport evidence
+
+```mermaid
+flowchart LR
+  Address[BudlumAddress] --> Atlas[AtlasWalletContext]
+  Atlas --> Account[Account state evidence]
+  Atlas --> Pollen[Pollen lineage summary]
+  Atlas --> Domain[Domain trace + wallet graph]
+  Name[BNS name] --> Passport[DwebPassportProfile]
+  Passport --> Evidence[EvidenceCard: verified/expired/pending]
+  Passport --> Bundle[PassportProofBundle deterministic root]
+  Bundle --> Warning[Warning hash only — no plaintext]
+  Atlas --> RPC[bud_atlasGetWalletContext read-only]
+  Passport --> RPC2[bud_passportGetProofBundle read-only]
+  NoPlaintext[Endpoint never returns raw data] -. enforced .-> RPC
+  NoPlaintext -. enforced .-> RPC2
+```
+
+## 32. Settlement commitment tree
+
+```mermaid
+flowchart TD
+  Block[Block commitment] --> Roots[12+ root fields]
+  Roots --> DomainReg[domain_registry_root]
+  Roots --> Commitment[commitment_root]
+  Roots --> Message[message_root]
+  Roots --> Bridge[bridge_root]
+  Roots --> Replay[replay_root]
+  Roots --> Settlement[settlement_root]
+  Roots --> Storage[storage_root]
+  Roots --> AI[ai_root]
+  Roots --> Pollen[pollen_root]
+  DomainSep[BDLM_GLOBAL_BLOCK_V2 domain separation] --> Hash[GlobalBlockHeader hash]
+  Proof[SettlementProofVerifier] --> Merkle[Merkle proof + domain/height/index check]
+  Merkle --> Forge[expected_block_hash forgery gate]
+```
+
+## 33. Prover market — proof verification
+
+```mermaid
+flowchart LR
+  Task[ProofTask created] --> Assign[Assigned to prover]
+  Assign --> Prove[Prover generates STARK proof]
+  Prove --> Receipt[ProofReceipt: task_id + prover + hash + reward]
+  Receipt --> Verify[Verification: task_id + prover + epoch + hash + reward cap]
+  Verify -->|valid| Complete[complete_task → reward committed]
+  Verify -->|invalid| Reject[Reject — task stays active]
+  Policy[First valid receipt wins] --> Complete
+  Policy --> Duplicate[Identical duplicate → idempotent]
+  Limits[Active tasks + pending receipts bounded] --> Task
+```
+
+## 34. Sovereign domain kit
+
+```mermaid
+flowchart LR
+  Template[SovereignDomainTemplate] --> Class[SovereignClass enum]
+  Class --> PoA[EnterprisePoa → requires PoA consensus]
+  Class --> Custom[Custom class label validated]
+  Template --> Compliance[ComplianceEvidence hash/root only]
+  Compliance --> NoPII[No private KYC/passport on-chain]
+  Template --> Lifecycle[Lifecycle: draft → active → retired]
+  Lifecycle --> NoReactivate[Retired cannot re-activate]
+  Template --> Audit[AuditExportBundle template + compliance root]
+  Audit --> Bounded[Bounded height span]
+```
+
+## 35. Constitution engine
+
+```mermaid
+flowchart TD
+  Guardrails[Hard guardrails immutable] --> NoWhitelist[No permissionless whitelist]
+  Guardrails --> NoDecrypt[No AI read/decrypt override]
+  Guardrails --> PoAIsolation[PoA domain isolation]
+  Guardrails --> NoCustody[No private key custody]
+  Guardrails --> EvidenceOnly[Evidence-only API]
+  Params[Mutable bounded params] --> HaltMax[emergency_halt_max_epochs]
+  Params --> PropMin[constitution_proposal_min_epochs]
+  Governance[SetConstitutionParameter proposal] --> Params
+  Governance -->|hard guardrail update| Reject[Fail-closed rejected]
+  Root[Constitution root hash] --> StateRoot[AccountState state_root]
+```
+
+## 36. Mobile self-hosting profile
+
+```mermaid
+flowchart LR
+  Profile[MobileNodeProfile] --> Power[PowerMode: battery/saver/performance]
+  Power --> Battery[BatteryStatus validated]
+  Profile --> Network[NetworkStatus: bandwidth + latency + NAT]
+  Profile --> Storage[StorageStatus: capacity + availability]
+  Network --> Relay[Relay address for NAT traversal]
+  Storage --> Critical[Critical content requires paid replica]
+  Profile --> Opportunistic[Opportunistic hosting — not always-on]
+  Profile --> Scheduled[Scheduled replication windows]
+  Validation[Impossible battery state rejected] --> Battery
+  Validation[Zero bandwidth rejected] --> Network
+```
+
+## 37. Encryption DAO policy lifecycle
+
+```mermaid
+flowchart LR
+  DAO[Governance proposal] --> SetPolicy[SetEncryptionPolicy action]
+  SetPolicy --> Policy[EncryptionPolicy: version + suite + limits]
+  Policy --> Active[active = true]
+  Policy --> Deprecated[deprecated_after_block set]
+  Policy --> MinKey[min_public_key_bytes enforced]
+  Policy --> MaxGrant[max_grant_duration_blocks enforced]
+  Policy --> NoDecrypt[No decrypt/key/read override fields]
+  Asset[AssetEncryptionPolicy per-asset] --> Validate[validate_static: algorithm + key length + rotation]
+  Validate --> Reject[EncryptionAlgorithm::None rejected]
+  Root[Pollen root hash] --> StateRoot[AccountState state_root]
+```
+
+## 38. Pre-mortem security audit — attack graph
+
+```mermaid
+flowchart TD
+  CIPat[CI PAT leak] --> MainBranch[main branch compromise]
+  MainBranch --> CodeManip[Code manipulation]
+  PKCS11[PKCS11 data object] --> BLSExtract[BLS key extraction]
+  BLSExtract --> FinalityForge[Finality forge]
+  BLSBias[BLS hash_to_g1 bias] --> FinalityManip[Finality manipulation]
+  RPCNoAuth[RPC no auth] --> BridgeMint[Unauth bridge mint]
+  BridgeNoPayload[Bridge mint no payload check] --> FundInflation[Fund inflation]
+  SaturatingArith[saturating arithmetic] --> SilentLoss[Silent BUD loss]
+  BlindingTrunc[Blinding truncation] --> PrivacyBreak[Privacy break]
+  NullifierCollision[Nullifier collision] --> DoubleSpend[Double-spend]
+  PoseidonDesync[Poseidon constants desync] --> AllProofsFail[All proofs rejected]
+  SeedMemory[Seed in memory] --> TotalLoss[Total fund loss]
+  C1 --> C1Fix[dual SHA3-256 LO/HI ✅]
+  H1 --> H1Fix[Extractable=false ✅]
+  R2 --> R2Fix[require_operator ✅]
+  S1 --> S1Fix[register-based blinding ✅]
+  B2 --> B2Fix[payload_hash verify ✅]
+  E1 --> E1Fix[checked arithmetic ✅]
+```
