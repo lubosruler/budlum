@@ -252,6 +252,73 @@ fn full_internal_relay_cycle_lock_mint() {
     assert_eq!(bc.state.get_balance(&relayer), 100_000_001); // 100M (no stake debit) + 1 (fee)
 }
 
+#[test]
+fn relayer_invalid_proof_is_rejected() {
+    // Görev B (D1): a malicious/buggy relayer submitting a tampered relay
+    // proof must be rejected, and the pending relay must NOT be consumed.
+    let dir = tempdir().unwrap();
+    let db = dir.path().join("bad_relay.db");
+    let storage = Storage::new(db.to_str().unwrap()).unwrap();
+    let mut bc = Blockchain::new(Arc::new(PoWEngine::new(0)), Some(storage), 1337, None);
+
+    let mut domains = Vec::new();
+    for id in [1u32, 2u32] {
+        let mut d = default_domain(id, ConsensusKind::PoW, 1337, "pow-confirmation-depth", 0);
+        d.bridge_enabled = true;
+        domains.push(d.clone());
+        bc.register_consensus_domain(d).unwrap();
+    }
+    let a = asset(1);
+    bc.register_bridge_asset(a, 1).unwrap();
+    let relayer = relayer_addr();
+    bc.state.add_balance(&relayer, 100_000_000);
+    let epoch = bc.state.epoch_index;
+    bc.state
+        .registry
+        .register_relayer(relayer, 50_000_000, epoch)
+        .unwrap();
+
+    bc.state.add_balance(&owner(), 1000);
+    let (_transfer, lock_event) = bc
+        .lock_bridge_transfer(1, 2, 10, 0, a, owner(), recipient(), 100, 1000)
+        .unwrap();
+    let message = lock_event.message.clone().unwrap();
+    let message_id = message.message_id;
+    bc.enqueue_bridge_relay(lock_event.clone(), &message);
+    assert_eq!(bc.pending_relay_count(), 1);
+
+    let mut tree = DomainEventTree::new();
+    tree.push(lock_event.clone());
+    let proof = tree.proof(0).unwrap();
+
+    // Anchor the source domain event root on-chain.
+    {
+        let mut b = crate::core::block::Block::new(10, bc.last_block().hash.clone(), vec![]);
+        b.state_root = "22".repeat(32);
+        b.tx_root = b.calculate_tx_root();
+        b.hash = b.calculate_hash();
+        let commitment =
+            crate::domain::DomainCommitment::from_block(&domains[0], &b, tree.root(), [0u8; 32], 0)
+                .unwrap();
+        bc.submit_domain_commitment(commitment).unwrap();
+    }
+
+    // Tamper the proof leaf so it no longer verifies against the committed
+    // source-domain event root.
+    let mut bad_proof = proof.clone();
+    bad_proof.leaf = [0xAB; 32];
+
+    let err = bc
+        .submit_relay_proof(message_id, relayer, &bad_proof, 1)
+        .unwrap_err();
+    assert!(
+        !err.is_empty(),
+        "invalid relay proof must be rejected, got empty err"
+    );
+    // A failed proof must not consume the pending relay.
+    assert_eq!(bc.pending_relay_count(), 1);
+}
+
 use crate::domain::plugin::default_domain;
 use crate::domain::ConsensusKind;
 
