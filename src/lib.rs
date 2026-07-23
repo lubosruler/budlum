@@ -11,6 +11,7 @@ pub mod consensus;
 pub mod core;
 pub mod cross_domain;
 pub mod crypto;
+pub mod deed;
 pub mod developer_os;
 pub mod domain;
 pub mod error;
