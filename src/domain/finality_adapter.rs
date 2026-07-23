@@ -971,7 +971,7 @@ mod tests {
             ConsensusKind::PoW,
             1337,
             crate::domain::types::POW_HEADER_CHAIN_ADAPTER,
-            80,
+            1,
         );
         domain.config_hash = [0u8; 32];
         domain.pow_parameters = Some(crate::domain::types::PoWDomainParameters {

@@ -963,6 +963,12 @@ impl AiRegistry {
             &proof, request, result, model,
         );
         if !report.is_structurally_valid() {
+            if proof.output_commitment != result.output_commitment {
+                return Err(format!(
+                    "Execution proof output_commitment mismatch: proof={:?} result={:?}",
+                    proof.output_commitment, result.output_commitment
+                ));
+            }
             return Err(format!(
                 "Execution proof structural validation failed: {report:?}"
             ));

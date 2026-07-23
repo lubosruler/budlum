@@ -7,7 +7,8 @@ use crate::domain::finality_adapter::{
     PoAFinalityAdapter, PoSFinalityAdapter, PoWHeaderChainFinalityAdapter, ZkFinalityAdapter,
 };
 use crate::domain::types::{
-    ConsensusDomain, ConsensusKind, DomainCommitment, DomainId, DomainStatus, Hash32, RootScheme,
+    ConsensusDomain, ConsensusKind, DomainCommitment, DomainId, DomainStatus, Hash32, PoWDomainParameters,
+    RootScheme,
 };
 use std::sync::Arc;
 
@@ -235,6 +236,27 @@ pub fn default_domain(
         operator[0] = 1;
     }
 
+    // PoW domains require bounded PoW header-chain parameters. Emit always-valid
+    // defaults so the many `default_domain` call sites (production + tests) get a
+    // registered, finalizable PoW domain instead of failing registration with
+    // "uses the PoW header adapter without pow_parameters".
+    let pow_parameters = if kind == ConsensusKind::PoW {
+        Some(PoWDomainParameters {
+            min_difficulty_bits: 1,
+            max_difficulty_bits: 120,
+            min_cumulative_work: 1,
+            max_headers: 4096,
+        })
+    } else {
+        None
+    };
+    // A PoW domain needs at least one confirmation.
+    let min_confirmations = if kind == ConsensusKind::PoW && min_confirmations == 0 {
+        1
+    } else {
+        min_confirmations
+    };
+
     ConsensusDomain {
         id,
         kind,
@@ -246,7 +268,7 @@ pub fn default_domain(
         validator_set_hash: [0u8; 32],
         finality_adapter: finality_adapter.into(),
         min_confirmations,
-        pow_parameters: None,
+        pow_parameters,
         bridge_enabled: true,
         block_hash_scheme: RootScheme::BudlumBlockV2,
         state_root_scheme: RootScheme::BudlumBlockV2,

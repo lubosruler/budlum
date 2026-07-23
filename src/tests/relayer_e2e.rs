@@ -263,7 +263,7 @@ fn relayer_invalid_proof_is_rejected() {
 
     let mut domains = Vec::new();
     for id in [1u32, 2u32] {
-        let mut d = default_domain(id, ConsensusKind::PoW, 1337, "pow-confirmation-depth", 0);
+        let mut d = default_domain(id, ConsensusKind::PoW, 1337, "pow-header-chain-v1", 0);
         d.bridge_enabled = true;
         domains.push(d.clone());
         bc.register_consensus_domain(d).unwrap();
