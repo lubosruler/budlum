@@ -4,6 +4,7 @@
 # ── Stage 1: Builder ────────────────────────────────────────
 FROM rust:1.97.1-bookworm@sha256:77fac8b98f9f46062bb680b6d25d5bcaabfc400143952ebc572e924bcbedc3fa AS builder
 
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     protobuf-compiler \
     clang \
@@ -27,6 +28,7 @@ RUN cargo build --release --locked && \
 # ── Stage 2: Runtime ────────────────────────────────────────
 FROM debian:bookworm-slim@sha256:7b140f374b289a7c2befc338f42ebe6441b7ea838a042bbd5acbfca6ec875818
 
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     openssl \

@@ -142,7 +142,7 @@ jobs:
       - name: cargo install cargo-hack
         run: cargo install cargo-hack --locked
       - name: Feature matrix check
-        run: cargo hack check --each-feature --skip-no-default-features --locked
+        run: cargo hack check --each-feature --exclude-no-default-features --locked
 
   hadolint:
     name: Hadolint (Dockerfile lint)
