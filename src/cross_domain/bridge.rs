@@ -252,6 +252,17 @@ impl BridgeState {
             .transfers
             .get(&message.message_id)
             .ok_or_else(|| BridgeError("Unknown bridge transfer".into()))?;
+        // B2 fix (pre-mortem audit): verify payload_hash binds to the
+        // stored transfer's asset_id and amount. Without this check, a
+        // relayer could substitute a message with a different payload_hash
+        // claiming a different amount — fund inflation vector.
+        let expected_payload = bridge_payload_hash(transfer.asset_id, transfer.amount);
+        if message.payload_hash != expected_payload {
+            return Err(BridgeError(format!(
+                "B2: payload_hash mismatch — message claims {:?}, transfer binds {:?}",
+                message.payload_hash, expected_payload
+            )));
+        }
         if self.replay.is_processed(&message.message_id) {
             return Err(BridgeError(
                 "Cross-domain message was already processed".into(),
