@@ -2,7 +2,7 @@
 
 BIP39 mnemonic + SLIP-0010 Ed25519 key derivation + transaction signing for Budlum.
 
-## Permissionless Relayer (CLAUDE.md §2)
+## Permissionless Relayer
 
 This is a **wallet**, not a relayer. The wallet signs transactions; the user
 submits them to any permissionless relayer (stake + slashing). Wallet-core
