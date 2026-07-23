@@ -160,10 +160,19 @@ mod tests {
         assert!(reg.attest_app_as_developer(id, &dev).is_ok());
         assert!(reg.apps[&id].developer_attested);
         let other = Address::from([9u8; 32]);
-        assert!(matches!(reg.attest_app_as_developer(id, &other), Err(HubError::NotDeveloper)));
-        assert!(matches!(reg.mark_verified_by_governance(id, &dev), Err(HubError::NotAuthorized)));
+        assert!(matches!(
+            reg.attest_app_as_developer(id, &other),
+            Err(HubError::NotDeveloper)
+        ));
+        assert!(matches!(
+            reg.mark_verified_by_governance(id, &dev),
+            Err(HubError::NotAuthorized)
+        ));
         assert!(!reg.apps[&id].verified);
-        assert!(matches!(reg.update_app(id, &other, Some("x".into()), None), Err(HubError::NotDeveloper)));
+        assert!(matches!(
+            reg.update_app(id, &other, Some("x".into()), None),
+            Err(HubError::NotDeveloper)
+        ));
         assert_eq!(reg.list_apps().len(), 1);
     }
 
@@ -176,7 +185,10 @@ mod tests {
         reg.authorized_governors.insert(gov);
         assert!(reg.mark_verified_by_governance(id, &gov).is_ok());
         assert!(reg.apps[&id].verified);
-        assert!(matches!(reg.mark_verified_by_governance(id, &dev), Err(HubError::NotAuthorized)));
+        assert!(matches!(
+            reg.mark_verified_by_governance(id, &dev),
+            Err(HubError::NotAuthorized)
+        ));
     }
 
     #[test]
@@ -184,7 +196,9 @@ mod tests {
         let mut reg = HubRegistry::new();
         let dev = Address::from([1u8; 32]);
         let id = reg.register_app("U".into(), dev, AppCategory::DeFi, "u".into(), None, 1);
-        assert!(reg.update_app(id, &dev, Some("new".into()), Some(ContentId([3u8; 32]))).is_ok());
+        assert!(reg
+            .update_app(id, &dev, Some("new".into()), Some(ContentId([3u8; 32])))
+            .is_ok());
         assert_eq!(reg.apps[&id].website_url, "new");
         assert_eq!(reg.apps[&id].manifest_id, Some(ContentId([3u8; 32])));
     }
