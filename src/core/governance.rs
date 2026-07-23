@@ -225,6 +225,11 @@ pub struct GovernanceState {
     pub next_proposal_id: u64,
     #[serde(default)]
     pub constitution: ConstitutionRegistry,
+    /// L4 fix (pre-mortem V3): Per-proposer per-epoch proposal count.
+    /// Key: (proposer_address, epoch). Value: number of proposals submitted.
+    /// Fee multiplier = 2^(count-1). Resets each epoch.
+    #[serde(default)]
+    pub proposer_epoch_count: std::collections::BTreeMap<(Address, u64), u64>,
 }
 
 impl GovernanceState {
@@ -280,6 +285,9 @@ impl GovernanceState {
         }
         self.proposals.push(proposal);
         self.next_proposal_id += 1;
+        // L4 fix: increment proposer epoch count for escalating fee
+        let count = self.proposer_epoch_count.entry((proposer, current_epoch)).or_insert(0);
+        *count += 1;
         Ok(id)
     }
 
@@ -296,6 +304,14 @@ impl GovernanceState {
 
     /// V71: Cancel a proposal. Only the original proposer can cancel.
     /// The proposal must still be Active.
+    /// L4 fix (pre-mortem V3): Returns the fee multiplier for a proposer
+    /// in the current epoch. Multiplier = 2^(count-1).
+    /// 1st proposal = 1x, 2nd = 2x, 3rd = 4x, 10th = 512x, 20th = 524288x.
+    pub fn proposal_fee_multiplier(&self, proposer: &Address, current_epoch: u64) -> u64 {
+        let count = self.proposer_epoch_count.get(&(*proposer, current_epoch)).copied().unwrap_or(0);
+        if count == 0 { 1 } else { 1u64.checked_shl(count as u32 - 1).unwrap_or(u64::MAX) }
+    }
+
     pub fn cancel_proposal(&mut self, proposal_id: u64, caller: &Address) -> Result<(), String> {
         let proposal = self
             .proposals

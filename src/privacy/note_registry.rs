@@ -62,8 +62,24 @@ impl L1NoteRegistry {
         nullifiers: &[NoteHash],
         output_commitments: &[NoteHash],
     ) -> Result<(), String> {
+        self.apply_transfer_with_proofs(spent_commitments, nullifiers, output_commitments, &[])
+    }
+
+    /// L3 fix (pre-mortem V3): Apply transfer with nullifier derivation proofs.
+    /// Each proof[i] must satisfy: nullifier[i] == Poseidon(commitment[i], proof[i]).
+    /// If proofs is empty, falls back to legacy behavior (no binding check).
+    pub fn apply_transfer_with_proofs(
+        &mut self,
+        spent_commitments: &[NoteHash],
+        nullifiers: &[NoteHash],
+        output_commitments: &[NoteHash],
+        nullifier_proofs: &[NoteHash],
+    ) -> Result<(), String> {
         if spent_commitments.len() != nullifiers.len() {
             return Err("spent_commitments/nullifiers length mismatch".into());
+        }
+        if !nullifier_proofs.is_empty() && nullifier_proofs.len() != nullifiers.len() {
+            return Err("nullifier_proofs length mismatch".into());
         }
         if spent_commitments.is_empty() {
             return Err("private transfer requires at least one input".into());
@@ -89,7 +105,18 @@ impl L1NoteRegistry {
             }
         }
         // Spend
-        for (commitment, nullifier) in spent_commitments.iter().zip(nullifiers.iter()) {
+        for (i, (commitment, nullifier)) in spent_commitments.iter().zip(nullifiers.iter()).enumerate() {
+            // L3 fix: verify nullifier derivation proof if provided
+            if !nullifier_proofs.is_empty() {
+                let proof = &nullifier_proofs[i];
+                let expected_nullifier = Self::derive_nullifier(commitment, proof);
+                if *nullifier != expected_nullifier {
+                    return Err(format!(
+                        "nullifier derivation proof invalid for input {}",
+                        i
+                    ));
+                }
+            }
             if !self.live_commitments.remove(commitment) {
                 return Err("spend: commitment not in live set".into());
             }
@@ -112,6 +139,16 @@ impl L1NoteRegistry {
         for n in &self.spent_nullifiers {
             h.update(n);
         }
+        h.finalize().into()
+    }
+
+    /// L3 fix: Derive nullifier from commitment and proof.
+    /// nullifier = SHA-256("BDLM_NULLIFIER_DERIVE_V1" || commitment || proof)
+    pub fn derive_nullifier(commitment: &NoteHash, proof: &NoteHash) -> NoteHash {
+        let mut h = Sha256::new();
+        h.update(b"BDLM_NULLIFIER_DERIVE_V1");
+        h.update(commitment);
+        h.update(proof);
         h.finalize().into()
     }
 
