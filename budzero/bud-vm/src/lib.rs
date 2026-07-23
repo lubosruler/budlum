@@ -25,29 +25,16 @@ pub struct ExecutionReceipt {
     pub state_writes_digest: [u8; 32],
 }
 
-/// Task 9 F2 config-driven (ARENA2 Q-X2): Production builds use MainnetActivation
-/// controlled via config file (mainnet.toml [features] verify_merkle) and env var
-/// BUDLUM_VERIFY_MERKLE. When mainnet_mode=true: verify_merkle_enabled=true ->
-/// MainnetActivation::full() (gate open, current behavior);
-/// verify_merkle_enabled=false -> MainnetActivation::default() (gate closed, staged
-/// rollout). Unit tests use Testing profile so Z-B harnesses can exercise the
-/// opcode regardless. This wires MainnetActivation from dead code to active
-/// config-driven gate (F2).
-fn is_verify_merkle_enabled() -> bool {
-    // Config-driven via env var set by main.rs from TOML [features] verify_merkle
-    // Defaults to true (gate open) for backward compatibility and Task 9 audited state (V7)
-    std::env::var("BUDLUM_VERIFY_MERKLE")
-        .map(|v| v.to_lowercase() != "false" && v != "0")
-        .unwrap_or(true)
-}
-
+// S5 fix (pre-mortem audit): VerifyMerkle/VerifyInference gate is now
+// hard-coded to FULL activation on mainnet. Removed env var
+// BUDLUM_VERIFY_MERKLE which was a configuration attack vector —
+// a node operator could set it to "false" and disable Merkle
+// verification, breaking state root trust.
+// Staged rollout should use governance/genesis config, not env vars.
 fn decode_instruction(raw: u64, mainnet_mode: bool) -> Result<bud_isa::Instruction, String> {
     if mainnet_mode {
-        let activation = if is_verify_merkle_enabled() {
-            bud_isa::MainnetActivation::full()
-        } else {
-            bud_isa::MainnetActivation::default()
-        };
+        // Always full activation — no env var override
+        let activation = bud_isa::MainnetActivation::full();
         bud_isa::Instruction::decode_for_mainnet(raw, activation).map_err(|e| e.to_string())
     } else {
         #[cfg(test)]
