@@ -200,7 +200,7 @@ pub fn mnemonic_to_entropy(mnemonic: &str) -> Result<Vec<u8>, WalletError> {
     Ok(entropy)
 }
 
-).
+/// Guardian-based social recovery policy ( 11.14).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SocialRecoveryPolicy {
     pub guardians: Vec<[u8; 32]>,
@@ -589,7 +589,7 @@ fn derive_view_key_rotated(seed: &[u8; 32], rotation_counter: u64) -> [u8; 32] {
     vk
 }
 
- mobile/browser binding ABI marker.
+///  11.14 mobile/browser binding ABI marker.
 pub const WALLET_BINDING_STUB_VERSION: &str = "task11.14-binding-stub-v1";
 
 /// Binding capability descriptor shared by mobile (UniFFI) and browser (WASM) stubs.
@@ -641,7 +641,7 @@ pub mod wasm_bindings {
     }
 }
 
-).
+/// M-of-N multisig policy ( 11.14).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MultisigPolicy {
     pub owners: Vec<[u8; 32]>,

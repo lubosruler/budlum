@@ -25,7 +25,7 @@ pub struct ExecutionReceipt {
     pub state_writes_digest: [u8; 32],
 }
 
- F2 config-driven (ARENA2 Q-X2): Production builds use MainnetActivation
+///  9 F2 config-driven (ARENA2 Q-X2): Production builds use MainnetActivation
 /// controlled via config file (mainnet.toml [features] verify_merkle) and env var
 /// BUDLUM_VERIFY_MERKLE. When mainnet_mode=true: verify_merkle_enabled=true ->
 /// MainnetActivation::full() (gate open, current behavior);
@@ -35,7 +35,7 @@ pub struct ExecutionReceipt {
 /// config-driven gate (F2).
 fn is_verify_merkle_enabled() -> bool {
     // Config-driven via env var set by main.rs from TOML [features] verify_merkle
-     audited state (V7)
+    // Defaults to true (gate open) for backward compatibility and  9 audited state (V7)
     std::env::var("BUDLUM_VERIFY_MERKLE")
         .map(|v| v.to_lowercase() != "false" && v != "0")
         .unwrap_or(true)
@@ -87,7 +87,7 @@ pub struct Context {
     pub sender: u64,
     pub nonce: u64,
     pub block_height: u64,
-     (security audit Z-A): initial state root.
+    ///  0.31 (security audit Z-A): initial state root.
     /// The VM does not consume this directly (state roots are produced
     /// externally), but the prover trace records it on the first row
     /// so the AIR can bind `public_inputs.initial_state_root`.
@@ -110,7 +110,7 @@ pub struct Step {
     pub memory_val: Option<u64>,
     pub is_memory_write: bool,
     pub stack_pointer: usize,
-     (security audit Z-B): Merkle path expansion rows. The
+    ///  0.312 (security audit Z-B): Merkle path expansion rows. The
     /// original step that triggers a `VerifyMerkle` has these set to
     /// `None` and `merkle_is_expand = false`; the 64 follow-up
     /// "expansion" rows (one per Poseidon round) carry the key, the
@@ -230,7 +230,7 @@ impl Vm {
     }
 
     pub fn step(&mut self, program: &[u64]) -> Result<(), VmError> {
-         (security audit Z-D): semantics of error returns.
+        //  0.30 (security audit Z-D): semantics of error returns.
         //
         // On any error path, `Vm::step` does NOT push a Step to
         // `self.trace` for the failing instruction. The matching terminal
@@ -543,7 +543,7 @@ impl Vm {
                 // Memory layout: [key: u64, 64 × sibling: u64]
                 // Total: 520 bytes (65 × u64)
                 //
-                 (security audit Z-B): the original step
+                //  0.312 (security audit Z-B): the original step
                 // records `merkle_key` and `dst_val = 0` (the result is
                 // not known yet — it will be set by the final expansion
                 // round). 64 follow-up "expansion" rows are pushed
@@ -562,7 +562,7 @@ impl Vm {
                     // correct result here so the trace is faithful
                     // to the VM semantics; the AIR will additionally
                     // constrain it via the expansion path.
-                     / Z-B 3.5: path hash must match AIR single-round.
+                    //  0.36 / Z-B 3.5: path hash must match AIR single-round.
                     let mut current = leaf;
                     for i in 0..64 {
                         let sibling_addr = path_addr + 8 + i * 8;
@@ -697,7 +697,7 @@ impl Vm {
             inference_is_expand: false,
         });
 
-         (security audit Z-B): if the just-pushed step is a
+        //  0.312 (security audit Z-B): if the just-pushed step is a
         // VerifyMerkle, immediately push 64 follow-up "expansion"
         // rows. Each row carries the current Poseidon accumulator,
         // the sibling hash for that round, the round index, and the
@@ -719,9 +719,9 @@ impl Vm {
                 // `current` accumulator is computed here (in the VM)
                 // for the trace's faithfulness, and the AIR
                 // re-derives it independently in Commit 2.
-                 / Z-B 3.5: expansion rows carry the *pre-round*
+                //  0.36 / Z-B 3.5: expansion rows carry the *pre-round*
                 // accumulator so AIR can check nxt = poseidon(cur, sibling).
-                : expansion rows share the original PC and must
+                // ARENA2  4: expansion rows share the original PC and must
                 // keep next_pc == pc until the final expansion, which hands
                 // off to the real next instruction (pc+1). The AIR enforces
                 // `nxt_pc == next_pc` on every cpu row; setting next_pc=pc+1
@@ -778,7 +778,7 @@ impl Vm {
                         inference_is_expand: false,
                     });
                 }
-                 Commit 3: patch the original step's
+                //  0.312 Commit 3: patch the original step's
                 // merkle_current to the 64th-round Poseidon
                 // output. This bridges the 64 expansion rows to
                 // the original step, allowing the AIR to apply
@@ -884,7 +884,7 @@ impl Vm {
             }
         }
 
-         (security audit Z-D): when the program terminates with an
+        //  0.30 (security audit Z-D): when the program terminates with an
         // error (OutOfGas, StackUnderflow, InvalidMemoryAccess, ...),
         // `Vm::step` returns before pushing the failing step to `self.trace`.
         // We still need a terminal row in the trace so that the AIR's
@@ -981,7 +981,7 @@ impl Vm {
             Opcode::Halt => 0,
             // Memory ops stay cheap.
             Opcode::Load | Opcode::Store => 3,
-             / A12: storage ops are more expensive than plain memory
+            //  0.338 / A12: storage ops are more expensive than plain memory
             // (persist / state-root impact); price them above Load/Store.
             Opcode::SRead => 8,
             Opcode::SWrite => 12,
@@ -998,7 +998,7 @@ impl Vm {
     }
 }
 
- / Z-B 3.5).
+/// Single-round Poseidon used by `VerifyMerkle` path hashing ( 0.36 / Z-B 3.5).
 /// Must match `BudAir` Merkle expansion constraints (RC0 + MDS first row [7,1]).
 /// Distinct from `poseidon4_hash` (4 full rounds) used by the Poseidon opcode.
 pub fn merkle_poseidon_round(a: u64, b: u64) -> u64 {
@@ -1385,7 +1385,7 @@ mod tests {
         );
     }
 
-     (security audit Z-B): `VerifyMerkle` must produce
+    ///  0.312 (security audit Z-B): `VerifyMerkle` must produce
     /// 1 original step + 64 expansion rows (one per Poseidon round),
     /// so the AIR can verify the path row-by-row. The original
     /// step carries `merkle_key`; each expansion row carries
@@ -1445,7 +1445,7 @@ mod tests {
         assert!(!last.merkle_is_expand);
     }
 
-     (security audit Z-D): when the program terminates on an
+    ///  0.30 (security audit Z-D): when the program terminates on an
     /// error, the trace must still end on a Halt row so that the AIR
     /// Z-C termination constraint is satisfied. `Vm::step` is allowed
     /// to return Err *without* pushing the failing step; the synthetic
@@ -1473,7 +1473,7 @@ mod tests {
         assert!(vm.halted);
     }
 
-     / A12: SRead/SWrite cost more gas than Load/Store.
+    ///  0.338 / A12: SRead/SWrite cost more gas than Load/Store.
     #[test]
     fn tur119_storage_gas_above_memory() {
         assert_eq!(Vm::gas_cost(Opcode::Load), 3);
