@@ -514,4 +514,52 @@ mod tests {
         assert_eq!(v.unlocked_at(300), bud(1_000_000));
         assert_eq!(v.locked_at(300), 0);
     }
+
+    #[test]
+    fn no_emission_invariant_fixed_supply_and_pool() {
+        use crate::core::address::Address;
+        use crate::tokenomics::reward_pool::{
+            reward_for_epoch, total_epoch_payout, RewardPoolSchedule,
+            DEFAULT_VALIDATION_REWARD_POOL,
+        };
+
+        // ADR-001: sabit 100M arz, emisyon YOK. Genesis dağılımı tam olarak
+        // BUD_TOTAL_SUPPLY'i tüketir; ödüller ÖN-TAHSİSLİ havuzdan ödenir,
+        // yeni arz yaratılmaz.
+        let p = TokenomicsParams::default();
+        assert!(
+            p.is_balanced(),
+            "genesis must allocate exactly the fixed supply"
+        );
+        assert_eq!(p.total(), BUD_TOTAL_SUPPLY);
+
+        // Genesis validation reward pool must sit in the ADR-001 8-12% band.
+        let pool_pct = DEFAULT_VALIDATION_REWARD_POOL as u128 * 100 / BUD_TOTAL_SUPPLY as u128;
+        assert!(
+            (8..=12).contains(&pool_pct),
+            "validation reward pool {pool_pct}% outside ADR-001 8-12% band"
+        );
+
+        // Reward distribution draws from the pre-allocated pool and never mints
+        // beyond it (no-emission invariant at the payout level).
+        let schedule = RewardPoolSchedule::default();
+        let remaining = bud(10_000_000);
+        let payouts = reward_for_epoch(
+            schedule,
+            0,
+            remaining,
+            &[
+                (Address::from([1u8; 32]), 1_000_000),
+                (Address::from([2u8; 32]), 3_000_000),
+            ],
+        );
+        assert!(
+            total_epoch_payout(&payouts) <= remaining,
+            "epoch payout must not mint beyond the pre-allocated pool"
+        );
+        assert!(
+            schedule.validate().is_ok(),
+            "default pools must stay within the fixed supply"
+        );
+    }
 }

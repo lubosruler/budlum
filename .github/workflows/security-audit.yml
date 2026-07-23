@@ -1,0 +1,180 @@
+# Security Audit — Budlum Core
+#
+# Bu workflow, docs/budlum-ci-guvenlik-plani.md (CI/CD Güvenlik Sertleştirme
+# Planı) "Hemen" (1. aşama) maddelerinin dosya-tabanlı uygulamasıdır.
+# Mevcut CI zaten şunları karşılıyor: cargo fmt/clippy (ci.yml),
+# dependency-review (dependency-review.yml), Trivy + Miri + udeps/geiger
+# (docker-smoke.yml / miri.yml / supply-chain-extra.yml), determinism
+# (determinism.yml), semver (semver.yml), fuzz (fuzz-nightly.yml).
+# Burada EKSİK olan "Hemen" maddeleri ekleniyor:
+#   - actionlint (workflow YAML lint)
+#   - zizmor (GitHub Actions statik analiz)
+#   - CodeQL for Rust (SAST)
+#   - gitleaks (secret scanning)
+#   - MSRV job (1.94.0)
+#   - cargo-hack özellik matrisi
+#   - Hadolint (Dockerfile lint)
+#   - çapraz mimari (x86_64 + arm64) determinizm
+#   - OpenSSF Scorecard (zamanlanmış, bilgilendirici)
+#
+# TÜM action'lar Güvenlik Planı §3.1 gereği TAM commit SHA'sına pinlendi
+# (tag yerine SHA — supply-chain'a karşı koruma). SHAtar Dependabot
+# (github-actions) ile güncellenir. checkout / rust-toolchain repo'nun
+# ci.yml'deki SHA'larla aynı pinleme disiplinine uyuyor.
+
+name: Security Audit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "arena/**"]
+  schedule:
+    - cron: "0 3 * * 1"   # haftalık, Pazartesi 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: actionlint (workflow YAML lint)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
+
+  zizmor:
+    name: zizmor (GitHub Actions static analysis)
+    runs-on: ubuntu-latest
+    # Statik analiz — bulsa da bulmasa da CI'ı kırmasın (bilgilendirici + SARIF).
+    continue-on-error: true
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: zizmorcore/zizmor-action@0dce2577a4760a2749d8cfb7a84b7d5585ebcb7d # v0.5.0
+        with:
+          comment-on-pr: false
+
+  gitleaks:
+    name: gitleaks (secret scanning)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - name: gitleaks detect
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+
+  codeql:
+    name: CodeQL (Rust SAST)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
+        with:
+          languages: rust
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+          components: clippy, rustfmt
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: Build (CodeQL extraction)
+        run: cargo build --lib --locked
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
+
+  msrv:
+    name: MSRV check (1.94.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install Rust (MSRV)
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: cargo check (MSRV, locked)
+        run: cargo check --locked --lib
+
+  cargo-hack:
+    name: cargo-hack feature matrix
+    runs-on: ubuntu-latest
+    # Özellik matrisi taraması — bilgilendirici; yavaş/yoğun olabilir.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: cargo install cargo-hack
+        run: cargo install cargo-hack --locked
+      - name: Feature matrix check
+        run: cargo hack check --each-feature --skip-no-default-features --locked
+
+  hadolint:
+    name: Hadolint (Dockerfile lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          dockerfile: Dockerfile
+
+  cross-arch:
+    name: Cross-arch determinism (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c # master 2026-07-16
+        with:
+          toolchain: "1.94.0"
+      - name: Install protoc
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+      - name: Determinism test (genesis reproducibility)
+        # Aynı determinizm testi her iki mimaride de geçmeli (chain-split riski).
+        run: cargo test --lib --locked -- genesis_hash_deterministic
+
+  scorecard:
+    name: OpenSSF Scorecard
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: scorecard.sarif
+          results_format: sarif
+          publish_results: true

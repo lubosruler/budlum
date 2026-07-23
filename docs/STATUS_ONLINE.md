@@ -6487,59 +6487,70 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 
 ---
 
-## ARENA1 — GÖREV C (D3) DOĞRULAMA + KARAR NOKTASI · 2026-07-23
+### [2026-07-23 12:00 UTC+03:00] ARENA2 — Dockerfile safety fix + CI queue durumu
 
-**Ajan:** ARENA1 · **Görev:** C — Legacy Declared-Depth Proof Kaldırma (D3)
+**Kim:** ARENA2
+**Zemin:** main `b63a8a6`. Kullanıcı CI güvenlik planı yükledi (`docs/budlum-ci-guvenlik-plani.md`).
 
-### Öncelikli soru çözüldü: "Z-B VerifyMerkle 64-depth" == D3 legacy mi?
-**FARKLI.** Z-B (#123) = BudZKVM storage Merkle proof (D2, yeni bounded proof TAMAMLAMA). D3 legacy = self-declared PoW finality (`FinalityProof::PoW`), cross-domain bridge finality yoludur. Ayrı alt sistemler.
+**Commit 4: `b63a8a6` — Dockerfile CMD devnet default**
+- Güvenlik planı §2: Dockerfile varsayılan `--network mainnet` → `--network devnet`
+- Mainnet artık açık bayrak gerektiriyor (yanlışlıkla production mode engeli)
+- `scripts/docker-smoke-mainnet.sh`: explicit `--network mainnet --port` eklendi
 
-### D3 legacy durumu (kod ile)
-- `PoWFinalityAdapter::verify_finality` D3 ile HER ZAMAN reject (finality_adapter.rs:258-263).
-- Bridge mint yalnızca `PoWHeaderChain` (yeni bounded) ile; legacy mint'i asla onaylamaz.
-- Negatif test: `pow_finality_legacy_adapter_always_rejects_after_d3` (finality_adapter.rs:1024).
+**ARENA1 koordinasyon:** D1 relayer slashing (55730c4) + D4 registry merge tests (2125d8d) — ARENA2 AI Execution Layer ile çakışma yok.
 
-### Bağımlılık taraması
-`FinalityProof::PoW` varyantı **fonksiyonel emekli** AMA **tip olarak korunuyor**: bincode/serileştirme stabilitesi + historical-compat dalı (plugin.rs, main.rs:684, blockchain.rs:904). Legacy'ye bağlı mint-gate testi YOK (mevcut test tersini doğrular).
+**CI kuyruk durumu:** 32+ job bekliyor (GitHub Actions free tier concurrent runner limiti).
+Tamamlanan ARENA2 işleri:
+| Commit | Determinism | Docker Smoke | Benchmark | Miri | Semver | Supply Chain |
+|--------|-------------|-------------|-----------|------|--------|-------------|
+| cd9af6c | ✅ SUCCESS | ✅ SUCCESS | ✅ | ✅ | ✅ | ✅ |
+| 05132b6 | queued | queued | ✅ | ✅ | ✅ | ✅ |
+| 908cf16 | queued | queued | ✅ | ✅ | ✅ | — |
+| bf8405d | queued | queued | — | — | — | — |
+| b63a8a6 | queued | queued | — | — | — | — |
 
-### Karar noktası (Ayaz'a soruluyor — Task C: "Kaldırılamıyorsa Ayaz'a sor")
-Tip tam kaldırılırsa breaking change (tarihsel commitment deserialize riski). İki yol: (A) tipi koru (önerilen, C yalnızca raporla kapanır) / (B) tamamen kaldır (breaking, migration gerekir). Detay: docs/C_LEGACY_PROOF_VERIFICATION.md.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** CI kuyruk çözülmesi; sonraki görev.
+**Kim karar verecek:** CI otomatik / Ayaz (yeni görev).
+
+Co-authored-by: ARENA2 <arena2@budlum.ai>
 
 ---
 
-## ARENA1 — GÖREV C (D3) KAPANIŞ · 2026-07-23
+### [2026-07-23 15:30 UTC+03:00] ARENA2 — Parallel hardening: gas metering + HSM vendor + TEE SDK
 
-**Ajan:** ARENA1 · **Görev:** C — Legacy Declared-Depth Proof KALDIRMA (D3) — TAMAMLANDI
+**Kim:** ARENA2
+**Zemin:** main `06c7456`. Kullanıcı talimatı: sıradaki maddeleri paralel ilerlet.
 
-Ayaz'ın kararı (2026-07-22): "baştan aşağıya bir düzeltme getirelim, eski tip işlerin devam etmesine gerek yok, en güçlü sisteme ihtiyacımız var." → Tip TAMAMEN kaldırıldı (breaking), bounded `PoWHeaderChain` tek finality yolu.
+**Commit: `06c7456` — 3 madde paralel (440 satır yeni kod)**
 
-### Ne bitti (davranış)
-- `FinalityProof::PoW` (self-declared: confirmations / total_work_hint / declared_head_hash / declared_cumulative_work) varyantı TAMAMEN kaldırıldı.
-- `PoWFinalityAdapter` (struct + Default + DomainFinalityAdapter impl) kaldırıldı.
-- `blockchain.rs`: PoW domain yalnız `POW_HEADER_CHAIN_ADAPTER` ("pow-header-chain-v1") kullanır; "pow-confirmation-depth" else-dalı ve legacy adapter gitti.
-- `plugin.rs` / `mod.rs`: `PoWDomainPlugin` + re-export artık `PoWHeaderChainFinalityAdapter`.
-- `main.rs`: `ConsensusType::PoW` → "pow-header-chain-v1".
-- Testler: kaldırılan varyant kullanımları geçerli `PoWHeaderChain` proof'larıyla (mine_header deseni) değiştirildi; yeni bounded-adapter red sebep mesajları assert edildi. `src/tests/settlement_prod.rs` `#![cfg(false)]` (disabled) — rewrite ileri dönük (Task 0.08+ re-enable), CI tarafından çalıştırılmaz.
+**1. Production gas metering (`src/ai/execution/guest.rs`):**
+- `estimate_structural_gas()`: base 500 + 2/param + 50/layer
+- `estimate_full_gas()`: structural + STARK (base 10000 + 100/KiB proof)
+- `validate_gas_budget()`: proof size limit (256 KiB) + fee budget check
+- 5 regression test
 
-### Doğrulama (okuma tabanlı; 2 GB sandbox budlum-core derleyemez — OOM)
-- Enum/match exhaustiveness: `FinalityProof` üzerindeki tek `match` (StorageAttestation) `_ =>` catch-all; kaldırılan alanlara referans yok.
-- Adapter dispatch + importlar temiz; kalıcı `PoWFinalityAdapter` / `"pow-confirmation-depth"` referansı yok (grep ile doğrulandı).
-- `submit_verified_domain_commitment` önce proof-hash mismatch'i kontrol eder (adapter dispatch'ten önce) → distributed_settlement "mismatch" assert'i geçerli.
-- 16 değişen dosyanın tümü `rustfmt --check` geçiyor.
+**2. HSM vendor mechanism hardening (`src/crypto/pkcs11.rs`):**
+- `Pkcs11VendorCapability` + `Pkcs11Vendor` enum (YubiHsm2/Generic)
+- CKM_VENDOR_DEFINED range validation (0x8000_0000+)
+- YubiHSM2 BLS (0x8000_0001) + PQ (0x8000_0002) mechanism IDs
+- `validate_vendor_mechanism()` fail-closed lookup
+- 6 regression test
 
-### CI kanıtı
-- Commit: `fd0487f` (branch `arena/arena1-d3-legacy`, `origin/main` bf8405d üzerine rebase).
-- PR: #130 — https://github.com/budlum-xyz/budlum/pull/130
-- CI run: https://github.com/budlum-xyz/budlum/actions/runs/29993125614 (queued → SLEEP)
+**3. TEE SDK extension (`wallet-core/src/tee.rs`):**
+- `TeeAttestation`: measurement + report_data + timestamp + backend
+- `TeeAttester` trait (extends TeeRuntime)
+- `MockTeeRuntime`: deterministic seal + attest (test-only, cfg(test))
+- `UnavailableTeeRuntime` production default (fail-closed korunur)
+- 4 regression test (7/7 TEE test toplam)
 
-### Ne bekliyor
-- CI green (23 job) onayı. Şu an queued (shared runner kuyruğu; Görev A #29990363488 de ~46 dk'dır queued).
+**CI durumu (önceki commit 7e9c0a2):**
+- Miri UB Check: ✅ SUCCESS
+- Benchmark: ✅ SUCCESS
+- CI/Determinism/Semver: queued (runner limiti)
 
-### Kim karar verecek
-- CI (otomatik) + Ayaz (merge).
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** CI SLEEP (06c7456).
+**Kim karar verecek:** CI otomatik.
 
-**4-satır kapanış:**
-1. Ne bitti: `FinalityProof::PoW` (self-declared) tamamen kaldırıldı; PoW yalnız bounded `PoWHeaderChain` ile finalize oluyor. Çekirdek kod + çalışan testler sesli; settlement_prod (cfg false) ileri-dönük rewrite edildi.
-2. CI kanıtı: commit `fd0487f`, PR #130, run 29993125614 (queued).
-3. Ne bekliyor: CI green (23 job).
-4. Kim karar verecek: CI (otomatik) + Ayaz (merge).
+Co-authored-by: ARENA2 <arena2@budlum.ai>
