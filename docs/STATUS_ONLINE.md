@@ -6484,3 +6484,23 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 **Kim karar verecek:** CI otomatik.
 
 Co-authored-by: ARENA2 <arena2@budlum.ai>
+
+---
+
+## ARENA1 — GÖREV B (D1) WORK-IN-PROGRESS · 2026-07-23
+
+**Ajan:** ARENA1 · **Görev:** B — Relayer Permissionless Production Loop (D1)
+**Ön koşul:** Görev A (D4) merge — D4 kodu main'de mevcut (roller 1-9, roller korundu). Karşılanmış.
+
+### Mevcut durum (kod ile)
+- `src/bin/budlum-relayer.rs`: D1 permissionless iskeleti var (min_stake gate, `is_active_relayer` kontrol, `submit_slashing_report_for_invalid_relay`). AMA: EthToBud'da `proof_json` placeholder ("Real MPT proof assembly" TODO), BudToEth tamamen TODO, challenge window yalnızca `eprintln!`.
+- `src/relayer/policy.rs`: ayrı "Relayer Policy Layer" (intent/solver bid) — D1 relay binary'sinden farklı; Task 12 kapsamı.
+- `blockchain.rs:1886 submit_relay_proof` → `ensure_active_relayer` gate MEVCUT (Task A ile doğrulandı).
+
+### Bu increment (push edildi / edilecek)
+- `src/registry/evidence.rs`: `consensus_invalid_relay_griefing` / `_front_running` / `_wrong_relay` constructor'ları (ayrı `Other` tag → MaliciousBehaviour %100). + testler.
+- `src/registry/permissionless.rs`: permissionless relayer bond → griefing slash jail testi + griefing raporu well-formed testi.
+- Kalan B maddeleri (sonraki increment): production loop gerçek proof assembly (MPT+header-chain), BudToEth tamamlama, bridge açık relayer set + challenge window, kötü niyetli relayer fuzz/integration test.
+
+### Durum
+Branch `arena/arena1-d1-relayer` → PR main. CI (GitHub runner) hakem; yerel 2GB sandbox budlum-core derleyemiyor.

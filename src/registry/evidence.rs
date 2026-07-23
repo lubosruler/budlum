@@ -267,6 +267,71 @@ impl SlashingReport {
         )
     }
 
+    /// D1 (Görev B): Relayer **griefing** — submitting garbage / low-value /
+    /// resource-wasting proofs to deny service or waste other relayers'
+    /// resources. Uses `Other` with tag `relayer_griefing`, mapped to
+    /// `MaliciousBehaviour` (100% slash in default params). Per the D4 decision
+    /// we reuse the `Other` variant (adding a new `SlashingCondition` would be a
+    /// semver break); the tag is what distinguishes the offence class.
+    pub fn consensus_invalid_relay_griefing(
+        offender: Address,
+        reason: String,
+        reporter: Option<Address>,
+    ) -> Self {
+        Self::new(
+            offender,
+            roles::RELAYER,
+            SlashingProof::Other {
+                tag: "relayer_griefing".into(),
+                data: reason.into_bytes(),
+            },
+            ProofProvenance::ConsensusVerified,
+            reporter,
+        )
+    }
+
+    /// D1 (Görev B): Relayer **front-running** — racing another relayer's valid
+    /// proof to capture fees / rewards illegitimately (e.g. copying the proof
+    /// and submitting it first). Tag `relayer_front_running`, mapped to
+    /// `MaliciousBehaviour` (100% slash).
+    pub fn consensus_invalid_relay_front_running(
+        offender: Address,
+        reason: String,
+        reporter: Option<Address>,
+    ) -> Self {
+        Self::new(
+            offender,
+            roles::RELAYER,
+            SlashingProof::Other {
+                tag: "relayer_front_running".into(),
+                data: reason.into_bytes(),
+            },
+            ProofProvenance::ConsensusVerified,
+            reporter,
+        )
+    }
+
+    /// D1 (Görev B): Relayer **wrong-relay** — relaying a message to the wrong
+    /// destination domain, forging relay metadata, or delivering a proof that
+    /// does not correspond to the attested message. Tag `relayer_wrong_relay`,
+    /// mapped to `MaliciousBehaviour` (100% slash).
+    pub fn consensus_invalid_relay_wrong_relay(
+        offender: Address,
+        reason: String,
+        reporter: Option<Address>,
+    ) -> Self {
+        Self::new(
+            offender,
+            roles::RELAYER,
+            SlashingProof::Other {
+                tag: "relayer_wrong_relay".into(),
+                data: reason.into_bytes(),
+            },
+            ProofProvenance::ConsensusVerified,
+            reporter,
+        )
+    }
+
     /// D4: Attester invalid attestation — supply-chain forged attestation.
     pub fn consensus_invalid_attester_proof(
         offender: Address,
@@ -465,5 +530,56 @@ mod tests {
         let r2 =
             SlashingReport::consensus_liveness(offender, roles::VALIDATOR, 10, 20, 5, 10, None);
         assert_eq!(r2.condition(), SlashingCondition::LivenessFault);
+    }
+
+    /// D1 (Görev B): the three relayer offence classes — griefing,
+    /// front-running, wrong-relay — are each structurally valid, labelled as
+    /// `MaliciousBehaviour` (100% slash), and consensus-actionable. The single
+    /// `Other` proof variant with distinct tags keeps the `SlashingCondition`
+    /// enum stable (no semver break) while still separating offence classes.
+    #[test]
+    fn relay_griefing_front_running_wrong_relay_are_malicious() {
+        let grief = SlashingReport::consensus_invalid_relay_griefing(
+            addr(3),
+            "resource-wasting proofs".into(),
+            Some(addr(4)),
+        );
+        let front = SlashingReport::consensus_invalid_relay_front_running(
+            addr(3),
+            "raced a valid proof".into(),
+            Some(addr(4)),
+        );
+        let wrong = SlashingReport::consensus_invalid_relay_wrong_relay(
+            addr(3),
+            "relayed to wrong domain".into(),
+            Some(addr(4)),
+        );
+        for r in [grief, front, wrong] {
+            assert!(r.validate_shape().is_ok(), "shape must be valid");
+            assert_eq!(
+                r.condition(),
+                SlashingCondition::MaliciousBehaviour,
+                "relayer offences are 100% slash"
+            );
+            assert!(
+                r.is_actionable().is_ok(),
+                "consensus-verified reports are actionable"
+            );
+        }
+    }
+
+    /// Regression: the pre-existing `relayer_invalid_proof` report remains
+    /// valid and malicious after the D1 griefing/front-running/wrong-relay
+    /// constructors were added.
+    #[test]
+    fn relay_invalid_proof_still_malicious_after_d1() {
+        let r = SlashingReport::consensus_invalid_relay_proof(
+            addr(5),
+            "invalid MPT/receipt proof".into(),
+            Some(addr(6)),
+        );
+        assert!(r.validate_shape().is_ok());
+        assert_eq!(r.condition(), SlashingCondition::MaliciousBehaviour);
+        assert!(r.is_actionable().is_ok());
     }
 }
