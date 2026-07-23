@@ -620,4 +620,58 @@ mod tests {
         assert_eq!(proposal.vote_weight_of(&voter), 0);
         assert!(proposal.add_vote(voter, 1_000, true, 0).is_err());
     }
+
+    #[test]
+    fn governance_whitelist_invariant_blocks_all_non_core_params() {
+        // ADR-004 whitelist invariant: yalnızca güvenlik-kritik parametreler
+        // değiştirilebilir; permissionless core davranışları (code upgrade,
+        // arz, fee/treasury, validator set) ASLA değiştirilemez. Bu test
+        // invariant'ı non-whitelist parametre deneyerek korur (breaking test).
+        let mut gov = GovernanceState::default();
+        let proposer = Address::from([0x01; 32]);
+        let non_core = [
+            "code_upgrade",
+            "total_supply",
+            "block_reward",
+            "treasury",
+            "validator_set",
+            "fee",
+        ];
+        for key in non_core {
+            let err = gov
+                .create_proposal(
+                    proposer,
+                    ProposalType::ParameterUpdate(key.to_string(), "x".to_string()),
+                    0,
+                    10,
+                )
+                .unwrap_err();
+            assert!(
+                err.contains("not whitelisted"),
+                "non-core param '{key}' must be rejected by the whitelist invariant"
+            );
+        }
+        // Whitelist içindeki güvenlik parametreleri whitelist tarafından
+        // reddedilmez (yanlış pozitif yok).
+        for key in [
+            "min_stake",
+            "unbonding_epochs",
+            "double_sign_slash_ratio_fixed",
+            "liveness_slash_ratio_fixed",
+            "malicious_slash_ratio_fixed",
+        ] {
+            let res = gov.create_proposal(
+                proposer,
+                ProposalType::ParameterUpdate(key.to_string(), "5000".to_string()),
+                0,
+                10,
+            );
+            if let Err(e) = &res {
+                assert!(
+                    !e.contains("not whitelisted"),
+                    "whitelisted security param '{key}' wrongly blocked by whitelist"
+                );
+            }
+        }
+    }
 }
