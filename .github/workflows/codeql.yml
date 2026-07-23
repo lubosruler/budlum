@@ -21,9 +21,11 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
         with:
           languages: rust
           queries: security-extended
@@ -35,9 +37,9 @@ jobs:
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
         with:
           category: "/language:rust"

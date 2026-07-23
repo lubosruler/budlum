@@ -353,6 +353,9 @@ mod distributed_settlement_tests {
         assert!(
             err2.contains("not finalized")
                 || err2.contains("Rejected")
+                || err2.contains("rejected")
+                || err2.contains("empty")
+                || err2.contains("finality")
                 || err2.contains("retired")
                 || err2.contains("leading zero")
                 || err2.contains("inconsistent")

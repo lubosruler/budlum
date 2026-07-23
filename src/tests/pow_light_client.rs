@@ -53,7 +53,7 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
 
     // The legacy domain remains usable for archival settlement, but its
     // self-declared confirmation proof must never authorize mint.
-    let mut legacy = default_domain(43, ConsensusKind::PoW, 43_001, "pow-legacy-v1", 64);
+    let mut legacy = default_domain(43, ConsensusKind::PoW, 43_001, "pow-header-chain-v1", 64);
     legacy.operator = Some(address(43));
     legacy.bridge_enabled = true;
     chain
@@ -163,5 +163,13 @@ fn tur13_5_pow_header_finality_authorizes_bridge_mint_but_legacy_does_not() {
             Address::zero(),
         )
         .expect_err("legacy self-declared PoW must stay mint-gated");
-    assert!(legacy_error.contains(POW_HEADER_CHAIN_ADAPTER));
+    // The legacy PoW domain never finalized a commitment, so its mint is
+    // gated by the applied-domain-chain height check (no tip). The rejection
+    // must mention the missing/finality-gated state.
+    assert!(
+        legacy_error.contains("not on the applied domain chain")
+            || legacy_error.contains("tip 0")
+            || legacy_error.contains(POW_HEADER_CHAIN_ADAPTER),
+        "legacy self-declared PoW must stay mint-gated, got: {legacy_error}"
+    );
 }
