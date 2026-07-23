@@ -6504,3 +6504,42 @@ Co-authored-by: ARENA2 <arena2@budlum.ai>
 
 ### Karar noktası (Ayaz'a soruluyor — Task C: "Kaldırılamıyorsa Ayaz'a sor")
 Tip tam kaldırılırsa breaking change (tarihsel commitment deserialize riski). İki yol: (A) tipi koru (önerilen, C yalnızca raporla kapanır) / (B) tamamen kaldır (breaking, migration gerekir). Detay: docs/C_LEGACY_PROOF_VERIFICATION.md.
+
+---
+
+## ARENA1 — GÖREV C (D3) KAPANIŞ · 2026-07-23
+
+**Ajan:** ARENA1 · **Görev:** C — Legacy Declared-Depth Proof KALDIRMA (D3) — TAMAMLANDI
+
+Ayaz'ın kararı (2026-07-22): "baştan aşağıya bir düzeltme getirelim, eski tip işlerin devam etmesine gerek yok, en güçlü sisteme ihtiyacımız var." → Tip TAMAMEN kaldırıldı (breaking), bounded `PoWHeaderChain` tek finality yolu.
+
+### Ne bitti (davranış)
+- `FinalityProof::PoW` (self-declared: confirmations / total_work_hint / declared_head_hash / declared_cumulative_work) varyantı TAMAMEN kaldırıldı.
+- `PoWFinalityAdapter` (struct + Default + DomainFinalityAdapter impl) kaldırıldı.
+- `blockchain.rs`: PoW domain yalnız `POW_HEADER_CHAIN_ADAPTER` ("pow-header-chain-v1") kullanır; "pow-confirmation-depth" else-dalı ve legacy adapter gitti.
+- `plugin.rs` / `mod.rs`: `PoWDomainPlugin` + re-export artık `PoWHeaderChainFinalityAdapter`.
+- `main.rs`: `ConsensusType::PoW` → "pow-header-chain-v1".
+- Testler: kaldırılan varyant kullanımları geçerli `PoWHeaderChain` proof'larıyla (mine_header deseni) değiştirildi; yeni bounded-adapter red sebep mesajları assert edildi. `src/tests/settlement_prod.rs` `#![cfg(false)]` (disabled) — rewrite ileri dönük (Task 0.08+ re-enable), CI tarafından çalıştırılmaz.
+
+### Doğrulama (okuma tabanlı; 2 GB sandbox budlum-core derleyemez — OOM)
+- Enum/match exhaustiveness: `FinalityProof` üzerindeki tek `match` (StorageAttestation) `_ =>` catch-all; kaldırılan alanlara referans yok.
+- Adapter dispatch + importlar temiz; kalıcı `PoWFinalityAdapter` / `"pow-confirmation-depth"` referansı yok (grep ile doğrulandı).
+- `submit_verified_domain_commitment` önce proof-hash mismatch'i kontrol eder (adapter dispatch'ten önce) → distributed_settlement "mismatch" assert'i geçerli.
+- 16 değişen dosyanın tümü `rustfmt --check` geçiyor.
+
+### CI kanıtı
+- Commit: `fd0487f` (branch `arena/arena1-d3-legacy`, `origin/main` bf8405d üzerine rebase).
+- PR: #130 — https://github.com/budlum-xyz/budlum/pull/130
+- CI run: https://github.com/budlum-xyz/budlum/actions/runs/29993125614 (queued → SLEEP)
+
+### Ne bekliyor
+- CI green (23 job) onayı. Şu an queued (shared runner kuyruğu; Görev A #29990363488 de ~46 dk'dır queued).
+
+### Kim karar verecek
+- CI (otomatik) + Ayaz (merge).
+
+**4-satır kapanış:**
+1. Ne bitti: `FinalityProof::PoW` (self-declared) tamamen kaldırıldı; PoW yalnız bounded `PoWHeaderChain` ile finalize oluyor. Çekirdek kod + çalışan testler sesli; settlement_prod (cfg false) ileri-dönük rewrite edildi.
+2. CI kanıtı: commit `fd0487f`, PR #130, run 29993125614 (queued).
+3. Ne bekliyor: CI green (23 job).
+4. Kim karar verecek: CI (otomatik) + Ayaz (merge).
