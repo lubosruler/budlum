@@ -32,13 +32,15 @@
 - A4: Unbonding queue → `retain()` ile zaten prune ediliyor (audit yanlış)
 - N2: Snapshot chunk DoS → MAX bounds zaten mevcut
 
+✅ **E1 (KISMİ — kritik path'ler):** Transfer receiver checked_add + bridge mint try_add_balance
+✅ **W1:** Wallet seed/mnemonic zeroize on drop (zeroize crate)
+
 ### Kalan audit bulguları (mainnet öncesi):
-- ⏳ E1: Executor saturating → checked arithmetic (108 instance — büyük iş)
+- ⏳ E1 (kalan ~100 saturating instance): kademeli checked arithmetic geçişi
 - ⏳ S6: Syscall result AIR constraint (public input binding)
 - ⏳ C1: BLS hash_to_g1 RFC 9380 (kripto değişiklik)
 - ⏳ C3: Validator VRF/BLS key mandatory on Stake (mimari değişiklik)
 - ⏳ H1: PKCS#11 BLS/PQ non-extractable (donanım/audit)
-- ⏳ W1: Wallet seed zeroize + mlock (memory safety)
 
 ## Intent → zincir (private transfer)
 
