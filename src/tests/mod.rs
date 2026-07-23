@@ -16,6 +16,8 @@ pub mod bench_performance;
 pub mod block_reward;
 #[cfg(test)]
 pub mod bns;
+#[cfg(test)]
+pub mod deed;
 // Task 0.38, Görev 1-2 + Görev 5: B.U.D. E2E test + ekip-bağımsızlık invariantları.
 // 3-aktör (operatör A + operatör B + izleyici C) senaryosu + 9 adet
 // permissionless/whitelist/data-sovereignty invariantı (Task 0.39 plan §0.5
