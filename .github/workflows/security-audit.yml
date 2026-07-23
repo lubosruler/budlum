@@ -17,9 +17,10 @@
 #   - çapraz mimari (x86_64 + arm64) determinizm
 #   - OpenSSF Scorecard (zamanlanmış, bilgilendirici)
 #
-# NOT: Yeni action'lar sürüm etiketiyle (tag) bağlandı. Güvenlik planı §3.1
-# gereği üretimde TAM SHA'ya pinlenmelidir (örn. actions/checkout@<sha>).
-# checkout / rust-toolchain repo'nun ci.yml'deki tam SHA'larıyla pinlendi.
+# TÜM action'lar Güvenlik Planı §3.1 gereği TAM commit SHA'sına pinlendi
+# (tag yerine SHA — supply-chain'a karşı koruma). SHAtar Dependabot
+# (github-actions) ile güncellenir. checkout / rust-toolchain repo'nun
+# ci.yml'deki SHA'larla aynı pinleme disiplinine uyuyor.
 
 name: Security Audit
 
@@ -43,7 +44,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: raven-actions/actionlint@v2
+      - uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
 
   zizmor:
     name: zizmor (GitHub Actions static analysis)
@@ -56,7 +57,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: zizmorcore/zizmor-action@v0.5.0
+      - uses: zizmorcore/zizmor-action@0dce2577a4760a2749d8cfb7a84b7d5585ebcb7d # v0.5.0
         with:
           comment-on-pr: false
 
@@ -71,7 +72,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: gitleaks detect
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITLEAKS_CONFIG: .gitleaks.toml
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
@@ -85,7 +86,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
         with:
           languages: rust
       - name: Install Rust
@@ -98,7 +99,7 @@ jobs:
       - name: Build (CodeQL extraction)
         run: cargo build --lib --locked
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@4187e74d05793876e9989daffde9c3e66b4acd07 # v3
 
   msrv:
     name: MSRV check (1.94.0)
@@ -137,7 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: hadolint/hadolint-action@v3
+      - uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
         with:
           dockerfile: Dockerfile
 
@@ -172,7 +173,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Run Scorecard
-        uses: ossf/scorecard-action@v2
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
         with:
           results_file: scorecard.sarif
           results_format: sarif

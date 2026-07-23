@@ -199,4 +199,4 @@ Mevcut CI zaten şunları karşılıyor (gerçek `.github/workflows/` okunarak d
 
 **Henüz dosya ile yapılamayanlar (repo-admin / harici hizmet — planın Orta vade / İleri seviye aşaması):** branch protection (imzalı commit, ≥2 onay, force-push yasağı, eski onay düşmesi), tag koruması, private vulnerability reporting açma, cosign + SLSA build provenance, ClusterFuzzLite / OSS-Fuzz, Kani, cargo-mutants, CodeQL advanced setup, SBOM imzalama, org-wide 2FA zorunluluğu. Bunlar GitHub repo ayarlarından / harici servislerden yapılandırılır; bu PR kapsamı dışında bırakıldı.
 
-**Not:** Yeni action'lar sürüm etiketiyle (tag) bağlandı; üretimde Güvenlik Planı §3.1 gereği tam commit SHA'sına pinlenmelidir.
+**Not:** Tüm yeni action'lar (actionlint, zizmor, gitleaks, CodeQL, hadolint, scorecard) Güvenlik Planı §3.1 gereği **tam commit SHA'sına pinlendi** (tag yerine). `hadolint-action@v3` ve `scorecard-action@v2` etiketleri mevcut olmadığından (`v3.3.0` / `v2.4.3` gerçek sürümler) düzeltildi; bu hata giderilmeseydi workflow action çözümlemesinde başarısız olurdu. SHA'lar Dependabot (github-actions) ile güncellenir.
