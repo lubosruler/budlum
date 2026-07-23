@@ -204,7 +204,7 @@ mod rpc_tests {
             crate::domain::ConsensusKind::PoW,
             1337,
             "pow-header-chain-v1",
-            0,
+            1,
         );
         chain
             .register_consensus_domain(domain.clone())
