@@ -1,4 +1,20 @@
 
+### [2026-07-24 17:25 UTC+03:00] ARENA1 — relayer binary fail-closed hardening
+
+**Zemin:** CI izlenirken C-04/H-06 hattında devam edildi.
+**Bu turdaki düzeltmeler:**
+1. `src/bin/budlum-relayer.rs`: `bud_registryActiveMembers` artık gerçek RPC shape'ini (`members[]`) parse ediyor; adres eşleşmesi prefix/contains yerine exact match.
+2. Relayer active-check RPC hata aldığında artık "assume active" yapmıyor; placeholder devnet dışı kurulumlar fail-closed kalıyor.
+3. `build_deposit_proof()` placeholder proof üretmek yerine açıkça `not implemented` hatası döndürüyor; böylece sahte/boş proof submit edilmesi engelleniyor.
+4. Regresyon testleri: object-shape parse exactness + fail-closed proof-builder testi.
+
+**Lokal doğrulama:** `cargo fmt --all -- --check` ✅ · `cargo check --locked --lib` ✅.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** push + CI SLEEP; sonra hibrit domain plugin wiring / kalan relay-contract uyumsuzlukları.
+**Kim karar verecek:** yeni karar yok; CI ve bir sonraki mimari engel belirleyici.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
 ### [2026-07-24 17:05 UTC+03:00] ARENA1 — RPC socket-IP hardening + vendor-native HSM strict path
 
 **Zemin:** önceki iki main push sonrası CI kırmızılarını canlı izleyip kök-nedenlerine göre devam edildi.

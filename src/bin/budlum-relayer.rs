@@ -156,37 +156,33 @@ impl BudlumClient {
     /// D1: Relayer'ın aktif olup olmadığını sorgula (bud_registryActiveMembers role=3).
     pub async fn is_active_relayer(&self, address: &str) -> Result<bool, String> {
         let params = serde_json::json!([3]); // RELAYER role id
-        match self.rpc_call("bud_registryActiveMembers", params).await {
-            Ok(val) => {
-                if let Some(arr) = val.as_array() {
-                    for entry in arr {
-                        // entry may be object with account field or string
-                        if let Some(acc) = entry.get("account").and_then(|a| a.as_str()) {
-                            if acc.to_lowercase().contains(
-                                &address.to_lowercase().trim_start_matches("0x")
-                                    [..2.min(address.len())],
-                            ) || acc == address
-                            {
-                                return Ok(true);
-                            }
-                        } else if let Some(s) = entry.as_str() {
-                            if s.to_lowercase() == address.to_lowercase() {
-                                return Ok(true);
-                            }
-                        }
-                    }
-                    Ok(false)
-                } else {
-                    // If RPC returns not array, assume not active — but don't fail hard, allow progress
-                    Ok(false)
+        let val = self.rpc_call("bud_registryActiveMembers", params).await?;
+
+        let members = val
+            .get("members")
+            .and_then(|m| m.as_array())
+            .or_else(|| val.as_array())
+            .ok_or_else(|| {
+                "bud_registryActiveMembers returned unexpected JSON shape".to_string()
+            })?;
+
+        let normalized = address.to_lowercase();
+        for entry in members {
+            if let Some(acc) = entry.get("address").and_then(|a| a.as_str()) {
+                if acc.to_lowercase() == normalized {
+                    return Ok(true);
+                }
+            } else if let Some(acc) = entry.get("account").and_then(|a| a.as_str()) {
+                if acc.to_lowercase() == normalized {
+                    return Ok(true);
+                }
+            } else if let Some(s) = entry.as_str() {
+                if s.to_lowercase() == normalized {
+                    return Ok(true);
                 }
             }
-            Err(e) => {
-                // RPC yoksa veya method yoksa, permissionless check'i atla (devnet)
-                eprintln!("bud_registryActiveMembers RPC failed (devnet mode, skip): {e}");
-                Ok(true)
-            }
         }
+        Ok(false)
     }
 
     /// D1: Relay proof submit — bud_submitRelayProof
@@ -354,23 +350,11 @@ impl EthClient {
         &self,
         event: &EthDepositEvent,
     ) -> Result<serde_json::Value, String> {
-        // TODO: Real MPT proof assembly
-        // 1. eth_getTransactionReceipt(tx_hash) → receipt RLP
-        // 2. eth_getBlockByNumber(blockNumber) → header (receiptsRoot)
-        // 3. eth_getProof for receiptsRoot → MPT nodes
-        // 4. Header chain N-conf (64) → confirmation headers
-        // Şimdilik placeholder proof JSON:
-        let proof = serde_json::json!({
-            "tx_hash": event.tx_hash,
-            "block_number": event.block_number,
-            "log_index": event.log_index,
-            "receipt_rlp": "0x",
-            "mpt_nodes": [],
-            "header_rlp": "0x",
-            "confirmation_headers": [],
-            "required_confirmations": 64
-        });
-        Ok(proof)
+        let _ = event;
+        Err(
+            "EthToBud deposit proof assembly is not implemented yet; refusing to submit placeholder proofs"
+                .into(),
+        )
     }
 }
 
@@ -530,8 +514,8 @@ async fn check_relayer_active(budlum_client: &BudlumClient, config: &RelayerConf
             active
         }
         Err(e) => {
-            eprintln!("Failed to check relayer active status: {e} — assume active in devnet");
-            true
+            eprintln!("Failed to check relayer active status: {e}");
+            false
         }
     }
 }
@@ -784,5 +768,49 @@ mod tests {
         let tag = "relayer_invalid_proof";
         assert_eq!(tag, "relayer_invalid_proof");
         // This tag maps to MaliciousBehaviour in evidence.rs
+    }
+
+    #[test]
+    fn registry_active_members_object_shape_parses_exact_address_only() {
+        let payload = serde_json::json!({
+            "roleId": 3,
+            "count": 1,
+            "members": [
+                {"address": "0xaaaaaaaa"}
+            ]
+        });
+        let members = payload.get("members").and_then(|m| m.as_array()).unwrap();
+        let normalized = "0xaaaaaaaa".to_string();
+        assert!(members.iter().any(|entry| {
+            entry
+                .get("address")
+                .and_then(|a| a.as_str())
+                .map(|s| s.to_lowercase())
+                == Some(normalized.clone())
+        }));
+        assert!(!members.iter().any(|entry| {
+            entry
+                .get("address")
+                .and_then(|a| a.as_str())
+                .map(|s| s.to_lowercase())
+                == Some("0xaa".to_string())
+        }));
+    }
+
+    #[test]
+    fn deposit_proof_builder_is_fail_closed_until_real_impl_exists() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let client = EthClient::new("http://eth".into(), "0x1234".into());
+        let event = EthDepositEvent {
+            tx_hash: "0xabc".into(),
+            block_number: 1,
+            log_index: 0,
+            depositor: "0xdep".into(),
+            amount: 1,
+            budlum_recipient: "0xrecip".into(),
+            nonce: 1,
+        };
+        let err = rt.block_on(client.build_deposit_proof(&event)).unwrap_err();
+        assert!(err.contains("not implemented"));
     }
 }
