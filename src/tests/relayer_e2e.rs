@@ -279,10 +279,7 @@ fn full_internal_relay_cycle_lock_mint() {
     let message = lock_event.message.clone().unwrap();
     let message_id = message.message_id;
 
-    // Relayers watch domain event logs and enqueue off-chain.
-    bc.enqueue_bridge_relay(lock_event.clone(), &message);
-
-    // Relayer enqueued it
+    // Production path now auto-enqueues the relay when the bridge lock event is created.
     assert_eq!(bc.pending_relay_count(), 1);
 
     // 5. Generate proof (as a relayer would)
@@ -358,7 +355,6 @@ fn relayer_invalid_proof_is_rejected() {
         .unwrap();
     let message = lock_event.message.clone().unwrap();
     let message_id = message.message_id;
-    bc.enqueue_bridge_relay(lock_event.clone(), &message);
     assert_eq!(bc.pending_relay_count(), 1);
 
     let mut tree = DomainEventTree::new();
@@ -438,8 +434,7 @@ fn full_internal_relay_cycle_burn_unlock() {
     let burn_msg = burn_event.message.clone().unwrap();
     let burn_msg_id = burn_msg.message_id;
 
-    // Relayer enqueued it
-    bc.enqueue_bridge_relay(burn_event.clone(), &burn_msg);
+    // Production path now auto-enqueues the relay when the burn event is created.
     assert_eq!(bc.pending_relay_count(), 1);
 
     // 4. Generate proof

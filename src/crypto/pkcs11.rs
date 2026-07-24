@@ -18,6 +18,7 @@ pub struct Pkcs11Signer {
     inner: Mutex<Option<Pkcs11Inner>>,
     bls_mechanism: Option<u64>,
     pq_mechanism: Option<u64>,
+    strict_vendor_native: bool,
 }
 
 struct Pkcs11Inner {
@@ -116,6 +117,7 @@ impl Pkcs11Signer {
             })),
             bls_mechanism: None,
             pq_mechanism: None,
+            strict_vendor_native: false,
         })
     }
 
@@ -134,6 +136,13 @@ impl Pkcs11Signer {
         if let Some(id) = self.pq_mechanism {
             tracing::info!("PKCS#11: vendor PQ mechanism 0x{:08X}", id);
         }
+        self
+    }
+
+    /// Require vendor-native BLS/PQ signing and fail closed on any fallback.
+    #[must_use]
+    pub fn require_vendor_native_signing(mut self) -> Self {
+        self.strict_vendor_native = true;
         self
     }
 
@@ -447,7 +456,15 @@ impl ConsensusSigner for Pkcs11Signer {
             if let Some(inner) = guard.as_ref() {
                 match self.try_vendor_sign(&inner.session, mech_id, BLS_DATA_LABEL, msg) {
                     Ok(sig) => return Ok(sig),
-                    Err(e) => tracing::warn!("Vendor BLS sign failed ({}), sw fallback", e),
+                    Err(e) => {
+                        if self.strict_vendor_native {
+                            return Err(CryptoError::Signing(format!(
+                                "vendor-native BLS signing required, fallback forbidden: {}",
+                                e
+                            )));
+                        }
+                        tracing::warn!("Vendor BLS sign failed ({}), sw fallback", e)
+                    }
                 }
             }
         }
@@ -470,7 +487,15 @@ impl ConsensusSigner for Pkcs11Signer {
             if let Some(inner) = guard.as_ref() {
                 match self.try_vendor_sign(&inner.session, mech_id, PQ_DATA_LABEL, msg) {
                     Ok(sig) => return Ok(sig),
-                    Err(e) => tracing::warn!("Vendor PQ sign failed ({}), sw fallback", e),
+                    Err(e) => {
+                        if self.strict_vendor_native {
+                            return Err(CryptoError::Signing(format!(
+                                "vendor-native PQ signing required, fallback forbidden: {}",
+                                e
+                            )));
+                        }
+                        tracing::warn!("Vendor PQ sign failed ({}), sw fallback", e)
+                    }
                 }
             }
         }

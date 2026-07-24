@@ -1,4 +1,26 @@
 
+### [2026-07-24 17:05 UTC+03:00] ARENA1 — RPC socket-IP hardening + vendor-native HSM strict path
+
+**Zemin:** önceki iki main push sonrası CI kırmızılarını canlı izleyip kök-nedenlerine göre devam edildi.
+**Tespit edilen CI kök-nedenleri:**
+1. `consensus::pos::tests::test_minimum_stake` eski "stake eden validator hemen aktif olur" varsayımıyla kırıldı.
+2. `tests::relayer_e2e::full_internal_relay_cycle_burn_unlock` auto-enqueue sonrası hâlâ manuel enqueue yaptığı için kırıldı.
+3. RPC IP/auth yüzeyinde gerçek socket peer address hiç kullanılmadığı için allow-list hem self-DoS hem spoof risk taşıyordu.
+
+**Bu turdaki düzeltmeler:**
+- `src/rpc/server.rs`: jsonrpsee custom accept loop ile gerçek `SocketAddr` request extensions içine bağlandı; allow-list artık önce gerçek socket IP'yi kullanıyor, forwarding header'ları yalnızca gerçekten trusted proxy socket peer'inden gelirse kabul ediyor.
+- `src/crypto/pkcs11.rs`: `strict_vendor_native` modu eklendi; vendor-native BLS/PQ imza zorunluysa software fallback artık fail-closed.
+- `src/main.rs`: mainnet validator için explicit vendor mechanism ID zorunlu + mechanism ID validation + strict vendor-native signer modu.
+- `src/tests/relayer_e2e.rs`: auto-enqueue production wiring'e hizalama.
+- `src/consensus/pos.rs`: minimum stake testi bonded/inactive kararına hizalandı.
+
+**Lokal doğrulama:** `cargo fmt --all -- --check` ✅ · `cargo check --locked --lib` ✅. Hedeflenmiş `cargo test --lib` adları sandbox test-link yükünde tekrar timeout/kill oldu; CI hakem olacak.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** push + CI SLEEP; sonra kalan kritik yüzeyler (domain plugin wiring / relayer binary-RPC contract uyumu).
+**Kim karar verecek:** Şimdilik yeni karar yok; CI ve bir sonraki gerçek mimari çatışma belirleyici.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
 ### [2026-07-24 16:45 UTC+03:00] ARENA1 — bonded/inactive + storage single-source hardening turu
 
 **Zemin:** kullanıcı kararları sabit; ana hedefler `bonded_inactive` + `single_source_chain_actor`.

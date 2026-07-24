@@ -497,18 +497,61 @@ async fn main() {
             );
             std::process::exit(1);
         }
+        let strict_vendor_native = config.network
+            == budlum_core::core::chain_config::Network::Mainnet
+            && config.role == "validator";
+        if strict_vendor_native {
+            let Some(bls_raw) = config.pkcs11_bls_mechanism.as_deref() else {
+                eprintln!(
+                    "CRITICAL: mainnet validators require an explicit PKCS#11 vendor-native BLS mechanism id"
+                );
+                std::process::exit(1);
+            };
+            let Some(pq_raw) = config.pkcs11_pq_mechanism.as_deref() else {
+                eprintln!(
+                    "CRITICAL: mainnet validators require an explicit PKCS#11 vendor-native PQ mechanism id"
+                );
+                std::process::exit(1);
+            };
+            if let Err(e) =
+                budlum_core::crypto::pkcs11::Pkcs11Signer::validate_vendor_mechanism_id(bls_raw)
+            {
+                eprintln!("CRITICAL: invalid PKCS#11 BLS mechanism id: {}", e);
+                std::process::exit(1);
+            }
+            if let Err(e) =
+                budlum_core::crypto::pkcs11::Pkcs11Signer::validate_vendor_mechanism_id(pq_raw)
+            {
+                eprintln!("CRITICAL: invalid PKCS#11 PQ mechanism id: {}", e);
+                std::process::exit(1);
+            }
+        }
         match budlum_core::crypto::pkcs11::Pkcs11Signer::new(
             module_path.to_string(),
             slot_id,
             pin_env.to_string(),
         )
         .map(|s| {
-            s.with_vendor_mechanisms(
+            let signer = s.with_vendor_mechanisms(
                 config.pkcs11_bls_mechanism.clone(),
                 config.pkcs11_pq_mechanism.clone(),
-            )
+            );
+            if strict_vendor_native {
+                signer.require_vendor_native_signing()
+            } else {
+                signer
+            }
         }) {
             Ok(signer) => {
+                if strict_vendor_native {
+                    let caps = signer.vendor_capabilities();
+                    if !caps.vendor_native_signing_configured() {
+                        eprintln!(
+                            "CRITICAL: mainnet validators require vendor-native PKCS#11 BLS and PQ signing; software fallback is forbidden"
+                        );
+                        std::process::exit(1);
+                    }
+                }
                 if config.network == budlum_core::core::chain_config::Network::Mainnet
                     && config.role == "validator"
                     && (!signer.has_bls_key() || !signer.has_pq_key())

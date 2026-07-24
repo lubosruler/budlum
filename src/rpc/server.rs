@@ -17,7 +17,7 @@ use jsonrpsee::server::{HttpBody, HttpRequest, HttpResponse};
 use jsonrpsee::types::error::ErrorObjectOwned;
 use serde_json;
 use std::collections::{HashMap, VecDeque};
-use std::net::IpAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 use std::time::{Duration, Instant};
@@ -307,7 +307,10 @@ impl RpcServer {
     }
 
     pub async fn run(self, addr: String) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use jsonrpsee::server::ServerBuilder;
+        use jsonrpsee::core::server::Methods;
+        use jsonrpsee::server::{serve_with_graceful_shutdown, stop_channel, ServerBuilder};
+        use tower::ServiceExt;
+
         let http_middleware = ServiceBuilder::new().layer(RpcSecurityLayer::new(
             self.security.clone(),
             self.metrics.clone(),
@@ -321,15 +324,50 @@ impl RpcServer {
             builder = builder.max_connections(limit);
         }
 
-        let server = builder.build(addr.clone()).await?;
-
         let mode_label = match self.mode {
             RpcMode::Public => "public",
             RpcMode::Operator => "operator",
         };
+        let methods: Methods = self.into_rpc().into();
+        let svc_builder = builder.to_service_builder();
+        let listener = tokio::net::TcpListener::bind(addr.clone()).await?;
+        let (stop_handle, _server_handle) = stop_channel();
         info!("RPC Server ({}) started on {}", mode_label, addr);
-        let handle = server.start(self.into_rpc());
-        tokio::spawn(handle.stopped());
+
+        tokio::spawn(async move {
+            loop {
+                let (socket, remote_addr) = tokio::select! {
+                    res = listener.accept() => {
+                        match res {
+                            Ok(value) => value,
+                            Err(error) => {
+                                tracing::error!("RPC accept failed: {}", error);
+                                continue;
+                            }
+                        }
+                    }
+                    _ = stop_handle.clone().shutdown() => break,
+                };
+
+                let stop_handle_for_service = stop_handle.clone();
+                let svc_builder_for_service = svc_builder.clone();
+                let methods_for_service = methods.clone();
+                let svc = tower::service_fn(move |mut req: HttpRequest<hyper::body::Incoming>| {
+                    req.extensions_mut().insert::<SocketAddr>(remote_addr);
+                    let mut svc = svc_builder_for_service
+                        .clone()
+                        .build(methods_for_service.clone(), stop_handle_for_service.clone());
+                    async move { svc.call(req).await }
+                });
+
+                tokio::spawn(serve_with_graceful_shutdown(
+                    socket,
+                    svc,
+                    stop_handle.clone().shutdown(),
+                ));
+            }
+        });
+
         Ok(())
     }
 
@@ -505,14 +543,36 @@ fn is_authorized<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> bool {
     api_ok || bearer_ok
 }
 
-fn extract_client_ip<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> Option<IpAddr> {
-    // If trusted proxies are configured, extract the real client IP from X-Forwarded-For
-    // This is checked after validate_trusted_proxy has already identified the request came
-    // from a trusted source (the actual validation of the proxy IP is complex without
-    // socket-level info from hyper, so we rely on network-level firewall rules).
+fn extract_direct_client_ip<B>(req: &HttpRequest<B>) -> Option<IpAddr> {
+    req.extensions()
+        .get::<SocketAddr>()
+        .map(std::net::SocketAddr::ip)
+}
 
-    // Try X-Forwarded-For first (standard proxy header)
-    if !config.trusted_proxies.is_empty() {
+fn request_came_from_trusted_proxy<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> bool {
+    let Some(remote_ip) = extract_direct_client_ip(req) else {
+        return false;
+    };
+    config.trusted_proxies.iter().any(|allowed| {
+        allowed == "*"
+            || allowed
+                .parse::<IpAddr>()
+                .map(|ip| ip == remote_ip)
+                .unwrap_or(false)
+    })
+}
+
+fn extract_client_ip<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> Option<IpAddr> {
+    // Security model:
+    // 1. Prefer the real socket peer address when available.
+    // 2. Only honor forwarding headers if the socket peer is itself trusted.
+    // This closes both previous failure modes:
+    // - direct requests no longer self-DoS when allow-lists are enabled,
+    // - proxy headers are no longer trusted purely because `trusted_proxies`
+    //   is non-empty.
+    let direct_ip = extract_direct_client_ip(req);
+
+    if !config.trusted_proxies.is_empty() && request_came_from_trusted_proxy(config, req) {
         if let Some(forwarded_ip) = req
             .headers()
             .get("x-forwarded-for")
@@ -523,12 +583,7 @@ fn extract_client_ip<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> Opt
         {
             return Some(forwarded_ip);
         }
-    }
 
-    // Task 0.35 / B2: X-Real-IP is client-spoofable unless the request
-    // actually came through a reverse proxy we trust. Only honor it when
-    // `trusted_proxies` is non-empty (same gate as X-Forwarded-For).
-    if !config.trusted_proxies.is_empty() {
         if let Some(real_ip) = req
             .headers()
             .get("x-real-ip")
@@ -539,9 +594,7 @@ fn extract_client_ip<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> Opt
         }
     }
 
-    // No identifiable IP — reject (callers should rely on ConnectInfo /
-    // network policy when headers are absent).
-    None
+    direct_ip
 }
 
 fn is_ip_allowed<B>(config: &RpcSecurityConfig, req: &HttpRequest<B>) -> bool {
@@ -3682,7 +3735,13 @@ impl BudlumApiServer for RpcServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::net::{IpAddr, Ipv4Addr};
+    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+    fn request_with_remote(remote: SocketAddr) -> HttpRequest<()> {
+        let mut req = HttpRequest::builder().uri("/").body(()).unwrap();
+        req.extensions_mut().insert(remote);
+        req
+    }
 
     #[test]
     fn test_per_ip_rate_limiting() {
@@ -3699,5 +3758,50 @@ mod tests {
         assert!(is_per_ip_rate_limited(&config, &per_ip_rates, ip));
         // Third request: rate limited (exceeds limit of 2)
         assert!(!is_per_ip_rate_limited(&config, &per_ip_rates, ip));
+    }
+
+    #[test]
+    fn direct_loopback_request_passes_allowlist_without_proxy_headers() {
+        let config = RpcSecurityConfig::default();
+        let req = request_with_remote(SocketAddr::from(([127, 0, 0, 1], 9000)));
+        assert_eq!(
+            extract_client_ip(&config, &req),
+            Some(IpAddr::V4(Ipv4Addr::LOCALHOST))
+        );
+        assert!(is_ip_allowed(&config, &req));
+    }
+
+    #[test]
+    fn spoofed_forwarded_headers_are_ignored_without_trusted_proxy_match() {
+        let config = RpcSecurityConfig {
+            allowed_ips: vec!["10.0.0.5".into()],
+            trusted_proxies: vec!["10.10.10.10".into()],
+            ..Default::default()
+        };
+        let mut req = request_with_remote(SocketAddr::from(([198, 51, 100, 10], 9000)));
+        req.headers_mut()
+            .insert("x-forwarded-for", HeaderValue::from_static("10.0.0.5"));
+        assert_eq!(
+            extract_client_ip(&config, &req),
+            Some(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 10)))
+        );
+        assert!(!is_ip_allowed(&config, &req));
+    }
+
+    #[test]
+    fn trusted_proxy_headers_are_honored_only_for_trusted_socket_peer() {
+        let config = RpcSecurityConfig {
+            allowed_ips: vec!["10.0.0.5".into()],
+            trusted_proxies: vec!["127.0.0.1".into()],
+            ..Default::default()
+        };
+        let mut req = request_with_remote(SocketAddr::from(([127, 0, 0, 1], 9000)));
+        req.headers_mut()
+            .insert("x-forwarded-for", HeaderValue::from_static("10.0.0.5"));
+        assert_eq!(
+            extract_client_ip(&config, &req),
+            Some(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 5)))
+        );
+        assert!(is_ip_allowed(&config, &req));
     }
 }

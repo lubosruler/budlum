@@ -757,6 +757,16 @@ mod tests {
         let tx2 = create_stake_tx(&alice, 500, 2);
         Executor::apply_transaction(&mut state, &tx2).unwrap();
 
+        // User-approved policy: stake can exist before the validator completes
+        // its consensus key ceremony, but the validator stays bonded/inactive
+        // until VRF + BLS + PoP are present.
+        assert!(!engine.is_validator(&alice_addr, &state));
+        let validator = state.get_validator_mut(&alice_addr).unwrap();
+        validator.vrf_public_key = vec![1, 2, 3];
+        validator.bls_public_key = vec![4, 5, 6];
+        validator.pop_signature = vec![7, 8, 9];
+        validator.active = validator.is_consensus_ready();
+
         assert!(engine.is_validator(&alice_addr, &state));
     }
 }
