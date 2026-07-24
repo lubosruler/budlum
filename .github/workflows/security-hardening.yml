@@ -40,7 +40,7 @@ jobs:
       - name: cargo machete (root)
         run: cargo machete --with-metadata || true
       - name: cargo machete (budzero)
-        run: cd budzero && cargo machete --with-metadata || true
+        run: cd budzero && cargo machete --with-metadata; true
 
   mutants:
     name: cargo mutants (mutation testing)
