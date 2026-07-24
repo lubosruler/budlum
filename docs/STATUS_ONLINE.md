@@ -1,4 +1,20 @@
 
+### [2026-07-24 16:45 UTC+03:00] ARENA1 — bonded/inactive + storage single-source hardening turu
+
+**Zemin:** kullanıcı kararları sabit; ana hedefler `bonded_inactive` + `single_source_chain_actor`.
+**Bu turdaki ek düzeltmeler:**
+1. `src/execution/executor.rs`: Stake eden validator consensus anahtarları eksikse artık `active=true` olmuyor; stake kayıtlı kalıyor ama validator bonded/inactive statüsünde bırakılıyor.
+2. `src/core/account.rs`: `is_consensus_ready()` eklendi (VRF + BLS + PoP).
+3. `src/rpc/server.rs`: storage manifest/deal/challenge/outcome query/mutation yolu process-local RPC registry yerine chain actor state'ine taşındı.
+4. `src/chain/chain_actor.rs`: storage manifest/challenge/deals/outcome için yeni komut ve handle yüzeyi eklendi.
+
+**Lokal doğrulama:** `cargo fmt --all -- --check` ✅ · `cargo check --locked --lib` ✅. Hedefli test koşuları yine sandbox test-link yükü nedeniyle tam alınamadı; CI hakem olacak.
+**Budlumdevnet:** dokunulmadı.
+**Ne bekliyor:** push + CI SLEEP; sonra sıradaki kritik hat: RPC IP/auth yüzeyi ve kalan hibrit wiring.
+**Kim karar verecek:** şu aşamada yeni karar yok; CI sonucu ve sonraki teknik engel belirleyici.
+
+Co-authored-by: ARENA1 <arena1@budlum.ai>
+
 ### [2026-07-24 16:20 UTC+03:00] ARENA1 — pre-mortem kararları alındı, kritik wiring/persistence fix turu başladı
 
 **Zemin:** workspace audit raporu + kullanıcı kararları kesinleşti.

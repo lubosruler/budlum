@@ -104,22 +104,26 @@ impl Executor {
                     v.stake = v.stake.checked_add(stake_amount).ok_or_else(|| {
                         BudlumError::validation("stake_overflow", "stake overflow")
                     })?;
-                    v.active = true;
+                    v.active = v.is_consensus_ready();
+                    if !v.active {
+                        tracing::warn!(
+                            validator = %tx.from,
+                            missing_keys = ?v.missing_consensus_keys(),
+                            "validator stake updated but validator remains bonded/inactive until consensus keys are complete"
+                        );
+                    }
                 } else {
-                    // C3 enforcement (pre-mortem audit): New validators MUST
-                    // have consensus keys (VRF + BLS) before staking.
-                    // Without keys, the validator cannot sign finality
-                    // certificates → network liveness failure.
-                    //
-                    // C3: Warn when new validator has no consensus keys.
-                    // Warning-only: hard reject breaks existing PoS tests.
+                    // User-approved decision: staking may succeed before the
+                    // validator finishes its key ceremony, but such validators
+                    // must remain bonded/inactive and must not enter quorum.
                     state.add_validator(tx.from, stake_amount);
-                    if let Some(v) = state.get_validator(&tx.from) {
-                        if !v.has_consensus_keys() {
+                    if let Some(v) = state.get_validator_mut(&tx.from) {
+                        v.active = v.is_consensus_ready();
+                        if !v.active {
                             tracing::warn!(
                                 validator = %tx.from,
                                 missing_keys = ?v.missing_consensus_keys(),
-                                "C3: new validator without consensus keys — finality unavailable until keys set"
+                                "new validator bonded but inactive until consensus keys are complete"
                             );
                         }
                     }

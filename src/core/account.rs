@@ -152,6 +152,14 @@ impl Validator {
         !self.vrf_public_key.is_empty() && !self.bls_public_key.is_empty()
     }
 
+    /// Full readiness gate for entering the active consensus set.
+    ///
+    /// This is stricter than `has_consensus_keys()`: a validator must have
+    /// VRF + BLS + Proof-of-Possession before it can count toward quorum.
+    pub fn is_consensus_ready(&self) -> bool {
+        self.has_consensus_keys() && !self.pop_signature.is_empty()
+    }
+
     /// C3 fix: Full readiness check — VRF + BLS + PoP signature.
     /// Mainnet validators MUST pass this check before participating in
     /// consensus. Returns list of missing key types.
